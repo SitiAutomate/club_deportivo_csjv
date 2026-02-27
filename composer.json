@@ -1,0 +1,10 @@
+{
+  "name": "inscripciones-club/inscripciones",
+  "description": "Sistema de inscripciones para cursos, campamentos y salidas",
+  "require": {
+    "php": ">=7.4",
+    "catfan/medoo": "^2.1",
+    "phpmailer/phpmailer": "^7.0"
+  },
+  "autoload": {}
+}

@@ -1,0 +1,8 @@
+Options -Indexes
+
+# Permitir header Authorization (Bearer) para protección de rutas
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+</IfModule>

@@ -1,0 +1,26 @@
+# Denegar acceso a archivos sensibles
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+<Files "config/*">
+    Order allow,deny
+    Deny from all
+</Files>
+<Files "composer.json">
+    Order allow,deny
+    Deny from all
+</Files>
+<Files "composer.lock">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# Redirección a public_html (Hostinger) si se accede desde raíz
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} !^/public_html/
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ public_html/$1 [L]
+</IfModule>
