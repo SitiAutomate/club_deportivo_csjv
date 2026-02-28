@@ -202,17 +202,25 @@ try {
         $idCurso = (int) ($detalle['IDCurso'] ?? 0);
         $participantesAdicionales = $input['participantes_adicionales'] ?? [];
         if (is_array($participantesAdicionales) && $idCurso > 0) {
+            $configPath = __DIR__ . '/../../config/participantes_adicionales.php';
+            $configs = file_exists($configPath) ? require $configPath : [];
+            $key = $tipoId . '_' . $idCurso;
+            $cfgPa = $configs[$key] ?? null;
+            if ($cfgPa && !empty($cfgPa['fields'])) {
+                $camposVisibles = $cfgPa['fields'];
+                $primer = $participantesAdicionales[0] ?? [];
+                foreach ($camposVisibles as $c) {
+                    if (empty(trim($primer[$c] ?? ''))) {
+                        jsonResponse(['success' => false, 'error' => 'El primer participante adicional debe completar todos los campos visibles'], 400);
+                    }
+                }
+            }
             $participantesAdicionales = array_values(array_filter($participantesAdicionales, function ($p) {
                 return !empty(trim($p['documento'] ?? '')) || !empty(trim($p['nombre'] ?? ''));
             }));
-            if (!empty($participantesAdicionales)) {
-                $configPath = __DIR__ . '/../../config/participantes_adicionales.php';
-                $configs = file_exists($configPath) ? require $configPath : [];
-                $key = $tipoId . '_' . $idCurso;
-                if (!empty($configs[$key])) {
-                    $paModel = new ParticipanteAdicional($database);
-                    $paModel->guardarParaInscripcion($id, $idCurso, $participantesAdicionales);
-                }
+            if (!empty($participantesAdicionales) && $cfgPa) {
+                $paModel = new ParticipanteAdicional($database);
+                $paModel->guardarParaInscripcion($id, $idCurso, $participantesAdicionales);
             }
         }
         $tipoTexto = $tipoId === 2 ? 'Campamento' : ($tipoId === 5 || $tipoId === 3 ? 'Salida' : 'Inscripción');

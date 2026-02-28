@@ -1,6 +1,9 @@
 /vendor/
 /node_modules/
 .env
+COLUMNS.json
+bd.md
+sql/
 config/database.local.php
 composer.lock
 .DS_Store

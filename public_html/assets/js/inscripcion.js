@@ -774,15 +774,17 @@
                     html += '<div class="participante-adicional-item border rounded p-3 mb-3" data-index="' + n + '">';
                     html += '<h6 class="small fw-bold text-secondary mb-2">' + (cfg.label || 'Participante') + ' ' + n + '</h6>';
                     html += '<div class="row g-2">';
+                    const primerRequerido = (i === 0);
                     fields.forEach(f => {
                         const id = 'part_adj_' + n + '_' + f;
                         const l = label(f);
+                        const req = primerRequerido ? ' required' : '';
                         if (f === 'fechanacimiento') {
-                            html += '<div class="col-md-6"><label class="form-label small">' + escapeHtml(l) + '</label><input type="date" class="form-control form-control-sm" name="participantes_adicionales[' + i + '][' + f + ']" id="' + id + '"></div>';
+                            html += '<div class="col-md-6"><label class="form-label small">' + escapeHtml(l) + '</label><input type="date" class="form-control form-control-sm" name="participantes_adicionales[' + i + '][' + f + ']" id="' + id + '"' + req + '></div>';
                         } else if (f === 'email') {
-                            html += '<div class="col-md-6"><label class="form-label small">' + escapeHtml(l) + '</label><input type="email" class="form-control form-control-sm" name="participantes_adicionales[' + i + '][' + f + ']" id="' + id + '"></div>';
+                            html += '<div class="col-md-6"><label class="form-label small">' + escapeHtml(l) + '</label><input type="email" class="form-control form-control-sm" name="participantes_adicionales[' + i + '][' + f + ']" id="' + id + '"' + req + '></div>';
                         } else {
-                            html += '<div class="col-md-6"><label class="form-label small">' + escapeHtml(l) + '</label><input type="text" class="form-control form-control-sm" name="participantes_adicionales[' + i + '][' + f + ']" id="' + id + '"></div>';
+                            html += '<div class="col-md-6"><label class="form-label small">' + escapeHtml(l) + '</label><input type="text" class="form-control form-control-sm" name="participantes_adicionales[' + i + '][' + f + ']" id="' + id + '"' + req + '></div>';
                         }
                     });
                     html += '</div></div>';

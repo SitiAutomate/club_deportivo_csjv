@@ -51,7 +51,7 @@ $camposDatosAdicionales = array_filter($camposDatosAdicionales, fn($c) => !empty
             text-decoration: underline;
         }
     </style>
-    <link href="assets/css/app.css" rel="stylesheet">
+    <link href="assets/css/app.css?v=<?= @filemtime(__DIR__ . '/assets/css/app.css') ?: '1' ?>" rel="stylesheet">
 </head>
 <body>
     <div class="container py-4">
@@ -392,6 +392,6 @@ $camposDatosAdicionales = array_filter($camposDatosAdicionales, fn($c) => !empty
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="assets/js/inscripcion.js"></script>
+    <script src="assets/js/inscripcion.js?v=<?= @filemtime(__DIR__ . '/assets/js/inscripcion.js') ?: '1' ?>"></script>
 </body>
 </html>
