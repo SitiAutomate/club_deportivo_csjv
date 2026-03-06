@@ -33,8 +33,8 @@ class Responsable
     public function create(array $data): string
     {
         $doc = trim($data['documento'] ?? $data['IDResponsable'] ?? '');
-        $nombres = trim($data['Nombres'] ?? $data['nombre'] ?? '');
-        $apellidos = trim($data['Apellidos'] ?? $data['apellido'] ?? '');
+        $nombres = mb_strtoupper(trim($data['Nombres'] ?? $data['nombre'] ?? ''), 'UTF-8');
+        $apellidos = mb_strtoupper(trim($data['Apellidos'] ?? $data['apellido'] ?? ''), 'UTF-8');
         $nombreCompleto = trim($nombres . ' ' . $apellidos) ?: null;
 
         $this->db->insert('responsables', [

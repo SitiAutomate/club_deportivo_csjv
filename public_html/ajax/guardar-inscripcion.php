@@ -159,6 +159,23 @@ try {
         }
         $cursoModel = new Curso($database);
         $apiExt = new ExternalApiService();
+        if ($usaApiInscripcion && $apiExt->isConfigured() && $rowPart) {
+            if ($rowResp) {
+                $apiExt->crearResponsable([
+                    'documento' => $rowResp['IDResponsable'] ?? $responsableDocumento,
+                    'nombres' => $rowResp['Nombres'] ?? '',
+                    'apellidos' => $rowResp['Apellidos'] ?? '',
+                    'email' => $rowResp['Correo_Responsable'] ?? '',
+                    'celular' => $rowResp['Celular_Responsable'] ?? '',
+                    'tipo_persona' => $rowResp['Tipo_Persona'] ?? '',
+                    'ciudad' => $rowResp['Ciudad'] ?? '',
+                    'departamento' => '',
+                    'direccion' => $rowResp['direccion'] ?? '',
+                    'tipo_identificacion' => $rowResp['tipo_identificacion'] ?? '',
+                ]);
+            }
+            $apiExt->crearParticipante($rowPart, $responsableDocumento);
+        }
         foreach ($cursoIds as $i => $cid) {
             $detalle['IDCurso'] = $cid;
             $detalle['nombreCurso'] = $nombresCurso[$i] ?? $cid;
@@ -196,8 +213,24 @@ try {
         $detalle['nombreCurso'] = $input['nombreCurso'] ?? null;
         $id = $inscripcion->create($participanteDocumento, $responsableDocumento, $tipoId, $detalle);
         $apiExt = new ExternalApiService();
-        if ($apiExt->isConfigured() && $rowPart) {
-            $apiExt->crearParticipante($rowPart, $responsableDocumento);
+        if ($apiExt->isConfigured()) {
+            if ($rowResp) {
+                $apiExt->crearResponsable([
+                    'documento' => $rowResp['IDResponsable'] ?? $responsableDocumento,
+                    'nombres' => $rowResp['Nombres'] ?? '',
+                    'apellidos' => $rowResp['Apellidos'] ?? '',
+                    'email' => $rowResp['Correo_Responsable'] ?? '',
+                    'celular' => $rowResp['Celular_Responsable'] ?? '',
+                    'tipo_persona' => $rowResp['Tipo_Persona'] ?? '',
+                    'ciudad' => $rowResp['Ciudad'] ?? '',
+                    'departamento' => '',
+                    'direccion' => $rowResp['direccion'] ?? '',
+                    'tipo_identificacion' => $rowResp['tipo_identificacion'] ?? '',
+                ]);
+            }
+            if ($rowPart) {
+                $apiExt->crearParticipante($rowPart, $responsableDocumento);
+            }
         }
         $idCurso = (int) ($detalle['IDCurso'] ?? 0);
         $participantesAdicionales = $input['participantes_adicionales'] ?? [];
@@ -239,5 +272,6 @@ try {
         jsonResponse(['success' => true, 'inscripcion_id' => $id]);
     }
 } catch (Exception $e) {
+    AppLogger::error('guardar-inscripcion: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
     jsonResponse(['success' => false, 'error' => 'Error al guardar: ' . $e->getMessage()], 500);
 }

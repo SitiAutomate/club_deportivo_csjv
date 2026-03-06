@@ -79,5 +79,6 @@ try {
         ]
     ]);
 } catch (Exception $e) {
+    AppLogger::error('guardar-responsable: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
     jsonResponse(['success' => false, 'error' => 'Error al guardar: ' . $e->getMessage()], 500);
 }

@@ -11,9 +11,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $input = getPostData();
 $documento = trim($input['documento'] ?? '');
 
-if ($documento === '') {
-    jsonResponse(['success' => false, 'error' => 'Documento requerido'], 400);
+$validacion = validarDocumentoParticipante($documento);
+if (!$validacion['valid']) {
+    jsonResponse(['success' => false, 'error' => $validacion['error']], 400);
 }
+$documento = normalizarDocumentoParticipante($documento);
 
 $participante = new Participante($database);
 $row = $participante->getByDocumento($documento);

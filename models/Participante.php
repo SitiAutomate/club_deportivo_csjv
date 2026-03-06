@@ -56,18 +56,22 @@ class Participante
     public function create(array $data): string
     {
         $doc = trim($data['documento'] ?? '');
-        $nombreCompleto = trim(($data['Primer_Nombre'] ?? '') . ' ' . ($data['Segundo_Nombre'] ?? '')) . ' '
-            . trim(($data['Primer_Apellido'] ?? '') . ' ' . ($data['Segundo_Apellido'] ?? ''));
+        $utf8 = 'UTF-8';
+        $pNombre = mb_strtoupper(trim($data['Primer_Nombre'] ?? $data['nombre'] ?? ''), $utf8);
+        $sNombre = mb_strtoupper(trim($data['Segundo_Nombre'] ?? ''), $utf8);
+        $pApellido = mb_strtoupper(trim($data['Primer_Apellido'] ?? $data['apellido'] ?? ''), $utf8);
+        $sApellido = mb_strtoupper(trim($data['Segundo_Apellido'] ?? ''), $utf8);
+        $nombreCompleto = trim($pNombre . ' ' . $sNombre . ' ' . $pApellido . ' ' . $sApellido) ?: null;
 
         $this->db->insert('participantes', [
             'IDParticipante' => $doc,
             'Verificador' => $data['Verificador'] ?? null,
             'Tipo_documento' => $data['Tipo_documento'] ?? null,
             'IDResponsable' => $data['IDResponsable'] ?? null,
-            'Primer_Nombre' => trim($data['Primer_Nombre'] ?? $data['nombre'] ?? ''),
-            'Segundo_Nombre' => trim($data['Segundo_Nombre'] ?? ''),
-            'Primer_Apellido' => trim($data['Primer_Apellido'] ?? $data['apellido'] ?? ''),
-            'Segundo_Apellido' => trim($data['Segundo_Apellido'] ?? ''),
+            'Primer_Nombre' => $pNombre ?: null,
+            'Segundo_Nombre' => $sNombre ?: null,
+            'Primer_Apellido' => $pApellido ?: null,
+            'Segundo_Apellido' => $sApellido ?: null,
             'Nombre_Completo' => $nombreCompleto ?: null,
             'Fecha_Nacimiento' => !empty($data['Fecha_Nacimiento'] ?? $data['fecha_nacimiento']) ? ($data['Fecha_Nacimiento'] ?? $data['fecha_nacimiento']) : null,
             'interno_externo' => $data['interno_externo'] ?? null,

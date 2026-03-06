@@ -58,10 +58,10 @@ class ExternalApiService
 
         $body = [
             'tipo_persona' => $tipoPersona,
-            'apellido' => trim($data['apellidos'] ?? $data['apellido'] ?? ''),
+            'apellido' => mb_strtoupper(trim($data['apellidos'] ?? $data['apellido'] ?? $data['Apellidos'] ?? ''), 'UTF-8'),
             'tipo_identificacion' => trim($data['tipo_identificacion'] ?? '') ?: 'C',
-            'identificacion' => trim($data['documento'] ?? $data['identificacion'] ?? ''),
-            'nombre' => trim($data['nombres'] ?? $data['nombre'] ?? ''),
+            'identificacion' => trim($data['documento'] ?? $data['identificacion'] ?? $data['IDResponsable'] ?? ''),
+            'nombre' => mb_strtoupper(trim($data['nombres'] ?? $data['nombre'] ?? $data['Nombres'] ?? ''), 'UTF-8'),
             'ciudad' => trim($data['ciudad'] ?? '') ?: '',
             'departamento' => trim($data['departamento'] ?? '') ?: '',
             'direccion' => trim($data['direccion'] ?? '') ?: '',
@@ -85,7 +85,7 @@ class ExternalApiService
         if ($nombre === '') {
             $nombre = trim(($data['Primer_Nombre'] ?? '') . ' ' . ($data['Segundo_Nombre'] ?? '') . ' ' . ($data['Primer_Apellido'] ?? '') . ' ' . ($data['Segundo_Apellido'] ?? ''));
         }
-        $nombre = strtoupper($nombre);
+        $nombre = mb_strtoupper($nombre, 'UTF-8');
 
         $body = [
             'identificacion' => trim($data['documento'] ?? $data['IDParticipante'] ?? $data['identificacion'] ?? ''),
@@ -114,13 +114,13 @@ class ExternalApiService
         $err = curl_error($ch);
         curl_close($ch);
         if ($err) {
-            error_log('ExternalApiService: ' . $err);
+            AppLogger::error('ExternalApiService: ' . $err, ['url' => $url]);
             return false;
         }
         if ($httpCode >= 200 && $httpCode < 300) {
             return true;
         }
-        error_log('ExternalApiService: HTTP ' . $httpCode . ' - ' . ($response ?: 'no body'));
+        AppLogger::error('ExternalApiService: HTTP ' . $httpCode, ['url' => $url, 'response' => $response ?: '']);
         return false;
     }
 }

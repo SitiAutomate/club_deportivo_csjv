@@ -8,5 +8,6 @@ config/database.local.php
 composer.lock
 .DS_Store
 *.log
+logs/
 .idea/
 .vscode/

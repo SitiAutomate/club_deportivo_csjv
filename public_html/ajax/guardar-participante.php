@@ -23,6 +23,12 @@ $tipoDocumento = trim($input['tipo_identificacion'] ?? $input['Tipo_documento'] 
 if ($documento === '' || $documentoInicial === '' || $documento !== $documentoInicial) {
     jsonResponse(['success' => false, 'error' => 'El documento debe coincidir con el ingresado inicialmente'], 400);
 }
+$validacion = validarDocumentoParticipante($documento);
+if (!$validacion['valid']) {
+    jsonResponse(['success' => false, 'error' => $validacion['error']], 400);
+}
+$documento = normalizarDocumentoParticipante($documento);
+$documentoInicial = normalizarDocumentoParticipante($documentoInicial);
 if ($primerNombre === '' || $primerApellido === '') {
     jsonResponse(['success' => false, 'error' => 'Primer nombre y primer apellido son requeridos'], 400);
 }
@@ -47,10 +53,26 @@ try {
     ]);
 
     $nuevo = $participante->getByDocumento($documento);
-    $responsableDoc = $nuevo['IDResponsable'] ?? trim($input['responsable_documento'] ?? '');
+    $responsableDoc = trim($input['responsable_documento'] ?? $nuevo['IDResponsable'] ?? '');
 
     $apiExt = new ExternalApiService();
     if ($apiExt->isConfigured() && $responsableDoc !== '') {
+        $responsable = new Responsable($database);
+        $rowResp = $responsable->getByDocumento($responsableDoc);
+        if ($rowResp) {
+            $apiExt->crearResponsable([
+                'documento' => $rowResp['IDResponsable'] ?? $responsableDoc,
+                'nombres' => $rowResp['Nombres'] ?? '',
+                'apellidos' => $rowResp['Apellidos'] ?? '',
+                'email' => $rowResp['Correo_Responsable'] ?? '',
+                'celular' => $rowResp['Celular_Responsable'] ?? '',
+                'tipo_persona' => $rowResp['Tipo_Persona'] ?? '',
+                'ciudad' => $rowResp['Ciudad'] ?? '',
+                'departamento' => '',
+                'direccion' => $rowResp['direccion'] ?? '',
+                'tipo_identificacion' => $rowResp['tipo_identificacion'] ?? '',
+            ]);
+        }
         $apiExt->crearParticipante($nuevo, $responsableDoc);
     }
 
@@ -67,5 +89,6 @@ try {
         ]
     ]);
 } catch (Exception $e) {
+    AppLogger::error('guardar-participante: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
     jsonResponse(['success' => false, 'error' => 'Error al guardar: ' . $e->getMessage()], 500);
 }
