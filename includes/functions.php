@@ -69,3 +69,34 @@ function getPostData(): array
     }
     return $_POST;
 }
+
+/**
+ * Obtener token Bearer desde Authorization.
+ */
+function getBearerToken(): string
+{
+    $header = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['Authorization'] ?? '';
+    if ($header === '' && function_exists('getallheaders')) {
+        $headers = getallheaders();
+        $header = $headers['Authorization'] ?? $headers['authorization'] ?? '';
+    }
+    if (!preg_match('/Bearer\s+(.+)/i', (string) $header, $m)) {
+        return '';
+    }
+    return trim($m[1]);
+}
+
+/**
+ * Exigir token Bearer para endpoints de API protegidos.
+ */
+function requireBearerAuth(string $envKey = 'API_READ_TOKEN'): void
+{
+    $expected = trim((string) env($envKey, ''));
+    if ($expected === '') {
+        jsonResponse(['success' => false, 'error' => 'Token de API no configurado'], 500);
+    }
+    $token = getBearerToken();
+    if ($token === '' || !hash_equals($expected, $token)) {
+        jsonResponse(['success' => false, 'error' => 'No autorizado'], 401);
+    }
+}

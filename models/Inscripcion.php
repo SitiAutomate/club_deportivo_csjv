@@ -70,4 +70,19 @@ class Inscripcion
         $this->db->insert('inscripciones_1', $data);
         return (int) $this->db->id();
     }
+
+    /**
+     * Listar inscripciones por año.
+     */
+    public function getByAnio(int $anio, ?int $limit = null, int $offset = 0): array
+    {
+        $where = [
+            'año' => $anio,
+            'ORDER' => ['IDInscripcion' => 'DESC']
+        ];
+        if ($limit !== null) {
+            $where['LIMIT'] = [$offset, $limit];
+        }
+        return $this->db->select('inscripciones_1', '*', $where) ?: [];
+    }
 }
