@@ -53,6 +53,15 @@ return [
         'muestraDatosAdicionales' => true,
         'tieneTemplate' => true,
     ],
+    8 => [
+        'usaApiInscripcion' => false,
+        'layout' => 'directo',
+        'hasSelector' => false,
+        'filterByDate' => true,
+        'defaultSede' => 'MEDELLÍN',
+        'defaultMes' => null,
+        'hasTransporte' => false,
+    ],
     14 => [
         'usaApiInscripcion' => false,
         'layout' => 'directo',
@@ -65,4 +74,13 @@ return [
         'muestraDatosAdicionales' => true,
         'tieneTemplate' => true,
     ],
+    15 => [
+        'usaApiInscripcion' => false,
+        'layout' => 'directo',
+        'hasSelector' => false,
+        'filterByDate' => true,
+        'defaultSede' => 'MEDELLÍN',
+        'defaultMes' => null,
+        'hasTransporte' => false,
+    ]
 ];
