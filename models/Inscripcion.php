@@ -68,7 +68,17 @@ class Inscripcion
         ];
 
         $this->db->insert('inscripciones_1', $data);
-        return (int) $this->db->id();
+        $id = (int) $this->db->id();
+        if ($id <= 0 && class_exists('AppLogger')) {
+            AppLogger::error('Inscripcion::create devolvió id <= 0', [
+                'tipoId' => $tipoId,
+                'participante' => $participanteDoc,
+                'responsable' => $responsableDoc,
+                'anio' => $anio,
+                'idCurso' => $data['IDCurso'],
+            ]);
+        }
+        return $id;
     }
 
     /**

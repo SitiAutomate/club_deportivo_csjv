@@ -179,7 +179,17 @@ try {
         foreach ($cursoIds as $i => $cid) {
             $detalle['IDCurso'] = $cid;
             $detalle['nombreCurso'] = $nombresCurso[$i] ?? $cid;
-            $ids[] = $inscripcion->create($participanteDocumento, $responsableDocumento, $tipoId, $detalle);
+            $newId = $inscripcion->create($participanteDocumento, $responsableDocumento, $tipoId, $detalle);
+            $ids[] = $newId;
+            if ($newId <= 0 && class_exists('AppLogger')) {
+                AppLogger::error('guardar-inscripcion: insert id <= 0 (tipo 1)', [
+                    'tipoId' => $tipoId,
+                    'anio' => $anio,
+                    'idCurso' => $cid,
+                    'participante' => $participanteDocumento,
+                    'responsable' => $responsableDocumento
+                ]);
+            }
             if ($usaApiInscripcion && $apiExt->isConfigured()) {
                 $info = $cursoModel->getFacturacionPorId((string) $cid);
                 if ($info && !empty(trim($info['Codigo_Facturacion'] ?? ''))) {
@@ -198,7 +208,7 @@ try {
         $transporte = $detalle['Transporte'] ?? null;
         if ($responsableEmail) {
             $emailService = new EmailService();
-            $emailService->enviarConfirmacionInscripcion(
+            $emailOk = $emailService->enviarConfirmacionInscripcion(
                 $responsableEmail,
                 $participanteNombre,
                 $responsableNombre,
@@ -206,6 +216,14 @@ try {
                 $detalleTexto,
                 $transporte
             );
+            if (!$emailOk && class_exists('AppLogger')) {
+                AppLogger::error('guardar-inscripcion: email no enviado (tipo 1)', [
+                    'tipoId' => $tipoId,
+                    'anio' => $anio,
+                    'participante' => $participanteDocumento,
+                    'responsableEmail' => $responsableEmail,
+                ]);
+            }
         }
         jsonResponse(['success' => true, 'inscripcion_ids' => $ids, 'inscripcion_id' => $ids[0] ?? null]);
     } else {
@@ -260,7 +278,7 @@ try {
         $detalleTexto = $detalle['nombreCurso'] ?? '-';
         if ($responsableEmail) {
             $emailService = new EmailService();
-            $emailService->enviarConfirmacionInscripcion(
+            $emailOk = $emailService->enviarConfirmacionInscripcion(
                 $responsableEmail,
                 $participanteNombre,
                 $responsableNombre,
@@ -268,6 +286,15 @@ try {
                 $detalleTexto,
                 null
             );
+            if (!$emailOk && class_exists('AppLogger')) {
+                AppLogger::error('guardar-inscripcion: email no enviado (tipo != 1)', [
+                    'tipoId' => $tipoId,
+                    'anio' => $anio,
+                    'idCurso' => $detalle['IDCurso'] ?? null,
+                    'participante' => $participanteDocumento,
+                    'responsableEmail' => $responsableEmail,
+                ]);
+            }
         }
         jsonResponse(['success' => true, 'inscripcion_id' => $id]);
     }

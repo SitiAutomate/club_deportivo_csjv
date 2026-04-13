@@ -61,6 +61,9 @@ return [
         'defaultSede' => 'MEDELLÍN',
         'defaultMes' => null,
         'hasTransporte' => false,
+        'selectorName' => 'curso_id',
+        'muestraDatosAdicionales' => true,
+        'tieneTemplate' => true,
     ],
     14 => [
         'usaApiInscripcion' => false,
@@ -82,5 +85,8 @@ return [
         'defaultSede' => 'MEDELLÍN',
         'defaultMes' => null,
         'hasTransporte' => false,
+        'selectorName' => 'curso_id',
+        'muestraDatosAdicionales' => true,
+        'tieneTemplate' => true,
     ]
 ];
