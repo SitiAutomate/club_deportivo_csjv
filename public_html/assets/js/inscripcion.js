@@ -712,9 +712,15 @@
         }
         ajax('get-detalle-template.php', 'GET', { tipo_id: tipoId, item_id: itemId })
             .then(res => {
-                if (res.success && res.html) contenedor.innerHTML = res.html;
+                if (res.success && res.html) {
+                    contenedor.innerHTML = res.html;
+                    return;
+                }
+                contenedor.innerHTML = '<p class="text-muted small mt-2 mb-0">Esta salida no tiene detalle disponible en este momento.</p>';
             })
-            .catch(() => {});
+            .catch(() => {
+                contenedor.innerHTML = '<p class="text-danger small mt-2 mb-0">No se pudo cargar el detalle de la salida.</p>';
+            });
     }
 
     function cargarCampamentos() {
