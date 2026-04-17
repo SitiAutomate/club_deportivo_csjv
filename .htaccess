@@ -19,6 +19,9 @@
 # Redirección a public_html (Hostinger) si se accede desde raíz
 <IfModule mod_rewrite.c>
     RewriteEngine On
+    # Si piden la raíz del dominio, enviar a public_html/
+    RewriteRule ^$ public_html/ [L]
+
     RewriteCond %{REQUEST_URI} !^/public_html/
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
