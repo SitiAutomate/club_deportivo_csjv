@@ -28,6 +28,21 @@ if ($mes && !$periodo) {
     $periodo = $mes . str_pad((string) $anioCorto, 2, '0', STR_PAD_LEFT);
 }
 
+$mesNombrePorNumero = [
+    '01' => 'ENERO',
+    '02' => 'FEBRERO',
+    '03' => 'MARZO',
+    '04' => 'ABRIL',
+    '05' => 'MAYO',
+    '06' => 'JUNIO',
+    '07' => 'JULIO',
+    '08' => 'AGOSTO',
+    '09' => 'SEPTIEMBRE',
+    '10' => 'OCTUBRE',
+    '11' => 'NOVIEMBRE',
+    '12' => 'DICIEMBRE',
+];
+
 $detalle = [
     'Fecha_Inscripción' => $input['fecha_inscripcion'] ?? $input['Fecha_Inscripción'] ?? date('Y-m-d'),
     'año' => $anio,
@@ -206,6 +221,13 @@ try {
         $tipoTexto = 'Curso(s)';
         $detalleTexto = implode(', ', $nombresCurso);
         $transporte = $detalle['Transporte'] ?? null;
+        $mesInscripcion = null;
+        $mesNumero = str_pad((string) ($detalle['Mes'] ?? ''), 2, '0', STR_PAD_LEFT);
+        if ($mesNumero !== '' && isset($mesNombrePorNumero[$mesNumero])) {
+            $mesInscripcion = $mesNombrePorNumero[$mesNumero];
+        } elseif (!empty($detalle['Mes'])) {
+            $mesInscripcion = (string) $detalle['Mes'];
+        }
         if ($responsableEmail) {
             $emailService = new EmailService();
             $emailOk = $emailService->enviarConfirmacionInscripcion(
@@ -214,7 +236,8 @@ try {
                 $responsableNombre,
                 $tipoTexto,
                 $detalleTexto,
-                $transporte
+                $transporte,
+                $mesInscripcion
             );
             if (!$emailOk && class_exists('AppLogger')) {
                 AppLogger::error('guardar-inscripcion: email no enviado (tipo 1)', [

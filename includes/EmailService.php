@@ -44,7 +44,8 @@ class EmailService
         string $responsableNombre,
         string $tipoTexto,
         string $detalleTexto,
-        ?string $transporte = null
+        ?string $transporte = null,
+        ?string $mesInscripcion = null
     ): bool {
         if (!$this->isConfigured() || $destinatario === '') {
             return false;
@@ -53,6 +54,9 @@ class EmailService
         $logoHtml = $this->getLogoEmbedHtml();
         $transporteHtml = ($transporte && $transporte === 'Sí')
             ? '<p><strong>Transporte:</strong> Sí</p>'
+            : '';
+        $mesHtml = ($mesInscripcion && trim($mesInscripcion) !== '')
+            ? '<tr><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;"><strong>Mes:</strong></td><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;">' . $this->esc($mesInscripcion) . '</td></tr>'
             : '';
 
         $html = <<<HTML
@@ -81,6 +85,7 @@ class EmailService
         <tr><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;"><strong>Participante:</strong></td><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;">{$this->esc($participanteNombre)}</td></tr>
         <tr><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;"><strong>Responsable: </strong></td><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;">{$this->esc($responsableNombre)}</td></tr>
         <tr><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;"><strong>{$this->esc($tipoTexto)}:</strong></td><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;">{$this->formatDetalleEmail($detalleTexto)}</td></tr>
+        {$mesHtml}
         </table>
         {$transporteHtml}
         <p style="margin:20px 0 0;font-size:0.9rem;color:#64748b;">Si tiene alguna duda, contáctenos a <a href="mailto:clubdeportivo@sanjosevegas.edu.co">clubdeportivo@sanjosevegas.edu.co</a></p>
