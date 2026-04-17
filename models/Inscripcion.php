@@ -64,7 +64,8 @@ class Inscripcion
             'OBSERVACION' => $detalle['OBSERVACION'] ?? null,
             'Modalidad' => $detalle['Modalidad'] ?? null,
             'parqueadero' => $detalle['parqueadero'] ?? null,
-            'IDAsign' => $detalle['IDAsign'] ?? null
+            'IDAsign' => $detalle['IDAsign'] ?? null,
+            'Sesión' => $detalle['Sesión'] ?? null
         ];
 
         $this->db->insert('inscripciones_1', $data);

@@ -50,6 +50,21 @@ return [
         'placeholder' => 'Cualquier información adicional que debamos conocer...',
         'rows' => 3,
     ],
+    'modalidad_pago_english_camp' => [
+        'label' => 'Modalidad de pago (English Camp)',
+        'type' => 'select',
+        'column' => 'Sesión',
+        'required' => false,
+        'enabled' => true,
+        'show_only_for' => [
+            'tipo_ids' => [2],
+            'curso_ids' => ['2262'],
+        ],
+        'options' => [
+            'Pago completo' => 'Pago completo',
+            'Plan de pagos (30 abril: $1.146.000 | 30 mayo: $1.146.000 | 10 junio: $1.148.000)' => 'Plan de pagos (30 abril: $1.146.000 | 30 mayo: $1.146.000 | 10 junio: $1.148.000)',
+        ],
+    ],
     // Ejemplo de campo personalizado (deshabilitado por defecto):
     // 'telefono_emergencia' => [
     //     'label' => 'Teléfono de emergencia',
