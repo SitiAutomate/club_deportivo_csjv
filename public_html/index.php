@@ -160,7 +160,16 @@ $camposDatosAdicionales = array_filter($camposDatosAdicionales, fn($c) => !empty
                     <div class="card-body">
                         <p class="text-muted small mb-4">Complete la siguiente información para garantizar el bienestar del participante durante la actividad.</p>
                         <?php foreach ($camposDatosAdicionales as $key => $cfg): ?>
-                        <div class="datos-adicionales-item campo-dato-adicional" data-key="<?= htmlspecialchars($key) ?>" data-type="<?= htmlspecialchars($cfg['type'] ?? '') ?>">
+                        <?php
+                            $showOnlyFor = $cfg['show_only_for'] ?? [];
+                            $showTipoIds = array_map('strval', (array) ($showOnlyFor['tipo_ids'] ?? []));
+                            $showCursoIds = array_map('strval', (array) ($showOnlyFor['curso_ids'] ?? []));
+                        ?>
+                        <div class="datos-adicionales-item campo-dato-adicional"
+                             data-key="<?= htmlspecialchars($key) ?>"
+                             data-type="<?= htmlspecialchars($cfg['type'] ?? '') ?>"
+                             data-show-only-tipos="<?= htmlspecialchars(implode(',', $showTipoIds)) ?>"
+                             data-show-only-cursos="<?= htmlspecialchars(implode(',', $showCursoIds)) ?>">
                             <?php if (($cfg['type'] ?? '') === 'select_si_no'): ?>
                             <label class="form-label fw-bold"><?= htmlspecialchars($cfg['label'] ?? '') ?></label>
                             <select class="form-select" name="<?= htmlspecialchars($key) ?>" id="campo_<?= htmlspecialchars($key) ?>">

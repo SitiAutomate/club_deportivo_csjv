@@ -475,6 +475,7 @@
         else if (tipo === 5) cargarSalidas();
         else if (cfg.hasSelector === false) cargarTipoDirecto(tipo);
         else cargarCamposPorTipo(tipo);
+        actualizarVisibilidadCamposAdicionales(tipo, '');
     });
 
     document.getElementById('cardDatosAdicionales')?.addEventListener('change', function (e) {
@@ -496,6 +497,39 @@
         }
     });
 
+    function resetCampoDatoAdicional(item) {
+        if (!item) return;
+        item.querySelectorAll('input, select, textarea').forEach(el => {
+            if (el.tagName === 'SELECT') el.value = '';
+            else if (el.type === 'checkbox' || el.type === 'radio') el.checked = false;
+            else el.value = '';
+        });
+        item.querySelectorAll('.wrap-texto-si-no').forEach(w => { w.style.display = 'none'; });
+        item.querySelectorAll('.wrap-texto-si-no textarea').forEach(t => {
+            t.value = '';
+            t.disabled = true;
+            t.required = false;
+        });
+    }
+
+    function actualizarVisibilidadCamposAdicionales(tipoId, cursoId = '') {
+        const card = document.getElementById('cardDatosAdicionales');
+        if (!card) return;
+        const tipo = String(tipoId || '');
+        const curso = String(cursoId || '');
+        card.querySelectorAll('.campo-dato-adicional').forEach(item => {
+            const tiposRaw = item.getAttribute('data-show-only-tipos') || '';
+            const cursosRaw = item.getAttribute('data-show-only-cursos') || '';
+            const tipos = tiposRaw.split(',').map(v => v.trim()).filter(Boolean);
+            const cursos = cursosRaw.split(',').map(v => v.trim()).filter(Boolean);
+            const matchTipo = !tipos.length || tipos.includes(tipo);
+            const matchCurso = !cursos.length || cursos.includes(curso);
+            const visible = matchTipo && matchCurso;
+            item.style.display = visible ? '' : 'none';
+            if (!visible) resetCampoDatoAdicional(item);
+        });
+    }
+
     function cargarTipoDirecto(tipo) {
         const cfg = tiposConfig[tipo] || {};
         ajax('get-cursos-por-tipo.php', 'GET', { tipo_id: tipo })
@@ -514,6 +548,7 @@
                     const cont = camposDinamicos.querySelector('.detalle-template-contenedor');
                     if (cont) cargarDetalleTemplate(tipo, item.id, cont);
                 }
+                actualizarVisibilidadCamposAdicionales(tipo, item.id);
                 btnEnviar.disabled = false;
             })
             .catch(() => {
@@ -750,8 +785,10 @@
                         sel.addEventListener('change', () => {
                             cargarDetalleTemplate(tipoId, sel.value, cont);
                             cargarParticipantesAdicionales(tipoId, sel.value, camposDinamicos);
+                            actualizarVisibilidadCamposAdicionales(tipoId, sel.value || '');
                         });
                         cargarParticipantesAdicionales(tipoId, sel.value, camposDinamicos);
+                        actualizarVisibilidadCamposAdicionales(tipoId, sel.value || '');
                     }
                 }
                 btnEnviar.disabled = false;
