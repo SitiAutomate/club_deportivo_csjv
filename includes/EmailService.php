@@ -52,7 +52,8 @@ class EmailService
         string $detalleTexto,
         ?string $transporte = null,
         ?string $mesInscripcion = null,
-        ?string $metodoPago = null
+        ?string $metodoPago = null,
+        array $participantesAdicionales = []
     ): bool {
         $this->lastError = null;
         if (!$this->isConfigured() || $destinatario === '') {
@@ -70,6 +71,7 @@ class EmailService
         $metodoPagoHtml = ($metodoPago && trim($metodoPago) !== '')
             ? '<tr><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;"><strong>Método de pago:</strong></td><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;">' . $this->esc($metodoPago) . '</td></tr>'
             : '';
+        $participantesAdicionalesHtml = $this->formatParticipantesAdicionalesHtml($participantesAdicionales);
 
         $html = <<<HTML
 <!DOCTYPE html>
@@ -100,6 +102,7 @@ class EmailService
         {$mesHtml}
         {$metodoPagoHtml}
         </table>
+        {$participantesAdicionalesHtml}
         {$transporteHtml}
         <p style="margin:20px 0 0;font-size:0.9rem;color:#64748b;">Si tiene alguna duda, contáctenos a <a href="mailto:clubdeportivo@sanjosevegas.edu.co">clubdeportivo@sanjosevegas.edu.co</a></p>
     </td>
@@ -152,6 +155,34 @@ HTML;
         }
         $seguros = array_map(fn($p) => $this->esc(trim($p)), $partes);
         return implode('<br><span style="display:block;margin:8px 0 4px;border-top:1px solid #e2e8f0;"></span>', $seguros);
+    }
+
+    private function formatParticipantesAdicionalesHtml(array $participantes): string
+    {
+        if (empty($participantes)) return '';
+        $rows = '';
+        foreach ($participantes as $i => $p) {
+            $nombre = trim((string) ($p['nombre'] ?? ''));
+            $documento = trim((string) ($p['documento'] ?? ''));
+            $fecha = trim((string) ($p['fechanacimiento'] ?? ''));
+            if ($nombre === '' && $documento === '' && $fecha === '') continue;
+            $idx = $i + 1;
+            $rows .= '<tr>'
+                . '<td style="padding:8px;border:1px solid #e2e8f0;">' . $idx . '</td>'
+                . '<td style="padding:8px;border:1px solid #e2e8f0;">' . $this->esc($nombre) . '</td>'
+                . '<td style="padding:8px;border:1px solid #e2e8f0;">' . $this->esc($documento) . '</td>'
+                . '<td style="padding:8px;border:1px solid #e2e8f0;">' . $this->esc($fecha) . '</td>'
+                . '</tr>';
+        }
+        if ($rows === '') return '';
+        return '<h3 style="margin:16px 0 8px;color:#20254A;font-size:1rem;">Participantes adicionales</h3>'
+            . '<table style="width:100%;border-collapse:collapse;margin-bottom:16px;">'
+            . '<thead><tr>'
+            . '<th style="padding:8px;border:1px solid #e2e8f0;text-align:left;background:#f8fafc;">#</th>'
+            . '<th style="padding:8px;border:1px solid #e2e8f0;text-align:left;background:#f8fafc;">Nombre completo</th>'
+            . '<th style="padding:8px;border:1px solid #e2e8f0;text-align:left;background:#f8fafc;">Documento</th>'
+            . '<th style="padding:8px;border:1px solid #e2e8f0;text-align:left;background:#f8fafc;">Fecha de nacimiento</th>'
+            . '</tr></thead><tbody>' . $rows . '</tbody></table>';
     }
 
     private function enviar(string $to, string $subject, string $htmlBody): bool

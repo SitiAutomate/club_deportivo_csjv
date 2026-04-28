@@ -65,6 +65,25 @@
     const btnValidarParticipante = $('#btnValidarParticipante');
     const btnValidarResponsable = $('#btnValidarResponsable');
 
+    function refreshRequiredAsterisks(root = document) {
+        root.querySelectorAll('.required-asterisk').forEach(el => el.remove());
+        const requiredFields = root.querySelectorAll('input[required], select[required], textarea[required]');
+        requiredFields.forEach(field => {
+            let label = null;
+            if (field.id) {
+                label = root.querySelector(`label[for="${field.id}"]`) || document.querySelector(`label[for="${field.id}"]`);
+            }
+            if (!label) {
+                label = field.closest('.mb-3, .col-md-6, .col-md-12, .row')?.querySelector('label.form-label, label');
+            }
+            if (!label || label.querySelector('.required-asterisk')) return;
+            const star = document.createElement('span');
+            star.className = 'required-asterisk text-danger ms-1';
+            star.textContent = '*';
+            label.appendChild(star);
+        });
+    }
+
     checkPoliticas.addEventListener('change', function () {
         camposFormulario.style.display = this.checked ? 'block' : 'none';
         if (!this.checked) {
@@ -79,6 +98,7 @@
             tipoInscripcion.disabled = true;
         }
     });
+    refreshRequiredAsterisks(document);
 
     function setValidarSpinner(btn, show) {
         if (!btn) return;
@@ -476,6 +496,7 @@
         else if (cfg.hasSelector === false) cargarTipoDirecto(tipo);
         else cargarCamposPorTipo(tipo);
         actualizarVisibilidadCamposAdicionales(tipo, '');
+        refreshRequiredAsterisks(document);
     });
 
     document.getElementById('cardDatosAdicionales')?.addEventListener('change', function (e) {
@@ -495,6 +516,7 @@
                 txt.value = '';
             }
         }
+        refreshRequiredAsterisks(document);
     });
 
     function resetCampoDatoAdicional(item) {
@@ -538,17 +560,21 @@
                     camposDinamicos.innerHTML = '<p class="text-muted">No hay opciones disponibles para este tipo.</p>';
                     return;
                 }
-                const item = res.items[0];
+                const defaultItemId = String(cfg.defaultItemId || '');
+                const item = res.items.find(it => String(it.id) === defaultItemId) || res.items[0];
                 const selectorName = cfg.selectorName || 'curso_id';
                 let html = '<input type="hidden" name="' + escapeHtml(selectorName) + '" value="' + escapeHtml(item.id) + '">';
                 html += '<input type="hidden" name="nombreCurso" value="' + escapeHtml(item.nombre_curso || item.nombre || item.nombre_display || '') + '">';
                 if (cfg.tieneTemplate) html += '<div class="detalle-template-contenedor"></div>';
+                html += '<div id="participantesAdicionalesContenedor"></div>';
                 camposDinamicos.innerHTML = html;
                 if (cfg.tieneTemplate) {
                     const cont = camposDinamicos.querySelector('.detalle-template-contenedor');
                     if (cont) cargarDetalleTemplate(tipo, item.id, cont);
                 }
+                cargarParticipantesAdicionales(tipo, item.id, camposDinamicos);
                 actualizarVisibilidadCamposAdicionales(tipo, item.id);
+                refreshRequiredAsterisks(document);
                 btnEnviar.disabled = false;
             })
             .catch(() => {
@@ -576,12 +602,22 @@
                 });
                 html += '</select></div>';
                 if (cfg.tieneTemplate) html += '<div class="detalle-template-contenedor"></div>';
+                html += '<div id="participantesAdicionalesContenedor"></div>';
                 camposDinamicos.innerHTML = html;
                 if (cfg.tieneTemplate) {
                     const sel = camposDinamicos.querySelector('.select-con-detalle');
                     const cont = camposDinamicos.querySelector('.detalle-template-contenedor');
-                    if (sel && cont) sel.addEventListener('change', () => cargarDetalleTemplate(tipo, sel.value, cont));
+                    if (sel && cont) {
+                        sel.addEventListener('change', () => {
+                            cargarDetalleTemplate(tipo, sel.value, cont);
+                            cargarParticipantesAdicionales(tipo, sel.value, camposDinamicos);
+                            actualizarVisibilidadCamposAdicionales(tipo, sel.value || '');
+                        });
+                        cargarParticipantesAdicionales(tipo, sel.value, camposDinamicos);
+                        actualizarVisibilidadCamposAdicionales(tipo, sel.value || '');
+                    }
                 }
+                refreshRequiredAsterisks(document);
                 btnEnviar.disabled = false;
             })
             .catch(() => {
@@ -598,7 +634,7 @@
 
             let html = '';
             html += '<div class="row g-3 mb-3">';
-            html += '<div class="col-md-6 col-lg-3"><label class="form-label fw-bold">Mes</label><select class="form-select filtro-curso" name="mes" id="filtroMes"><option value="">-- Seleccione --</option>';
+            html += '<div class="col-md-6 col-lg-3"><label class="form-label fw-bold">Mes en el que desea comenzar</label><select class="form-select filtro-curso" name="mes" id="filtroMes"><option value="">-- Seleccione --</option>';
             meses.forEach(m => {
                 html += `<option value="${m.NumMes}">${escapeHtml(m.Mes)}</option>`;
             });
@@ -791,6 +827,7 @@
                         actualizarVisibilidadCamposAdicionales(tipoId, sel.value || '');
                     }
                 }
+                refreshRequiredAsterisks(document);
                 btnEnviar.disabled = false;
             })
             .catch(() => {
@@ -834,6 +871,7 @@
                 }
                 html += '</div></div>';
                 wrap.innerHTML = html;
+                refreshRequiredAsterisks(document);
             })
             .catch(() => {});
     }
@@ -1046,5 +1084,6 @@
                 t.value = ''; t.disabled = true; t.required = false;
             });
         }
+        refreshRequiredAsterisks(document);
     }
 })();

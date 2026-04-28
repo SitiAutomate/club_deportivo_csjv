@@ -334,6 +334,7 @@ try {
         }
         $idCurso = (int) ($detalle['IDCurso'] ?? 0);
         $participantesAdicionales = $input['participantes_adicionales'] ?? [];
+        $participantesAdicionalesEmail = [];
         if (is_array($participantesAdicionales) && $idCurso > 0) {
             $configPath = __DIR__ . '/../../config/participantes_adicionales.php';
             $configs = file_exists($configPath) ? require $configPath : [];
@@ -351,6 +352,13 @@ try {
             $participantesAdicionales = array_values(array_filter($participantesAdicionales, function ($p) {
                 return !empty(trim($p['documento'] ?? '')) || !empty(trim($p['nombre'] ?? ''));
             }));
+            $participantesAdicionalesEmail = array_map(function ($p) {
+                return [
+                    'nombre' => trim((string) ($p['nombre'] ?? '')),
+                    'documento' => trim((string) ($p['documento'] ?? '')),
+                    'fechanacimiento' => trim((string) ($p['fechanacimiento'] ?? '')),
+                ];
+            }, $participantesAdicionales);
             if (!empty($participantesAdicionales) && $cfgPa) {
                 $paModel = new ParticipanteAdicional($database);
                 $paModel->guardarParaInscripcion($id, $idCurso, $participantesAdicionales);
@@ -381,7 +389,8 @@ try {
                 $detalleTexto,
                 null,
                 null,
-                $metodoPago
+                $metodoPago,
+                ($tipoId === 16 ? $participantesAdicionalesEmail : [])
             );
             if (!$emailOk && class_exists('AppLogger')) {
                 AppLogger::error('guardar-inscripcion: email no enviado (tipo != 1)', [

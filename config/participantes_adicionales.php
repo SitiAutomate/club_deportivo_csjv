@@ -21,6 +21,26 @@ return [
             'email' => 'Correo electrónico',
         ],
     ],
+    '16_1601' => [
+        'max' => 2,
+        'label' => 'Padre participante',
+        'fields' => ['nombre', 'documento', 'fechanacimiento'],
+        'labels' => [
+            'nombre' => 'Nombre completo',
+            'documento' => 'Documento',
+            'fechanacimiento' => 'Fecha de nacimiento',
+        ],
+    ],
+    '16_1602' => [
+        'max' => 2,
+        'label' => 'Padre participante',
+        'fields' => ['nombre', 'documento', 'fechanacimiento'],
+        'labels' => [
+            'nombre' => 'Nombre completo',
+            'documento' => 'Documento',
+            'fechanacimiento' => 'Fecha de nacimiento',
+        ],
+    ],
     // Ejemplo para otro curso:
     // '2_2300' => ['max' => 1, 'fields' => ['documento', 'nombre']],
 ];

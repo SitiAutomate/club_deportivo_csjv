@@ -112,5 +112,18 @@ return [
         'selectorName' => 'curso_id',
         'muestraDatosAdicionales' => true,
         'tieneTemplate' => true,
+    ],
+    16 => [
+        'usaApiInscripcion' => false,
+        'layout' => 'selector',
+        'hasSelector' => true,
+        'filterByDate' => true,
+        'defaultSede' => 'MEDELLÍN',
+        'defaultMes' => null,
+        'hasTransporte' => false,
+        'selectorName' => 'curso_id',
+        'labelSelector' => 'Seleccione la actividad en familia',
+        'muestraDatosAdicionales' => true,
+        'tieneTemplate' => true,
     ]
 ];
