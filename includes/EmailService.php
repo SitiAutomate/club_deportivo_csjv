@@ -15,6 +15,7 @@ class EmailService
     private string $pass;
     private string $fromName;
     private string $baseUrl;
+    private ?string $lastError = null;
 
     public function __construct()
     {
@@ -35,6 +36,11 @@ class EmailService
         return $this->host !== '' && $this->user !== '' && $this->pass !== '';
     }
 
+    public function getLastError(): ?string
+    {
+        return $this->lastError;
+    }
+
     /**
      * Enviar email de confirmación de inscripción
      */
@@ -45,9 +51,12 @@ class EmailService
         string $tipoTexto,
         string $detalleTexto,
         ?string $transporte = null,
-        ?string $mesInscripcion = null
+        ?string $mesInscripcion = null,
+        ?string $metodoPago = null
     ): bool {
+        $this->lastError = null;
         if (!$this->isConfigured() || $destinatario === '') {
+            $this->lastError = 'Servicio de correo no configurado o destinatario vacío';
             return false;
         }
 
@@ -57,6 +66,9 @@ class EmailService
             : '';
         $mesHtml = ($mesInscripcion && trim($mesInscripcion) !== '')
             ? '<tr><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;"><strong>Mes:</strong></td><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;">' . $this->esc($mesInscripcion) . '</td></tr>'
+            : '';
+        $metodoPagoHtml = ($metodoPago && trim($metodoPago) !== '')
+            ? '<tr><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;"><strong>Método de pago:</strong></td><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;">' . $this->esc($metodoPago) . '</td></tr>'
             : '';
 
         $html = <<<HTML
@@ -86,6 +98,7 @@ class EmailService
         <tr><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;"><strong>Responsable: </strong></td><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;">{$this->esc($responsableNombre)}</td></tr>
         <tr><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;"><strong>{$this->esc($tipoTexto)}:</strong></td><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;">{$this->formatDetalleEmail($detalleTexto)}</td></tr>
         {$mesHtml}
+        {$metodoPagoHtml}
         </table>
         {$transporteHtml}
         <p style="margin:20px 0 0;font-size:0.9rem;color:#64748b;">Si tiene alguna duda, contáctenos a <a href="mailto:clubdeportivo@sanjosevegas.edu.co">clubdeportivo@sanjosevegas.edu.co</a></p>
@@ -162,7 +175,19 @@ HTML;
             $mail->send();
             return true;
         } catch (Exception $e) {
-            error_log('EmailService: ' . $e->getMessage());
+            $this->lastError = $e->getMessage();
+            if (class_exists('AppLogger')) {
+                AppLogger::error('EmailService: envío fallido', [
+                    'error' => $e->getMessage(),
+                    'to' => $to,
+                    'subject' => $subject,
+                    'smtp_host' => $this->host,
+                    'smtp_port' => $this->port,
+                    'smtp_user' => $this->user,
+                ]);
+            } else {
+                error_log('EmailService: ' . $e->getMessage());
+            }
             return false;
         }
     }

@@ -10,6 +10,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 csrfValidate();
 
 header('Content-Type: application/json; charset=utf-8');
+$traceId = bin2hex(random_bytes(8));
+header('X-Trace-Id: ' . $traceId);
 
 $input = getPostData();
 $participanteDocumento = trim($input['participante_id'] ?? $input['participante_documento'] ?? '');
@@ -198,6 +200,7 @@ try {
             $ids[] = $newId;
             if ($newId <= 0 && class_exists('AppLogger')) {
                 AppLogger::error('guardar-inscripcion: insert id <= 0 (tipo 1)', [
+                    'traceId' => $traceId,
                     'tipoId' => $tipoId,
                     'anio' => $anio,
                     'idCurso' => $cid,
@@ -217,6 +220,30 @@ try {
                     );
                 }
             }
+        }
+        $idsInvalidos = array_filter($ids, fn($v) => (int) $v <= 0);
+        if (!empty($idsInvalidos)) {
+            if (class_exists('AppLogger')) {
+                AppLogger::error('guardar-inscripcion: una o más inscripciones no se guardaron (tipo 1)', [
+                    'traceId' => $traceId,
+                    'tipoId' => $tipoId,
+                    'anio' => $anio,
+                    'participante' => $participanteDocumento,
+                    'responsable' => $responsableDocumento,
+                    'ids' => $ids
+                ]);
+            }
+            jsonResponse(['success' => false, 'error' => 'No fue posible registrar la inscripción. Intente de nuevo.', 'trace_id' => $traceId], 500);
+        }
+        if (class_exists('AppLogger')) {
+            AppLogger::info('guardar-inscripcion: inscripciones creadas (tipo 1)', [
+                'traceId' => $traceId,
+                'tipoId' => $tipoId,
+                'anio' => $anio,
+                'participante' => $participanteDocumento,
+                'responsable' => $responsableDocumento,
+                'ids' => $ids
+            ]);
         }
         $tipoTexto = 'Curso(s)';
         $detalleTexto = implode(', ', $nombresCurso);
@@ -241,18 +268,50 @@ try {
             );
             if (!$emailOk && class_exists('AppLogger')) {
                 AppLogger::error('guardar-inscripcion: email no enviado (tipo 1)', [
+                    'traceId' => $traceId,
                     'tipoId' => $tipoId,
                     'anio' => $anio,
                     'participante' => $participanteDocumento,
                     'responsableEmail' => $responsableEmail,
+                    'emailError' => $emailService->getLastError(),
+                ]);
+            } elseif (class_exists('AppLogger')) {
+                AppLogger::info('guardar-inscripcion: email enviado (tipo 1)', [
+                    'traceId' => $traceId,
+                    'tipoId' => $tipoId,
+                    'responsableEmail' => $responsableEmail,
                 ]);
             }
         }
-        jsonResponse(['success' => true, 'inscripcion_ids' => $ids, 'inscripcion_id' => $ids[0] ?? null]);
+        jsonResponse(['success' => true, 'inscripcion_ids' => $ids, 'inscripcion_id' => $ids[0] ?? null, 'trace_id' => $traceId]);
     } else {
         $detalle['IDCurso'] = $input['IDCurso'] ?? $input['curso_id'] ?? $input['campamento_id'] ?? $input['salida_id'] ?? null;
         $detalle['nombreCurso'] = $input['nombreCurso'] ?? null;
         $id = $inscripcion->create($participanteDocumento, $responsableDocumento, $tipoId, $detalle);
+        if ((int) $id <= 0) {
+            if (class_exists('AppLogger')) {
+                AppLogger::error('guardar-inscripcion: insert id <= 0 (tipo != 1)', [
+                    'traceId' => $traceId,
+                    'tipoId' => $tipoId,
+                    'anio' => $anio,
+                    'idCurso' => $detalle['IDCurso'] ?? null,
+                    'participante' => $participanteDocumento,
+                    'responsable' => $responsableDocumento
+                ]);
+            }
+            jsonResponse(['success' => false, 'error' => 'No fue posible registrar la inscripción. Intente de nuevo.', 'trace_id' => $traceId], 500);
+        }
+        if (class_exists('AppLogger')) {
+            AppLogger::info('guardar-inscripcion: inscripción creada (tipo != 1)', [
+                'traceId' => $traceId,
+                'tipoId' => $tipoId,
+                'anio' => $anio,
+                'id' => $id,
+                'idCurso' => $detalle['IDCurso'] ?? null,
+                'participante' => $participanteDocumento,
+                'responsable' => $responsableDocumento
+            ]);
+        }
         $apiExt = new ExternalApiService();
         if ($apiExt->isConfigured()) {
             if ($rowResp) {
@@ -299,6 +358,19 @@ try {
         }
         $tipoTexto = $tipoId === 2 ? 'Campamento' : ($tipoId === 5 || $tipoId === 3 ? 'Salida' : 'Inscripción');
         $detalleTexto = $detalle['nombreCurso'] ?? '-';
+        $metodoPago = null;
+        // English Camp: incluir método de pago seleccionado en el correo.
+        $idCursoDetalle = (string) ($detalle['IDCurso'] ?? '');
+        $nombreCursoDetalle = mb_strtolower(trim((string) ($detalle['nombreCurso'] ?? '')));
+        $esEnglishCamp = $tipoId === 2 && (
+            $idCursoDetalle === '2262' ||
+            strpos($nombreCursoDetalle, 'english camp') !== false
+        );
+        if ($esEnglishCamp) {
+            $metodoPagoInput = trim((string) ($input['modalidad_pago_english_camp'] ?? ''));
+            $metodoPagoSesion = trim((string) ($detalle['Sesion'] ?? ''));
+            $metodoPago = $metodoPagoInput !== '' ? $metodoPagoInput : ($metodoPagoSesion !== '' ? $metodoPagoSesion : null);
+        }
         if ($responsableEmail) {
             $emailService = new EmailService();
             $emailOk = $emailService->enviarConfirmacionInscripcion(
@@ -307,21 +379,33 @@ try {
                 $responsableNombre,
                 $tipoTexto,
                 $detalleTexto,
-                null
+                null,
+                null,
+                $metodoPago
             );
             if (!$emailOk && class_exists('AppLogger')) {
                 AppLogger::error('guardar-inscripcion: email no enviado (tipo != 1)', [
+                    'traceId' => $traceId,
                     'tipoId' => $tipoId,
                     'anio' => $anio,
                     'idCurso' => $detalle['IDCurso'] ?? null,
                     'participante' => $participanteDocumento,
                     'responsableEmail' => $responsableEmail,
+                    'emailError' => $emailService->getLastError(),
+                ]);
+            } elseif (class_exists('AppLogger')) {
+                AppLogger::info('guardar-inscripcion: email enviado (tipo != 1)', [
+                    'traceId' => $traceId,
+                    'tipoId' => $tipoId,
+                    'id' => $id,
+                    'idCurso' => $detalle['IDCurso'] ?? null,
+                    'responsableEmail' => $responsableEmail,
                 ]);
             }
         }
-        jsonResponse(['success' => true, 'inscripcion_id' => $id]);
+        jsonResponse(['success' => true, 'inscripcion_id' => $id, 'trace_id' => $traceId]);
     }
 } catch (Exception $e) {
-    AppLogger::error('guardar-inscripcion: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-    jsonResponse(['success' => false, 'error' => 'Error al guardar: ' . $e->getMessage()], 500);
+    AppLogger::error('guardar-inscripcion: ' . $e->getMessage(), ['traceId' => $traceId, 'trace' => $e->getTraceAsString()]);
+    jsonResponse(['success' => false, 'error' => 'Error al guardar: ' . $e->getMessage(), 'trace_id' => $traceId], 500);
 }

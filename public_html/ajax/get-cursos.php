@@ -14,19 +14,14 @@ $mes = trim($_GET['mes'] ?? '') ?: null;
 $anio = (int) ($_GET['anio'] ?? date('Y'));
 $participanteDoc = trim($_GET['participante_id'] ?? '');
 
-$meses = [];
-if ($mes) {
-    $m = (int) $mes;
-    $mNext = $m >= 12 ? 1 : $m + 1;
-    $meses = [str_pad((string) $m, 2, '0', STR_PAD_LEFT), str_pad((string) $mNext, 2, '0', STR_PAD_LEFT)];
-} else {
-    $mesActual = (int) date('n');
-    $mesSiguiente = $mesActual >= 12 ? 1 : $mesActual + 1;
-    $meses = [
-        str_pad((string) $mesActual, 2, '0', STR_PAD_LEFT),
-        str_pad((string) $mesSiguiente, 2, '0', STR_PAD_LEFT)
-    ];
-}
+// Cupos siempre se calculan con ventana fija: mes actual + mes siguiente.
+// No depende del mes seleccionado en el filtro para evitar desalineaciones.
+$mesActual = (int) date('n');
+$mesSiguiente = $mesActual >= 12 ? 1 : $mesActual + 1;
+$meses = [
+    str_pad((string) $mesActual, 2, '0', STR_PAD_LEFT),
+    str_pad((string) $mesSiguiente, 2, '0', STR_PAD_LEFT)
+];
 
 $curso = new Curso($database);
 $cursos = $curso->getFiltradosConCupos($tipoId, $lineaId, $actividad, $sede, $meses, $anio, $showCupos);
