@@ -56,7 +56,7 @@ $camposDatosAdicionales = array_filter($camposDatosAdicionales, fn($c) => !empty
 <body>
     <div class="container py-4">
         <header class="header-inscripcion d-flex align-items-center gap-4 mb-5 py-4 px-4 rounded-3 shadow-sm">
-            <img src="assets/images/logo.png" alt="Logo" class="header-logo flex-shrink-0" onerror="this.style.display='none'">
+            <img src="assets/images/logo.png?v=<?= @filemtime(__DIR__ . '/assets/images/logo.png') ?: '1' ?>" alt="Logo" class="header-logo flex-shrink-0" onerror="this.style.display='none'">
             <div class="header-text flex-grow-1">
                 <h1 class="mb-1 display-6 fw-bold">Formulario de inscripción</h1>
                 <p class="h5 mb-2 text-muted">Club Deportivo y Maex</p>

@@ -136,10 +136,10 @@ if ($tipoId === 1 && !empty($cursoIds)) {
             jsonResponse(['success' => false, 'error' => 'Ya está inscrito en uno o más de los cursos seleccionados'], 400);
         }
     }
-} elseif (in_array($tipoId, [2, 3, 5, 14])) {
+} elseif ($tipoId !== 3) {
     $idCurso = $input['IDCurso'] ?? $input['curso_id'] ?? $input['campamento_id'] ?? $input['salida_id'] ?? null;
     if ($idCurso && $inscripcion->existeDuplicada($participanteDocumento, (string) $idCurso, $anio, $tipoId)) {
-        $msg = $tipoId === 2 ? 'Ya está inscrito en este campamento' : 'Ya está inscrito en esta salida';
+        $msg = $tipoId === 2 ? 'Ya está inscrito en este campamento' : 'Ya está inscrito en esta actividad';
         jsonResponse(['success' => false, 'error' => $msg], 400);
     }
 }
