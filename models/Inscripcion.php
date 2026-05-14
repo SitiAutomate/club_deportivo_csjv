@@ -30,6 +30,46 @@ class Inscripcion
     }
 
     /**
+     * Inscripciones activas de cursos (tipo 1) para un mes y año.
+     */
+    public function getCursosActivosParticipante(string $participanteDoc, string $mes, int $anio, int $tipoId = 1): array
+    {
+        $estadosValidos = ['ACTIVO', 'Confirmado', 'confirmado', 'Incapacitado', 'incapacitado'];
+        return $this->db->select('inscripciones_1', [
+            'IDCurso',
+            'nombreCurso',
+            'Mes',
+            'Sede',
+            'Estado',
+            'validador_responsable'
+        ], [
+            'validador_participante' => $participanteDoc,
+            'Mes' => $mes,
+            'Estado' => $estadosValidos,
+            'año' => $anio,
+            'Tipo' => $tipoId,
+            'ORDER' => ['nombreCurso' => 'ASC']
+        ]) ?: [];
+    }
+
+    /**
+     * Bloquea preinscripción de junio si ya hay inscripción en junio con estado relevante.
+     */
+    public function tieneInscripcionJunioBloqueada(string $participanteDoc, string $idCurso, int $anio, int $tipoId = 1): bool
+    {
+        $estadosBloqueo = ['ACTIVO', 'Confirmado', 'confirmado', 'INTERESADO', 'interesado'];
+        $count = $this->db->count('inscripciones_1', [
+            'validador_participante' => $participanteDoc,
+            'IDCurso' => $idCurso,
+            'año' => $anio,
+            'Tipo' => $tipoId,
+            'Mes' => '06',
+            'Estado' => $estadosBloqueo
+        ]);
+        return $count > 0;
+    }
+
+    /**
      * Crear inscripción
      * @param string $participanteDoc IDParticipante (documento)
      * @param string $responsableDoc IDResponsable (documento)

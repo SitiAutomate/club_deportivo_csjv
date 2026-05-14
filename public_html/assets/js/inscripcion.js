@@ -44,6 +44,7 @@
     let responsableActual = null;
     let validandoParticipante = false;
     let validandoResponsable = false;
+    let actividadesTipo1 = [];
 
     const $ = (sel, ctx = document) => ctx.querySelector(sel);
     const camposFormulario = $('#camposFormulario');
@@ -625,12 +626,35 @@
             });
     }
 
+    function actualizarActividadesPorLinea() {
+        const linea = $('#filtroLinea')?.value;
+        const sel = $('#filtroActividad');
+        if (!sel) return;
+
+        const prev = sel.value;
+        sel.innerHTML = '<option value="">-- Seleccione --</option>';
+        if (!linea) return;
+
+        actividadesTipo1
+            .filter(a => String(a.IDNegocio ?? '') === String(linea))
+            .forEach(a => {
+                const opt = document.createElement('option');
+                opt.value = a.IDActividad;
+                opt.textContent = a.Nombre_Actividad || '';
+                sel.appendChild(opt);
+            });
+
+        if (prev && Array.from(sel.options).some(o => o.value === prev)) {
+            sel.value = prev;
+        }
+    }
+
     function cargarCamposTipo1() {
         const anio = new Date().getFullYear();
         ajax('get-filtros-tipo1.php', 'GET', { tipo_id: 1 }).then(res => {
             const meses = res.meses || [];
             const lineas = res.lineas || [];
-            const actividades = res.actividades || [];
+            actividadesTipo1 = res.actividades || [];
 
             let html = '';
             html += '<div class="row g-3 mb-3">';
@@ -645,11 +669,7 @@
                 html += `<option value="${l.IDLinea}">${escapeHtml(l.Nombre_Linea || '')}</option>`;
             });
             html += '</select></div>';
-            html += '<div class="col-md-6 col-lg-3"><label class="form-label fw-bold">Actividad</label><select class="form-select filtro-curso" name="actividad" id="filtroActividad"><option value="">-- Seleccione --</option>';
-            actividades.forEach(a => {
-                html += `<option value="${a.IDActividad}">${escapeHtml(a.Nombre_Actividad || '')}</option>`;
-            });
-            html += '</select></div></div>';
+            html += '<div class="col-md-6 col-lg-3"><label class="form-label fw-bold">Actividad</label><select class="form-select filtro-curso" name="actividad" id="filtroActividad"><option value="">-- Seleccione --</option></select></div></div>';
 
             html += '<div class="mb-3"><label class="form-label fw-bold">¿Desea hacer uso del servicio de transporte extracurricular?</label>';
             html += '<p class="small text-muted">Este servicio está disponible únicamente para estudiantes del Colegio San José de Las Vegas que ya cuentan con el servicio de transporte escolar.</p>';
@@ -667,7 +687,12 @@
             camposDinamicos.innerHTML = html;
 
             camposDinamicos.querySelectorAll('.filtro-curso').forEach(el => {
-                el.addEventListener('change', cargarCursosTipo1);
+                el.addEventListener('change', () => {
+                    if (el.id === 'filtroLinea') {
+                        actualizarActividadesPorLinea();
+                    }
+                    cargarCursosTipo1();
+                });
             });
             cargarCursosActivosParticipante();
             cargarCursosTipo1();

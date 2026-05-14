@@ -28,19 +28,10 @@ if (empty($meses)) {
 $linea = new Linea($database);
 $lineas = $linea->getAll();
 
+$actividad = new Actividad($database);
 if ($tipoId === 1) {
-    $actividadIds = $database->select('cursos_2025', 'Actividad', [
-        'Estado_del_curso' => 'ACTIVO',
-        'Tipo' => 1
-    ]);
-    $actividadIds = array_unique(array_filter(array_map('intval', $actividadIds)));
-    $actividades = empty($actividadIds) ? [] : $database->select('actividades', ['IDActividad', 'Nombre_Actividad', 'CC', 'ESTADO'], [
-        'IDActividad' => $actividadIds,
-        'ESTADO' => 'ACTIVO',
-        'ORDER' => 'Nombre_Actividad'
-    ]);
+    $actividades = $actividad->getActivasParaCursosTipo1();
 } else {
-    $actividad = new Actividad($database);
     $actividades = $actividad->getActivas();
 }
 

@@ -1,8 +1,7 @@
 <?php
 
 use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\SMTP;
-use PHPMailer\PHPMailer\Exception;
+use PHPMailer\PHPMailer\Exception as MailerException;
 
 /**
  * Servicio de envío de emails usando PHPMailer
@@ -72,53 +71,73 @@ class EmailService
             ? '<tr><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;"><strong>Método de pago:</strong></td><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;">' . $this->esc($metodoPago) . '</td></tr>'
             : '';
         $participantesAdicionalesHtml = $this->formatParticipantesAdicionalesHtml($participantesAdicionales);
+        $participanteNombreHtml = $this->esc($participanteNombre);
+        $responsableNombreHtml = $this->esc($responsableNombre);
+        $tipoTextoHtml = $this->esc($tipoTexto);
+        $detalleTextoHtml = $this->formatDetalleEmail($detalleTexto);
 
-        $html = <<<HTML
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin:0;padding:0;font-family:Arial,sans-serif;background:#f5f5f5;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:24px;">
-<tr><td align="center">
-<table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-<tr>
-    <td style="background:linear-gradient(180deg,#f8fafc 0%,#f1f5f9 100%);padding:24px;text-align:center;border-bottom:1px solid #e2e8f0;">
-        {$logoHtml}
-        <h1 style="margin:16px 0 0;font-size:1.5rem;color:#1e293b;">Club Deportivo y Maex</h1>
-    </td>
-</tr>
-<tr>
-    <td style="padding:24px;">
-        <h2 style="margin:0 0 20px;font-size:1.25rem;color:#20254A;">✓ Inscripción registrada correctamente</h2>
-        <p style="margin:0 0 20px;color:#334155;line-height:1.6;">Hemos recibido su inscripción. A continuación el detalle:</p>
+        $innerHtml = '<tr><td style="padding:24px;">'
+            . '<h2 style="margin:0 0 20px;font-size:1.25rem;color:#20254A;">✓ Inscripción registrada correctamente</h2>'
+            . '<p style="margin:0 0 20px;color:#334155;line-height:1.6;">Hemos recibido su inscripción. A continuación el detalle:</p>'
+            . '<table style="width:100%;border-collapse:collapse;margin-bottom:20px;">'
+            . '<tr><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;"><strong>Participante:</strong></td><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;">' . $participanteNombreHtml . '</td></tr>'
+            . '<tr><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;"><strong>Responsable: </strong></td><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;">' . $responsableNombreHtml . '</td></tr>'
+            . '<tr><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;"><strong>' . $tipoTextoHtml . ':</strong></td><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;">' . $detalleTextoHtml . '</td></tr>'
+            . $mesHtml
+            . $metodoPagoHtml
+            . '</table>'
+            . $participantesAdicionalesHtml
+            . $transporteHtml
+            . '<p style="margin:20px 0 0;font-size:0.9rem;color:#64748b;">Si tiene alguna duda, contáctenos a <a href="mailto:clubdeportivo@sanjosevegas.edu.co">clubdeportivo@sanjosevegas.edu.co</a></p>'
+            . '</td></tr>';
 
-        <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
-        <tr><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;"><strong>Participante:</strong></td><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;">{$this->esc($participanteNombre)}</td></tr>
-        <tr><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;"><strong>Responsable: </strong></td><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;">{$this->esc($responsableNombre)}</td></tr>
-        <tr><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;"><strong>{$this->esc($tipoTexto)}:</strong></td><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;">{$this->formatDetalleEmail($detalleTexto)}</td></tr>
-        {$mesHtml}
-        {$metodoPagoHtml}
-        </table>
-        {$participantesAdicionalesHtml}
-        {$transporteHtml}
-        <p style="margin:20px 0 0;font-size:0.9rem;color:#64748b;">Si tiene alguna duda, contáctenos a <a href="mailto:clubdeportivo@sanjosevegas.edu.co">clubdeportivo@sanjosevegas.edu.co</a></p>
-    </td>
-</tr>
-<tr>
-    <td style="padding:16px;background:#f8fafc;text-align:center;font-size:0.85rem;color:#64748b;">
-        Club Deportivo y Maex · San José de Las Vegas
-    </td>
-</tr>
-</table>
-</td></tr></table>
-</body>
-</html>
-HTML;
+        $html = $this->buildEmailHtml($logoHtml, $innerHtml);
 
         return $this->enviar($destinatario, 'Confirmación de inscripción - Club Deportivo y Maex', $html);
+    }
+
+    /**
+     * Confirmación de inscripción en junio.
+     */
+    public function enviarConfirmacionParticipacionJunio(
+        string $destinatario,
+        string $participanteNombre,
+        array $cursosSeleccionados
+    ): bool {
+        $this->lastError = null;
+        if (!$this->isConfigured() || $destinatario === '') {
+            $this->lastError = 'Servicio de correo no configurado o destinatario vacío';
+            return false;
+        }
+
+        $logoHtml = $this->getLogoEmbedHtml();
+        $cursosHtml = $this->formatListaCursosEmail($cursosSeleccionados);
+        $participanteNombreHtml = $this->esc($participanteNombre);
+
+        $innerHtml = '<tr><td style="padding:24px;">'
+            . '<h2 style="margin:0 0 20px;font-size:1.25rem;color:#20254A;">✓ Inscripción confirmada</h2>'
+            . '<p style="margin:0 0 16px;color:#334155;line-height:1.6;">Confirmamos la inscripción de <strong>' . $participanteNombreHtml . '</strong> para el periodo <strong>0626</strong>.</p>'
+            . $cursosHtml
+            . '<p style="margin:20px 0 0;font-size:0.9rem;color:#64748b;">Si tiene alguna duda, contáctenos a <a href="mailto:clubdeportivo@sanjosevegas.edu.co">clubdeportivo@sanjosevegas.edu.co</a></p>'
+            . '</td></tr>';
+
+        $html = $this->buildEmailHtml($logoHtml, $innerHtml);
+
+        return $this->enviar($destinatario, 'Confirmación de inscripción - Club Deportivo y Maex', $html);
+    }
+
+    private function buildEmailHtml(string $logoHtml, string $innerHtml): string
+    {
+        return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>'
+            . '<body style="margin:0;padding:0;font-family:Arial,sans-serif;background:#f5f5f5;">'
+            . '<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:24px;"><tr><td align="center">'
+            . '<table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">'
+            . '<tr><td style="background:linear-gradient(180deg,#f8fafc 0%,#f1f5f9 100%);padding:24px;text-align:center;border-bottom:1px solid #e2e8f0;">'
+            . $logoHtml
+            . '<h1 style="margin:16px 0 0;font-size:1.5rem;color:#1e293b;">Club Deportivo y Maex</h1></td></tr>'
+            . $innerHtml
+            . '<tr><td style="padding:16px;background:#f8fafc;text-align:center;font-size:0.85rem;color:#64748b;">Club Deportivo y Maex · San José de Las Vegas</td></tr>'
+            . '</table></td></tr></table></body></html>';
     }
 
     private function getLogoEmbedHtml(): string
@@ -153,19 +172,48 @@ HTML;
         if (count($partes) <= 1) {
             return $this->esc($detalleTexto);
         }
-        $seguros = array_map(fn($p) => $this->esc(trim($p)), $partes);
+        $seguros = array_map(function ($p) {
+            return $this->esc(trim($p));
+        }, $partes);
         return implode('<br><span style="display:block;margin:8px 0 4px;border-top:1px solid #e2e8f0;"></span>', $seguros);
+    }
+
+    private function formatListaCursosEmail(array $cursos): string
+    {
+        $rows = '';
+        foreach ($cursos as $c) {
+            $nombre = trim((string) ($c['nombre'] ?? $c['nombreCurso'] ?? $c['id'] ?? ''));
+            if ($nombre === '') {
+                continue;
+            }
+            $rows .= '<tr><td style="padding:8px;border:1px solid #e2e8f0;">' . $this->esc($nombre) . '</td></tr>';
+        }
+
+        if ($rows === '') {
+            return '';
+        }
+
+        return '<h3 style="margin:16px 0 8px;color:#20254A;font-size:1rem;">Cursos confirmados</h3>'
+            . '<table style="width:100%;border-collapse:collapse;margin-bottom:16px;">'
+            . '<thead><tr><th style="padding:8px;border:1px solid #e2e8f0;text-align:left;background:#f8fafc;">Curso</th></tr></thead>'
+            . '<tbody>' . $rows . '</tbody></table>';
     }
 
     private function formatParticipantesAdicionalesHtml(array $participantes): string
     {
-        if (empty($participantes)) return '';
+        if (empty($participantes)) {
+            return '';
+        }
+
         $rows = '';
         foreach ($participantes as $i => $p) {
             $nombre = trim((string) ($p['nombre'] ?? ''));
             $documento = trim((string) ($p['documento'] ?? ''));
             $fecha = trim((string) ($p['fechanacimiento'] ?? ''));
-            if ($nombre === '' && $documento === '' && $fecha === '') continue;
+            if ($nombre === '' && $documento === '' && $fecha === '') {
+                continue;
+            }
+
             $idx = $i + 1;
             $rows .= '<tr>'
                 . '<td style="padding:8px;border:1px solid #e2e8f0;">' . $idx . '</td>'
@@ -174,15 +222,21 @@ HTML;
                 . '<td style="padding:8px;border:1px solid #e2e8f0;">' . $this->esc($fecha) . '</td>'
                 . '</tr>';
         }
-        if ($rows === '') return '';
-        return '<h3 style="margin:16px 0 8px;color:#20254A;font-size:1rem;">Participantes adicionales</h3>'
-            . '<table style="width:100%;border-collapse:collapse;margin-bottom:16px;">'
-            . '<thead><tr>'
-            . '<th style="padding:8px;border:1px solid #e2e8f0;text-align:left;background:#f8fafc;">#</th>'
-            . '<th style="padding:8px;border:1px solid #e2e8f0;text-align:left;background:#f8fafc;">Nombre completo</th>'
-            . '<th style="padding:8px;border:1px solid #e2e8f0;text-align:left;background:#f8fafc;">Documento</th>'
-            . '<th style="padding:8px;border:1px solid #e2e8f0;text-align:left;background:#f8fafc;">Fecha de nacimiento</th>'
-            . '</tr></thead><tbody>' . $rows . '</tbody></table>';
+
+        if ($rows === '') {
+            return '';
+        }
+
+        $html = '<h3 style="margin:16px 0 8px;color:#20254A;font-size:1rem;">Participantes adicionales</h3>';
+        $html .= '<table style="width:100%;border-collapse:collapse;margin-bottom:16px;">';
+        $html .= '<thead><tr>';
+        $html .= '<th style="padding:8px;border:1px solid #e2e8f0;text-align:left;background:#f8fafc;">#</th>';
+        $html .= '<th style="padding:8px;border:1px solid #e2e8f0;text-align:left;background:#f8fafc;">Nombre completo</th>';
+        $html .= '<th style="padding:8px;border:1px solid #e2e8f0;text-align:left;background:#f8fafc;">Documento</th>';
+        $html .= '<th style="padding:8px;border:1px solid #e2e8f0;text-align:left;background:#f8fafc;">Fecha de nacimiento</th>';
+        $html .= '</tr></thead><tbody>' . $rows . '</tbody></table>';
+
+        return $html;
     }
 
     private function enviar(string $to, string $subject, string $htmlBody): bool
@@ -205,7 +259,7 @@ HTML;
 
             $mail->send();
             return true;
-        } catch (Exception $e) {
+        } catch (MailerException $e) {
             $this->lastError = $e->getMessage();
             if (class_exists('AppLogger')) {
                 AppLogger::error('EmailService: envío fallido', [
