@@ -22,7 +22,7 @@ class EmailService
         $this->port = (int) env('EMAIL_PORT', 587);
         $this->user = env('EMAIL_USER', '');
         $this->pass = env('EMAIL_PASS', '');
-        $this->fromName = 'Club Deportivo y Maex';
+        $this->fromName = 'Club Deportivo y Fundación Maex';
         $this->baseUrl = rtrim(env('APP_URL', ''), '/');
         if ($this->baseUrl === '' && isset($_SERVER['HTTP_HOST'])) {
             $proto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
@@ -93,7 +93,7 @@ class EmailService
 
         $html = $this->buildEmailHtml($logoHtml, $innerHtml);
 
-        return $this->enviar($destinatario, 'Confirmación de inscripción - Club Deportivo y Maex', $html);
+        return $this->enviar($destinatario, 'Confirmación de inscripción - Club Deportivo y Fundación Maex', $html);
     }
 
     /**
@@ -123,7 +123,7 @@ class EmailService
 
         $html = $this->buildEmailHtml($logoHtml, $innerHtml);
 
-        return $this->enviar($destinatario, 'Confirmación de inscripción - Club Deportivo y Maex', $html);
+        return $this->enviar($destinatario, 'Confirmación de inscripción - Club Deportivo y Fundación Maex', $html);
     }
 
     private function buildEmailHtml(string $logoHtml, string $innerHtml): string
@@ -134,9 +134,9 @@ class EmailService
             . '<table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">'
             . '<tr><td style="background:linear-gradient(180deg,#f8fafc 0%,#f1f5f9 100%);padding:24px;text-align:center;border-bottom:1px solid #e2e8f0;">'
             . $logoHtml
-            . '<h1 style="margin:16px 0 0;font-size:1.5rem;color:#1e293b;">Club Deportivo y Maex</h1></td></tr>'
+            . '<h1 style="margin:16px 0 0;font-size:1.5rem;color:#1e293b;">Club Deportivo y Fundación Maex</h1></td></tr>'
             . $innerHtml
-            . '<tr><td style="padding:16px;background:#f8fafc;text-align:center;font-size:0.85rem;color:#64748b;">Club Deportivo y Maex · San José de Las Vegas</td></tr>'
+            . '<tr><td style="padding:16px;background:#f8fafc;text-align:center;font-size:0.85rem;color:#64748b;">Club Deportivo y Fundación Maex · San José de Las Vegas</td></tr>'
             . '</table></td></tr></table></body></html>';
     }
 
@@ -154,7 +154,7 @@ class EmailService
                     $mime = mime_content_type($path) ?: $mime;
                 }
                 $b64 = base64_encode($data);
-                return '<img src="data:' . $mime . ';base64,' . $b64 . '" alt="Club Deportivo y Maex" style="max-height:70px;">';
+                return '<img src="data:' . $mime . ';base64,' . $b64 . '" alt="Club Deportivo y Fundación Maex" style="max-height:70px;">';
             }
         }
         return '';

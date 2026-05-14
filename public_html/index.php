@@ -14,7 +14,7 @@ $camposDatosAdicionales = array_filter($camposDatosAdicionales, fn($c) => !empty
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Formulario de inscripción - Club Deportivo y Maex</title>
+    <title>Formulario de inscripción - Club Deportivo y Fundación Maex</title>
     <link rel="icon" type="image/x-icon" href="favicon/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png">
@@ -59,7 +59,7 @@ $camposDatosAdicionales = array_filter($camposDatosAdicionales, fn($c) => !empty
             <img src="assets/images/logo.png?v=<?= @filemtime(__DIR__ . '/assets/images/logo.png') ?: '1' ?>" alt="Logo" class="header-logo flex-shrink-0" onerror="this.style.display='none'">
             <div class="header-text flex-grow-1">
                 <h1 class="mb-1 display-6 fw-bold">Formulario de inscripción</h1>
-                <p class="h5 mb-2 text-muted">Club Deportivo y Maex</p>
+                <p class="h5 mb-2 text-muted">Club Deportivo y Fundación Maex</p>
                 <p class="mb-0 header-descripcion" style="font-size: 1rem;">
                     Este es el espacio para inscribirte fácilmente a la oferta de formación. Solo necesitas llenar los datos que te pedimos y asegurarte de que estén correctos. Con esta información podremos confirmar tu cupo, enviarte todos los detalles y realizar el proceso de facturación.
                 </p>

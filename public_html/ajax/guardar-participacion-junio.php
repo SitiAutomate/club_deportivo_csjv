@@ -3,6 +3,8 @@ require_once __DIR__ . '/../../includes/bootstrap.php';
 require_once __DIR__ . '/../../includes/EmailService.php';
 require_once __DIR__ . '/../../includes/csrf.php';
 
+require_once __DIR__ . '/../../includes/participacion_junio.php';
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     jsonResponse(['success' => false, 'error' => 'Método no permitido'], 405);
 }
@@ -11,6 +13,10 @@ csrfValidate();
 header('Content-Type: application/json; charset=utf-8');
 $traceId = bin2hex(random_bytes(8));
 header('X-Trace-Id: ' . $traceId);
+
+if (!participacionJunioHabilitada()) {
+    jsonResponse(['success' => false, 'error' => 'El formulario no está disponible en este momento.', 'traceId' => $traceId], 403);
+}
 
 $input = getPostData();
 $documento = trim($input['documento'] ?? $input['participante_id'] ?? '');

@@ -1,13 +1,17 @@
 <?php
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_once __DIR__ . '/../includes/csrf.php';
+require_once __DIR__ . '/../includes/participacion_junio.php';
+
+$formularioJunioHabilitado = participacionJunioHabilitada();
+$textoVentanaJunio = participacionJunioTextoVentana();
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inscripción en junio - Club Deportivo y Maex</title>
+    <title>Inscripción en junio - Club Deportivo y Fundación Maex</title>
     <link rel="icon" type="image/x-icon" href="favicon/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png">
@@ -48,9 +52,15 @@ require_once __DIR__ . '/../includes/csrf.php';
             <img src="assets/images/logo.png?v=<?= @filemtime(__DIR__ . '/assets/images/logo.png') ?: '1' ?>" alt="Logo" class="header-logo flex-shrink-0" onerror="this.style.display='none'">
             <div class="header-text flex-grow-1">
                 <h1 class="mb-1 display-6 fw-bold">Inscripción en junio</h1>
-                <p class="h5 mb-2 text-muted">Club Deportivo y Maex</p>
+                <p class="h5 mb-2 text-muted">Club Deportivo y Fundación Maex</p>
+                <p class="mb-3 header-descripcion" style="font-size: 1rem;">
+                    ¡Queremos seguir creando experiencias significativas para nuestros deportistas!
+                </p>
+                <p class="mb-3 header-descripcion" style="font-size: 1rem;">
+                    Por eso, hemos preparado este formulario para conocer la participación y expectativas frente a las actividades de vacaciones del Club Deportivo. Su respuesta será muy importante para proyectar espacios enriquecedores, dinámicos y acordes a las necesidades de nuestras familias.
+                </p>
                 <p class="mb-0 header-descripcion" style="font-size: 1rem;">
-                    Este formulario es para participantes que ya están inscritos en cursos del mes actual y desean confirmar su inscripción para continuar en junio.
+                    Este formulario estará disponible <?= htmlspecialchars($textoVentanaJunio, ENT_QUOTES, 'UTF-8') ?>.
                 </p>
             </div>
         </header>
@@ -70,6 +80,11 @@ require_once __DIR__ . '/../includes/csrf.php';
             </div>
         </div>
 
+        <?php if (!$formularioJunioHabilitado): ?>
+        <div class="alert alert-warning" role="status">
+            El formulario estuvo disponible <?= htmlspecialchars($textoVentanaJunio, ENT_QUOTES, 'UTF-8') ?> y ya no acepta respuestas.
+        </div>
+        <?php else: ?>
         <form id="formParticipacionJunio" class="needs-validation" novalidate>
             <div class="card mb-4">
                 <div class="card-header">
@@ -134,12 +149,13 @@ require_once __DIR__ . '/../includes/csrf.php';
 
         <div id="resultadoFinal" class="alert d-none" role="status"></div>
 
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="assets/js/participacion-junio.js?v=<?= @filemtime(__DIR__ . '/assets/js/participacion-junio.js') ?: '1' ?>"></script>
+        <?php endif; ?>
+
         <p class="text-center text-muted small mb-0">
             <a href="index.php">Volver al formulario de inscripción</a>
         </p>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="assets/js/participacion-junio.js?v=<?= @filemtime(__DIR__ . '/assets/js/participacion-junio.js') ?: '1' ?>"></script>
 </body>
 </html>

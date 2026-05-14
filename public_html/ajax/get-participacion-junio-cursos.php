@@ -2,7 +2,13 @@
 require_once __DIR__ . '/../../includes/bootstrap.php';
 require_once __DIR__ . '/../../includes/csrf.php';
 
+require_once __DIR__ . '/../../includes/participacion_junio.php';
+
 header('Content-Type: application/json; charset=utf-8');
+
+if (!participacionJunioHabilitada()) {
+    jsonResponse(['success' => false, 'error' => 'El formulario no está disponible en este momento.'], 403);
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrfValidate();
