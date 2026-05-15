@@ -41,6 +41,7 @@
     const btnValidar = document.getElementById('btnValidarParticipante');
     const participanteResumen = document.getElementById('participanteResumen');
     const participanteError = document.getElementById('participanteError');
+    const hintValidarDocumento = document.getElementById('hintValidarDocumento');
     const cardCursos = document.getElementById('cardCursos');
     const listaCursos = document.getElementById('listaCursos');
     const sinCursos = document.getElementById('sinCursos');
@@ -50,6 +51,11 @@
 
     let participanteValidado = null;
     let cursosDisponibles = [];
+
+    function getParticipara() {
+        const checked = document.querySelector('input[name="participaraVacaciones"]:checked');
+        return checked ? checked.value : '';
+    }
 
     function setValidarSpinner(btn, show) {
         if (!btn) return;
@@ -70,9 +76,61 @@
         el.classList.add('d-none');
     }
 
+    function resetValidacion() {
+        participanteValidado = null;
+        cursosDisponibles = [];
+        if (participanteResumen) participanteResumen.classList.add('d-none');
+        cardCursos.style.display = 'none';
+        listaCursos.innerHTML = '';
+        if (sinCursos) sinCursos.classList.add('d-none');
+        actualizarEnvio();
+    }
+
+    function actualizarHintValidar() {
+        if (!hintValidarDocumento) return;
+        if (getParticipara() === 'No' && !participanteValidado) {
+            hintValidarDocumento.textContent = 'Ingrese el documento y presione Validar para habilitar la confirmación.';
+            hintValidarDocumento.classList.remove('d-none');
+            return;
+        }
+        hintValidarDocumento.textContent = '';
+        hintValidarDocumento.classList.add('d-none');
+    }
+
     function actualizarEnvio() {
-        const seleccionados = listaCursos.querySelectorAll('input[type="checkbox"][data-curso-id]:checked:not(:disabled)');
-        btnEnviar.disabled = !participanteValidado || seleccionados.length === 0;
+        const participara = getParticipara();
+        actualizarHintValidar();
+
+        if (!participara || !participanteValidado) {
+            btnEnviar.disabled = true;
+            return;
+        }
+
+        if (participara === 'No') {
+            btnEnviar.disabled = cursosDisponibles.length === 0;
+            return;
+        }
+
+        if (participara === 'Si') {
+            const seleccionados = listaCursos.querySelectorAll('input[type="checkbox"][data-curso-id]:checked:not(:disabled)');
+            btnEnviar.disabled = seleccionados.length === 0;
+            return;
+        }
+
+        btnEnviar.disabled = true;
+    }
+
+    function onParticiparaChange() {
+        const val = getParticipara();
+        if (val === 'Si') {
+            cardCursos.style.display = participanteValidado ? '' : 'none';
+        } else {
+            cardCursos.style.display = 'none';
+            listaCursos.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+                cb.checked = false;
+            });
+        }
+        actualizarEnvio();
     }
 
     function renderCursos(data) {
@@ -82,13 +140,12 @@
 
         if (!cursosDisponibles.length) {
             sinCursos.classList.remove('d-none');
-            cardCursos.style.display = '';
+            cardCursos.style.display = 'none';
             actualizarEnvio();
             return;
         }
 
         sinCursos.classList.add('d-none');
-        cardCursos.style.display = '';
 
         cursosDisponibles.forEach((curso) => {
             const id = 'curso_' + curso.id;
@@ -101,7 +158,7 @@
                 '<label class="form-check-label w-100" for="' + id + '">' +
                 '<strong>' + (curso.nombre || curso.id) + '</strong>' +
                 (curso.sede ? '<br><span class="text-muted small">Sede: ' + curso.sede + '</span>' : '') +
-                (bloqueado ? '<br><span class="text-warning small">' + (curso.motivo_bloqueo || 'Ya inscrito en junio.') + '</span>' : '') +
+                (bloqueado ? '<br><span class="text-warning small">' + (curso.motivo_bloqueo || 'Ya registrado para vacaciones.') + '</span>' : '') +
                 '</label></div>';
             listaCursos.appendChild(item);
         });
@@ -109,35 +166,22 @@
         listaCursos.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
             cb.addEventListener('change', actualizarEnvio);
         });
-        actualizarEnvio();
+
+        onParticiparaChange();
     }
 
-    checkPoliticas.addEventListener('change', () => {
-        contenido.style.display = checkPoliticas.checked ? '' : 'none';
-        if (!checkPoliticas.checked) {
-            participanteValidado = null;
-            cardCursos.style.display = 'none';
-            btnEnviar.disabled = true;
-        }
-    });
-
-    if (btnValidar) btnValidar.addEventListener('click', () => {
-        ocultarError(participanteError);
-        ocultarError(resultadoFinal);
-        participanteResumen.classList.add('d-none');
-        participanteValidado = null;
-        cardCursos.style.display = 'none';
-        btnEnviar.disabled = true;
-
+    function validarParticipante() {
         const documento = documentoInput.value.trim();
         if (!documento) {
-            mostrarError(participanteError, 'Ingrese el documento del participante.');
-            return;
+            return Promise.reject(new Error('Ingrese el documento del participante.'));
         }
 
-        setValidarSpinner(btnValidar, true);
+        const participara = getParticipara();
+        if (participara !== 'Si' && participara !== 'No') {
+            return Promise.reject(new Error('Indique si participará en los entrenamientos durante el periodo del 15 al 30 de junio.'));
+        }
 
-        ajax('validar-participante.php', 'POST', { documento })
+        return ajax('validar-participante.php', 'POST', { documento })
             .then((res) => {
                 if (!res.success) {
                     throw new Error(res.error || 'No fue posible validar el participante.');
@@ -155,85 +199,139 @@
                     throw new Error((res && res.error) || 'No fue posible consultar los cursos.');
                 }
                 renderCursos(res);
-            })
-            .catch((err) => {
-                mostrarError(participanteError, err.message || 'Ocurrió un error al validar.');
-            })
-            .finally(() => {
-                setValidarSpinner(btnValidar, false);
+                return res;
             });
+    }
+
+    function enviarParticipacion() {
+        const participara = getParticipara();
+        let cursoIds = [];
+
+        if (participara === 'Si') {
+            cursoIds = Array.from(
+                listaCursos.querySelectorAll('input[type="checkbox"][data-curso-id]:checked:not(:disabled)')
+            ).map((el) => el.getAttribute('data-curso-id'));
+            if (!cursoIds.length) {
+                return Promise.reject(new Error('Seleccione al menos un curso.'));
+            }
+        }
+
+        if (participara === 'No' && cursosDisponibles.length === 0) {
+            return Promise.reject(new Error('No hay cursos activos del mes actual para registrar el retiro.'));
+        }
+
+        btnEnviar.disabled = true;
+        btnEnviar.textContent = 'Confirmando participación...';
+
+        return ajax('guardar-participacion-junio.php', 'POST', {
+            documento: participanteValidado.documento,
+            participara: participara,
+            curso_ids: cursoIds,
+            politicas: 'Si'
+        }).then((res) => {
+            if (!res.success) {
+                throw new Error(res.error || 'No fue posible confirmar la participación en vacaciones.');
+            }
+
+            let html = '<strong>Participación en vacaciones registrada correctamente.</strong>';
+            if (res.participara === 'No') {
+                html += '<p class="mb-0 mt-2 small">Se registró retiro de vacaciones en todos los cursos activos del mes actual.</p>';
+            }
+            if (res.creadas && res.creadas.length) {
+                html += '<ul class="mb-0 mt-2">';
+                res.creadas.forEach((c) => {
+                    html += '<li>' + (c.nombre || c.id) + '</li>';
+                });
+                html += '</ul>';
+            }
+            if (res.omitidas && res.omitidas.length) {
+                html += '<p class="mb-0 mt-2 small">Algunos cursos no se registraron porque ya tenían participación registrada para vacaciones.</p>';
+            }
+            if (res.emailEnviado) {
+                html += '<p class="mb-0 mt-2 small">Se envió un correo de confirmación al responsable registrado.</p>';
+            } else if (res.emailError) {
+                html += '<p class="mb-0 mt-2 small text-warning">La participación quedó registrada, pero no fue posible enviar el correo: ' + res.emailError + '</p>';
+            }
+
+            resultadoFinal.className = 'alert alert-success';
+            resultadoFinal.innerHTML = html;
+            resultadoFinal.classList.remove('d-none');
+
+            if (participanteValidado) {
+                ajax('get-participacion-junio-cursos.php', 'POST', { documento: participanteValidado.documento })
+                    .then((refresh) => {
+                        if (refresh && refresh.success) renderCursos(refresh);
+                    })
+                    .catch(() => {});
+            }
+            return res;
+        });
+    }
+
+    checkPoliticas.addEventListener('change', () => {
+        contenido.style.display = checkPoliticas.checked ? '' : 'none';
+        if (!checkPoliticas.checked) {
+            resetValidacion();
+            document.querySelectorAll('input[name="participaraVacaciones"]').forEach((r) => {
+                r.checked = false;
+            });
+            btnEnviar.disabled = true;
+        }
     });
+
+    document.querySelectorAll('input[name="participaraVacaciones"]').forEach((radio) => {
+        radio.addEventListener('change', onParticiparaChange);
+    });
+
+    if (documentoInput) {
+        documentoInput.addEventListener('input', resetValidacion);
+    }
+
+    if (btnValidar) {
+        btnValidar.addEventListener('click', () => {
+            ocultarError(participanteError);
+            ocultarError(resultadoFinal);
+            resetValidacion();
+
+            setValidarSpinner(btnValidar, true);
+            validarParticipante()
+                .catch((err) => {
+                    mostrarError(participanteError, err.message || 'Ocurrió un error al validar.');
+                })
+                .finally(() => {
+                    setValidarSpinner(btnValidar, false);
+                });
+        });
+    }
 
     form.addEventListener('submit', (e) => {
         e.preventDefault();
         ocultarError(resultadoFinal);
+        ocultarError(participanteError);
 
         if (!checkPoliticas.checked) {
             form.classList.add('was-validated');
             return;
         }
+
+        const participara = getParticipara();
+        if (participara !== 'Si' && participara !== 'No') {
+            mostrarError(participanteError, 'Indique si participará en los entrenamientos durante el periodo del 15 al 30 de junio.');
+            return;
+        }
+
         if (!participanteValidado) {
             mostrarError(participanteError, 'Valide el documento del participante antes de continuar.');
             return;
         }
 
-        const cursoIds = Array.from(
-            listaCursos.querySelectorAll('input[type="checkbox"][data-curso-id]:checked:not(:disabled)')
-        ).map((el) => el.getAttribute('data-curso-id'));
-
-        if (!cursoIds.length) {
-            mostrarError(participanteError, 'Seleccione al menos un curso.');
-            return;
-        }
-
-        btnEnviar.disabled = true;
-        btnEnviar.textContent = 'Confirmando inscripción...';
-
-        ajax('guardar-participacion-junio.php', 'POST', {
-            documento: participanteValidado.documento,
-            curso_ids: cursoIds,
-            politicas: 'Si'
-        })
-            .then((res) => {
-                if (!res.success) {
-                    throw new Error(res.error || 'No fue posible confirmar la inscripción en junio.');
-                }
-
-                let html = '<strong>Inscripción en junio registrada correctamente.</strong>';
-                if (res.creadas && res.creadas.length) {
-                    html += '<ul class="mb-0 mt-2">';
-                    res.creadas.forEach((c) => {
-                        html += '<li>' + (c.nombre || c.id) + '</li>';
-                    });
-                    html += '</ul>';
-                }
-                if (res.omitidas && res.omitidas.length) {
-                    html += '<p class="mb-0 mt-2 small">Algunos cursos no se registraron porque ya tenían inscripción en junio.</p>';
-                }
-                if (res.emailEnviado) {
-                    html += '<p class="mb-0 mt-2 small">Se envió un correo de confirmación al responsable registrado.</p>';
-                } else if (res.emailError) {
-                    html += '<p class="mb-0 mt-2 small text-warning">La inscripción en junio quedó registrada, pero no fue posible enviar el correo: ' + res.emailError + '</p>';
-                }
-
-                resultadoFinal.className = 'alert alert-success';
-                resultadoFinal.innerHTML = html;
-                resultadoFinal.classList.remove('d-none');
-
-                if (participanteValidado) {
-                    ajax('get-participacion-junio-cursos.php', 'POST', { documento: participanteValidado.documento })
-                        .then((refresh) => {
-                            if (refresh && refresh.success) renderCursos(refresh);
-                        })
-                        .catch(() => {});
-                }
-            })
+        enviarParticipacion()
             .catch((err) => {
                 resultadoFinal.className = 'alert alert-danger';
-                mostrarError(resultadoFinal, err.message || 'Ocurrió un error al confirmar la inscripción en junio.');
+                mostrarError(resultadoFinal, err.message || 'Ocurrió un error al confirmar la participación.');
             })
             .finally(() => {
-                btnEnviar.textContent = 'Confirmar inscripción en junio';
+                btnEnviar.textContent = 'Confirmar participación en vacaciones';
                 actualizarEnvio();
             });
     });

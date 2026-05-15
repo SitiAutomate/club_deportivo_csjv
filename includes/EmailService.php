@@ -102,7 +102,8 @@ class EmailService
     public function enviarConfirmacionParticipacionJunio(
         string $destinatario,
         string $participanteNombre,
-        array $cursosSeleccionados
+        array $cursosSeleccionados,
+        string $participara = 'Sí'
     ): bool {
         $this->lastError = null;
         if (!$this->isConfigured() || $destinatario === '') {
@@ -113,17 +114,30 @@ class EmailService
         $logoHtml = $this->getLogoEmbedHtml();
         $cursosHtml = $this->formatListaCursosEmail($cursosSeleccionados);
         $participanteNombreHtml = $this->esc($participanteNombre);
+        $esRetiro = $participara === 'No';
+
+        if ($esRetiro) {
+            $titulo = 'Retiro de vacaciones registrado';
+            $mensaje = '<p style="margin:0 0 16px;color:#334155;line-height:1.6;">Registramos que <strong>' . $participanteNombreHtml . '</strong> <strong>no participará</strong> en los entrenamientos del club deportivo durante el periodo del 15 al 30 de junio (periodo <strong>0626</strong>).</p>'
+                . '<p style="margin:0 0 16px;color:#334155;line-height:1.6;">Se aplicó retiro de vacaciones en los siguientes cursos:</p>';
+        } else {
+            $titulo = 'Participación en vacaciones confirmada';
+            $mensaje = '<p style="margin:0 0 16px;color:#334155;line-height:1.6;">Confirmamos la participación de <strong>' . $participanteNombreHtml . '</strong> en vacaciones para el periodo del 15 al 30 de junio (periodo <strong>0626</strong>).</p>';
+        }
 
         $innerHtml = '<tr><td style="padding:24px;">'
-            . '<h2 style="margin:0 0 20px;font-size:1.25rem;color:#20254A;">✓ Inscripción confirmada</h2>'
-            . '<p style="margin:0 0 16px;color:#334155;line-height:1.6;">Confirmamos la inscripción de <strong>' . $participanteNombreHtml . '</strong> para el periodo <strong>0626</strong>.</p>'
+            . '<h2 style="margin:0 0 20px;font-size:1.25rem;color:#20254A;">✓ ' . $titulo . '</h2>'
+            . $mensaje
             . $cursosHtml
             . '<p style="margin:20px 0 0;font-size:0.9rem;color:#64748b;">Si tiene alguna duda, contáctenos a <a href="mailto:clubdeportivo@sanjosevegas.edu.co">clubdeportivo@sanjosevegas.edu.co</a></p>'
             . '</td></tr>';
 
         $html = $this->buildEmailHtml($logoHtml, $innerHtml);
+        $asunto = $esRetiro
+            ? 'Confirmación de retiro de vacaciones - Club Deportivo y Fundación Maex'
+            : 'Confirmación de participación en vacaciones - Club Deportivo y Fundación Maex';
 
-        return $this->enviar($destinatario, 'Confirmación de inscripción - Club Deportivo y Fundación Maex', $html);
+        return $this->enviar($destinatario, $asunto, $html);
     }
 
     private function buildEmailHtml(string $logoHtml, string $innerHtml): string

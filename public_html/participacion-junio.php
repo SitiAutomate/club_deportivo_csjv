@@ -11,7 +11,7 @@ $textoVentanaJunio = participacionJunioTextoVentana();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inscripción en junio - Club Deportivo y Fundación Maex</title>
+    <title>Participación en vacaciones - Club Deportivo y Fundación Maex</title>
     <link rel="icon" type="image/x-icon" href="favicon/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png">
@@ -51,7 +51,7 @@ $textoVentanaJunio = participacionJunioTextoVentana();
         <header class="header-inscripcion d-flex align-items-center gap-4 mb-5 py-4 px-4 rounded-3 shadow-sm">
             <img src="assets/images/logo.png?v=<?= @filemtime(__DIR__ . '/assets/images/logo.png') ?: '1' ?>" alt="Logo" class="header-logo flex-shrink-0" onerror="this.style.display='none'">
             <div class="header-text flex-grow-1">
-                <h1 class="mb-1 display-6 fw-bold">Inscripción en junio</h1>
+                <h1 class="mb-1 display-6 fw-bold">Participación en vacaciones (15 al 30 de junio)</h1>
                 <p class="h5 mb-2 text-muted">Club Deportivo y Fundación Maex</p>
                 <p class="mb-3 header-descripcion" style="font-size: 1rem;">
                     ¡Queremos seguir creando experiencias significativas para nuestros deportistas!
@@ -73,9 +73,11 @@ $textoVentanaJunio = participacionJunioTextoVentana();
                 <ol class="mb-0 ps-3">
                     <li class="mb-2">Acepte la autorización para el tratamiento de datos personales.</li>
                     <li class="mb-2">Ingrese el documento del participante y valídelo.</li>
-                    <li class="mb-2">Revise los cursos en los que el participante tiene inscripción activa en el mes actual.</li>
-                    <li class="mb-2">Marque los cursos en los que confirmará la inscripción para junio.</li>
-                    <li class="mb-0">Al enviar, confirmará su participación en los cursos marcados y recibirá un correo con el resumen al responsable registrado.</li>
+                    <li class="mb-2">Indique si participará en los entrenamientos del club deportivo durante el periodo del 15 al 30 de junio.</li>
+                    <li class="mb-2">Si respondió que sí, seleccione los cursos en los que confirmará su participación en vacaciones.</li>
+                    <li class="mb-2">Al enviar, confirmará su participación en el periodo de vacaciones en los cursos seleccionados y recibirá un correo con la confirmación.</li>
+                    <li class="mb-2">Tener en cuenta que, una vez confirmada la participación durante este periodo, la factura será generada por el mes completo.</li>
+                    <li class="mb-0">No se contará con servicio de transporte entre el 15 y el 30 de junio.</li>
                 </ol>
             </div>
         </div>
@@ -101,25 +103,46 @@ $textoVentanaJunio = participacionJunioTextoVentana();
             </div>
 
             <div id="contenidoFormulario" style="display:none;">
-                <div class="card mb-4">
+                <div class="card mb-4" id="cardParticipara">
                     <div class="card-header">
-                        <h5 class="mb-0">1. Documento del participante</h5>
+                        <h5 class="mb-0">1. Participación en vacaciones</h5>
                     </div>
                     <div class="card-body">
-                        <p class="small text-muted mb-3">Ingrese el documento del participante y valídelo para consultar los cursos inscritos del mes actual.</p>
+                        <p class="fw-bold mb-3" id="labelParticipara">Participará en los entrenamientos del club deportivo durante el periodo del 15 al 30 de junio</p>
+                        <div class="d-flex flex-wrap gap-4 mb-2" role="radiogroup" aria-labelledby="labelParticipara">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="participaraVacaciones" id="participaraSi" value="Si" required>
+                                <label class="form-check-label fw-semibold" for="participaraSi">Sí</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="participaraVacaciones" id="participaraNo" value="No" required>
+                                <label class="form-check-label fw-semibold" for="participaraNo">No</label>
+                            </div>
+                        </div>
+                        <p class="form-text mb-0" id="textoParticiparaNo">Si responde <strong>No</strong>, se registrará el retiro de vacaciones en todos los cursos activos del mes actual.</p>
+                        <p class="form-text text-primary mb-0 mt-2 d-none" id="hintValidarDocumento" role="status"></p>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">2. Documento del participante</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="small text-muted mb-3">Ingrese el documento del participante y valídelo para consultar los cursos con participación activa en el mes actual.</p>
                         <div class="row">
                             <div class="col-md-6">
                                 <label for="documentoParticipante" class="form-label fw-bold">Documento del participante</label>
                                 <div class="input-group">
                                     <input type="text" class="form-control" id="documentoParticipante" name="documentoParticipante"
-                                           placeholder="Ingrese documento y presione Validar o salga del campo" required autocomplete="on">
+                                           placeholder="Ingrese documento y presione Validar" required autocomplete="on">
                                     <button type="button" class="btn btn-outline-primary" id="btnValidarParticipante">
                                         <span class="btn-text">Validar</span>
                                         <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                                     </button>
                                 </div>
                                 <div class="invalid-feedback">Ingrese el documento del participante.</div>
-                                <div class="form-text">Use el mismo documento con el que el participante está inscrito.</div>
+                                <div class="form-text">Use el mismo documento con el que el participante está registrado.</div>
                                 <div id="participanteResumen" class="mt-2 small text-muted d-none" role="status"></div>
                                 <div id="participanteError" class="mt-2 small text-danger d-none" role="alert"></div>
                             </div>
@@ -127,13 +150,14 @@ $textoVentanaJunio = participacionJunioTextoVentana();
                     </div>
                 </div>
 
+
                 <div class="card mb-4" id="cardCursos" style="display:none;">
                     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <h5 class="mb-0">2. Cursos inscritos del mes actual</h5>
+                        <h5 class="mb-0">3. Cursos del mes actual</h5>
                         <span class="badge text-bg-secondary" id="badgeMesConsulta"></span>
                     </div>
                     <div class="card-body">
-                        <p class="text-muted mb-3" id="textoSeleccionCursos">Seleccione los cursos en los que confirmará la inscripción para junio.</p>
+                        <p class="text-muted mb-3" id="textoSeleccionCursos">Seleccione los cursos en los que confirmará su participación en vacaciones.</p>
                         <div id="listaCursos" class="vstack gap-2"></div>
                         <div id="sinCursos" class="alert alert-warning d-none mb-0" role="status">
                             No encontramos cursos activos del mes actual para este participante.
@@ -142,7 +166,7 @@ $textoVentanaJunio = participacionJunioTextoVentana();
                 </div>
 
                 <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-4">
-                    <button type="submit" class="btn btn-primary px-4" id="btnEnviar" disabled>Confirmar inscripción en junio</button>
+                    <button type="submit" class="btn btn-primary px-4" id="btnEnviar" disabled>Confirmar participación en vacaciones</button>
                 </div>
             </div>
         </form>
@@ -154,7 +178,7 @@ $textoVentanaJunio = participacionJunioTextoVentana();
         <?php endif; ?>
 
         <p class="text-center text-muted small mb-0">
-            <a href="index.php">Volver al formulario de inscripción</a>
+            <a href="index.php">Volver al formulario principal</a>
         </p>
     </div>
 </body>

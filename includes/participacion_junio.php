@@ -10,6 +10,11 @@ function participacionJunioTextoVentana(): string
     return 'del 19 al 24 de mayo de 2026';
 }
 
+function participacionJunioObservacion(string $participara): string
+{
+    return $participara === 'Sí' ? 'Sí participará' : 'No participará';
+}
+
 function participacionJunioHabilitada(): bool
 {
     $tz = participacionJunioZonaHoraria();

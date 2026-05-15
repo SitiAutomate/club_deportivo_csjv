@@ -2,7 +2,6 @@
 require_once __DIR__ . '/../../includes/bootstrap.php';
 require_once __DIR__ . '/../../includes/EmailService.php';
 require_once __DIR__ . '/../../includes/csrf.php';
-
 require_once __DIR__ . '/../../includes/participacion_junio.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -39,14 +38,20 @@ if (($input['politicas'] ?? $input['Politicas'] ?? '') !== 'Si') {
     jsonResponse(['success' => false, 'error' => 'Debe aceptar la autorización para el tratamiento de datos personales.', 'traceId' => $traceId], 400);
 }
 
-$cursoIds = $input['curso_ids'] ?? [];
-if (!is_array($cursoIds)) {
-    $cursoIds = $cursoIds ? [strval($cursoIds)] : [];
+$participara = trim($input['participara'] ?? $input['participara_vacaciones'] ?? '');
+if ($participara === 'Si') {
+    $participara = 'Sí';
 }
-$cursoIds = array_values(array_unique(array_filter(array_map('strval', $cursoIds))));
-if (empty($cursoIds)) {
-    jsonResponse(['success' => false, 'error' => 'Seleccione al menos un curso.', 'traceId' => $traceId], 400);
+if (!in_array($participara, ['Sí', 'No'], true)) {
+    jsonResponse([
+        'success' => false,
+        'error' => 'Indique si participará en los entrenamientos durante el periodo del 15 al 30 de junio.',
+        'traceId' => $traceId
+    ], 400);
 }
+
+$observacion = participacionJunioObservacion($participara);
+$estado = $participara === 'Sí' ? 'VACACIONES' : 'RETIRO VACACIONES';
 
 $participanteModel = new Participante($database);
 $participante = $participanteModel->getByDocumento($documento);
@@ -70,20 +75,40 @@ foreach ($inscripcionesMes as $row) {
     }
 }
 
+if (empty($porCursoMes)) {
+    jsonResponse([
+        'success' => false,
+        'error' => 'No hay cursos activos del mes actual para este participante.',
+        'traceId' => $traceId
+    ], 400);
+}
+
+$cursoIds = $input['curso_ids'] ?? [];
+if (!is_array($cursoIds)) {
+    $cursoIds = $cursoIds ? [strval($cursoIds)] : [];
+}
+$cursoIds = array_values(array_unique(array_filter(array_map('strval', $cursoIds))));
+
+if ($participara === 'No') {
+    $cursoIds = array_keys($porCursoMes);
+} elseif (empty($cursoIds)) {
+    jsonResponse(['success' => false, 'error' => 'Seleccione al menos un curso.', 'traceId' => $traceId], 400);
+}
+
 $creadas = [];
 $omitidas = [];
 $errores = [];
 
 foreach ($cursoIds as $idCurso) {
     if (!isset($porCursoMes[$idCurso])) {
-        $errores[] = "El curso {$idCurso} no corresponde a una inscripción activa del mes actual.";
+        $errores[] = "El curso {$idCurso} no corresponde a una participación activa del mes actual.";
         continue;
     }
     if ($inscripcionModel->tieneInscripcionJunioBloqueada($documento, $idCurso, $anio, $tipoId)) {
         $omitidas[] = [
             'id' => $idCurso,
             'nombre' => $porCursoMes[$idCurso]['nombreCurso'] ?? $idCurso,
-            'motivo' => 'Ya existe inscripción en junio para este curso.'
+            'motivo' => 'Ya existe participación registrada para vacaciones en este curso.'
         ];
         continue;
     }
@@ -98,11 +123,12 @@ foreach ($cursoIds as $idCurso) {
         'Sede' => $base['Sede'] ?? null,
         'nombreCurso' => $base['nombreCurso'] ?? null,
         'Politicas' => 'Si',
-        'Estado' => 'INTERESADO'
+        'Estado' => $estado,
+        'OBSERVACION' => $observacion
     ]);
 
     if ($idInscripcion <= 0) {
-        $errores[] = "No fue posible confirmar la inscripción en junio para el curso {$idCurso}.";
+        $errores[] = "No fue posible registrar la participación en vacaciones para el curso {$idCurso}.";
         continue;
     }
 
@@ -111,21 +137,24 @@ foreach ($cursoIds as $idCurso) {
             'traceId' => $traceId,
             'idInscripcion' => $idInscripcion,
             'participante' => $documento,
-            'curso' => $idCurso
+            'curso' => $idCurso,
+            'estado' => $estado,
+            'participara' => $participara
         ]);
     }
 
     $creadas[] = [
         'id' => $idCurso,
         'nombre' => $base['nombreCurso'] ?? $idCurso,
-        'idInscripcion' => $idInscripcion
+        'idInscripcion' => $idInscripcion,
+        'estado' => $estado
     ];
 }
 
 if (empty($creadas)) {
     $mensaje = !empty($errores)
         ? implode(' ', $errores)
-        : 'No se confirmó la inscripción en junio para ningún curso. Revise si ya estaba inscrito en junio.';
+        : 'No se registró la participación en vacaciones para ningún curso. Revise si ya estaba registrado.';
     jsonResponse([
         'success' => false,
         'error' => $mensaje,
@@ -145,7 +174,12 @@ $correo = trim($responsable['Correo_Responsable'] ?? '');
 
 if ($correo !== '') {
     $emailService = new EmailService();
-    $emailEnviado = $emailService->enviarConfirmacionParticipacionJunio($correo, $participanteNombre, $creadas);
+    $emailEnviado = $emailService->enviarConfirmacionParticipacionJunio(
+        $correo,
+        $participanteNombre,
+        $creadas,
+        $participara
+    );
     if (!$emailEnviado) {
         $emailError = $emailService->getLastError();
         if (class_exists('AppLogger')) {
@@ -168,6 +202,7 @@ if ($correo !== '') {
 
 jsonResponse([
     'success' => true,
+    'participara' => $participara,
     'creadas' => $creadas,
     'omitidas' => $omitidas,
     'errores' => $errores,

@@ -57,7 +57,12 @@ class Inscripcion
      */
     public function tieneInscripcionJunioBloqueada(string $participanteDoc, string $idCurso, int $anio, int $tipoId = 1): bool
     {
-        $estadosBloqueo = ['ACTIVO', 'Confirmado', 'confirmado', 'INTERESADO', 'interesado'];
+        $estadosBloqueo = [
+            'ACTIVO', 'Confirmado', 'confirmado',
+            'INTERESADO', 'interesado',
+            'VACACIONES', 'vacaciones',
+            'RETIRO VACACIONES', 'retiro vacaciones'
+        ];
         $count = $this->db->count('inscripciones_1', [
             'validador_participante' => $participanteDoc,
             'IDCurso' => $idCurso,

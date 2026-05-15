@@ -60,7 +60,7 @@ foreach ($rows as $row) {
         'estado' => $row['Estado'] ?? '',
         'bloqueado_junio' => $bloqueado,
         'motivo_bloqueo' => $bloqueado
-            ? 'Ya tiene una inscripción registrada para junio en este curso.'
+            ? 'Ya tiene participación registrada para vacaciones en este curso.'
             : null
     ];
 }
