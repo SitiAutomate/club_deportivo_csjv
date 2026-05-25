@@ -30,6 +30,23 @@ class Inscripcion
     }
 
     /**
+     * Buscar inscripción existente por responsable + curso + año + tipo
+     * (utilizado para flujos donde el responsable es también el "participante",
+     * por ejemplo inscripciones por equipos / eventos tipo 18).
+     */
+    public function getPorResponsableYCurso(string $responsableDoc, string $idCurso, int $anio, int $tipoId): ?array
+    {
+        $row = $this->db->get('inscripciones_1', '*', [
+            'validador_responsable' => $responsableDoc,
+            'IDCurso' => $idCurso,
+            'año' => $anio,
+            'Tipo' => $tipoId,
+            'ORDER' => ['IDInscripcion' => 'DESC']
+        ]);
+        return $row ?: null;
+    }
+
+    /**
      * Inscripciones activas de cursos (tipo 1) para un mes y año.
      */
     public function getCursosActivosParticipante(string $participanteDoc, string $mes, int $anio, int $tipoId = 1): array
@@ -53,13 +70,14 @@ class Inscripcion
     }
 
     /**
-     * Bloquea preinscripción de junio si ya hay inscripción en junio con estado relevante.
+     * Bloquea participación en vacaciones si ya hay una fila en junio
+     * con estado VACACIONES o RETIRO VACACIONES (es decir, ya respondió este formulario).
+     * Los demás estados (ACTIVO, Confirmado, Incapacitado, INTERESADO, etc.)
+     * NO bloquean porque corresponden al traslado de mayo a junio.
      */
     public function tieneInscripcionJunioBloqueada(string $participanteDoc, string $idCurso, int $anio, int $tipoId = 1): bool
     {
         $estadosBloqueo = [
-            'ACTIVO', 'Confirmado', 'confirmado',
-            'INTERESADO', 'interesado',
             'VACACIONES', 'vacaciones',
             'RETIRO VACACIONES', 'retiro vacaciones'
         ];

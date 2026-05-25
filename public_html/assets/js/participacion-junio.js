@@ -235,7 +235,7 @@
 
             let html = '<strong>Participación en vacaciones registrada correctamente.</strong>';
             if (res.participara === 'No') {
-                html += '<p class="mb-0 mt-2 small">Se registró retiro de vacaciones en todos los cursos activos del mes actual.</p>';
+                html += '<p class="mb-0 mt-2 small">Se registró un retiro temporal por vacaciones en todos los cursos activos del mes actual para el periodo del 15 al 30 de junio. No implica salida definitiva del club deportivo.</p>';
             }
             if (res.creadas && res.creadas.length) {
                 html += '<ul class="mb-0 mt-2">';

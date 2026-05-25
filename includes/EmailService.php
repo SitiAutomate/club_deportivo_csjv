@@ -117,9 +117,10 @@ class EmailService
         $esRetiro = $participara === 'No';
 
         if ($esRetiro) {
-            $titulo = 'Retiro de vacaciones registrado';
+            $titulo = 'Retiro temporal por vacaciones';
             $mensaje = '<p style="margin:0 0 16px;color:#334155;line-height:1.6;">Registramos que <strong>' . $participanteNombreHtml . '</strong> <strong>no participará</strong> en los entrenamientos del club deportivo durante el periodo del 15 al 30 de junio (periodo <strong>0626</strong>).</p>'
-                . '<p style="margin:0 0 16px;color:#334155;line-height:1.6;">Se aplicó retiro de vacaciones en los siguientes cursos:</p>';
+                . '<p style="margin:0 0 16px;color:#334155;line-height:1.6;">Este registro corresponde a un <strong>retiro temporal por vacaciones</strong> y no implica la salida definitiva del club deportivo.</p>'
+                . '<p style="margin:0 0 16px;color:#334155;line-height:1.6;">Cursos con retiro temporal registrado para este periodo:</p>';
         } else {
             $titulo = 'Participación en vacaciones confirmada';
             $mensaje = '<p style="margin:0 0 16px;color:#334155;line-height:1.6;">Confirmamos la participación de <strong>' . $participanteNombreHtml . '</strong> en vacaciones para el periodo del 15 al 30 de junio (periodo <strong>0626</strong>).</p>';
@@ -134,10 +135,117 @@ class EmailService
 
         $html = $this->buildEmailHtml($logoHtml, $innerHtml);
         $asunto = $esRetiro
-            ? 'Confirmación de retiro de vacaciones - Club Deportivo y Fundación Maex'
+            ? 'Confirmación de retiro temporal por vacaciones - Club Deportivo y Fundación Maex'
             : 'Confirmación de participación en vacaciones - Club Deportivo y Fundación Maex';
 
         return $this->enviar($destinatario, $asunto, $html);
+    }
+
+    /**
+     * Confirmación de inscripción por equipos (eventos tipo 18, Festivegas, etc.).
+     * $equiposNuevos        = equipos registrados en la inscripción actual
+     * $equiposExistentes    = equipos previamente inscritos por el mismo responsable para este evento
+     */
+    public function enviarConfirmacionInscripcionEquipos(
+        string $destinatario,
+        string $responsableNombre,
+        string $eventoNombre,
+        array $equiposNuevos,
+        array $equiposExistentes = []
+    ): bool {
+        $this->lastError = null;
+        if (!$this->isConfigured() || $destinatario === '') {
+            $this->lastError = 'Servicio de correo no configurado o destinatario vacío';
+            return false;
+        }
+
+        $logoHtml = $this->getLogoEmbedHtml();
+        $responsableHtml = $this->esc($responsableNombre);
+        $eventoHtml = $this->esc($eventoNombre);
+        $totalNuevos = count($equiposNuevos);
+        $totalExistentes = count($equiposExistentes);
+        $totalEquipos = $totalExistentes + $totalNuevos;
+
+        $renderEquipoBlock = function (array $eq, int $idx, ?string $badge): string {
+            $nombre = $this->esc((string) ($eq['nombre_equipo'] ?? ''));
+            $rama = $this->esc((string) ($eq['rama'] ?? ''));
+            $categoria = $this->esc((string) ($eq['categoria'] ?? ''));
+            $entrenador = $this->esc((string) ($eq['entrenador_nombre'] ?? ''));
+            $asistente = $this->esc((string) ($eq['asistente_nombre'] ?? ''));
+            $deportistas = $eq['deportistas'] ?? [];
+
+            $deportistasRows = '';
+            foreach ($deportistas as $j => $d) {
+                $n = $j + 1;
+                $dn = $this->esc((string) ($d['nombre_completo'] ?? $d['nombre'] ?? ''));
+                $df = $this->esc($this->formatFechaDDMMYYYY((string) ($d['fecha_nacimiento'] ?? '')));
+                $dd = $this->esc((string) ($d['documento'] ?? ''));
+                $deportistasRows .= '<tr>'
+                    . '<td style="padding:6px 8px;border:1px solid #e2e8f0;">' . $n . '</td>'
+                    . '<td style="padding:6px 8px;border:1px solid #e2e8f0;">' . $dn . '</td>'
+                    . '<td style="padding:6px 8px;border:1px solid #e2e8f0;">' . $dd . '</td>'
+                    . '<td style="padding:6px 8px;border:1px solid #e2e8f0;">' . $df . '</td>'
+                    . '</tr>';
+            }
+            $badgeHtml = $badge
+                ? ' <span style="display:inline-block;font-size:0.75rem;padding:2px 8px;border-radius:10px;background:#e0e7ff;color:#3730a3;vertical-align:middle;">' . $this->esc($badge) . '</span>'
+                : '';
+            return '<div style="margin:16px 0;padding:14px;border:1px solid #e2e8f0;border-radius:6px;background:#f8fafc;">'
+                . '<h3 style="margin:0 0 8px;color:#20254A;font-size:1rem;">Equipo ' . $idx . ': ' . $nombre . $badgeHtml . '</h3>'
+                . '<p style="margin:0 0 6px;color:#334155;"><strong>Rama:</strong> ' . $rama . ' &nbsp; <strong>Categoría:</strong> ' . $categoria . '</p>'
+                . '<p style="margin:0 0 6px;color:#334155;"><strong>Entrenador:</strong> ' . ($entrenador ?: '-') . '</p>'
+                . ($asistente ? '<p style="margin:0 0 10px;color:#334155;"><strong>Asistente:</strong> ' . $asistente . '</p>' : '')
+                . '<table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:0.9rem;">'
+                . '<thead><tr>'
+                . '<th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;background:#fff;">#</th>'
+                . '<th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;background:#fff;">Deportista</th>'
+                . '<th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;background:#fff;">Documento</th>'
+                . '<th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;background:#fff;">F. nacimiento</th>'
+                . '</tr></thead><tbody>' . $deportistasRows . '</tbody></table>'
+                . '</div>';
+        };
+
+        $equiposHtml = '';
+        $i = 0;
+        foreach ($equiposExistentes as $eq) {
+            $i++;
+            $equiposHtml .= $renderEquipoBlock($eq, $i, 'Previo');
+        }
+        foreach ($equiposNuevos as $eq) {
+            $i++;
+            $equiposHtml .= $renderEquipoBlock($eq, $i, $totalExistentes > 0 ? 'Nuevo' : null);
+        }
+
+        $resumenAdicional = $totalExistentes > 0
+            ? '<p style="margin:0 0 14px;color:#475569;line-height:1.6;font-size:0.95rem;">Ya tenía <strong>' . $totalExistentes . '</strong> equipo(s) inscrito(s) previamente y se agregaron <strong>' . $totalNuevos . '</strong> en esta confirmación.</p>'
+            : '';
+
+        $innerHtml = '<tr><td style="padding:24px;">'
+            . '<h2 style="margin:0 0 16px;font-size:1.25rem;color:#20254A;">✓ Inscripción de equipos registrada</h2>'
+            . '<p style="margin:0 0 14px;color:#334155;line-height:1.6;">Responsable: <strong>' . $responsableHtml . '</strong></p>'
+            . '<p style="margin:0 0 14px;color:#334155;line-height:1.6;">Evento: <strong>' . $eventoHtml . '</strong></p>'
+            . '<p style="margin:0 0 14px;color:#334155;line-height:1.6;">Total de equipos inscritos para este responsable en este evento: <strong>' . $totalEquipos . '</strong></p>'
+            . $resumenAdicional
+            . $equiposHtml
+            . '<p style="margin:18px 0 0;font-size:0.9rem;color:#64748b;">Si tiene alguna duda, contáctenos a <a href="mailto:clubdeportivo@sanjosevegas.edu.co">clubdeportivo@sanjosevegas.edu.co</a></p>'
+            . '</td></tr>';
+
+        $html = $this->buildEmailHtml($logoHtml, $innerHtml);
+        return $this->enviar(
+            $destinatario,
+            'Confirmación de inscripción de equipos - ' . $eventoNombre,
+            $html
+        );
+    }
+
+    private function formatFechaDDMMYYYY(string $valor): string
+    {
+        $valor = trim($valor);
+        if ($valor === '') return '';
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})/', $valor, $m)) {
+            return $m[3] . '/' . $m[2] . '/' . $m[1];
+        }
+        return $valor;
     }
 
     private function buildEmailHtml(string $logoHtml, string $innerHtml): string
@@ -265,6 +373,15 @@ class EmailService
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
             $mail->Port = $this->port;
             $mail->CharSet = 'UTF-8';
+            $mail->Timeout = (int) env('EMAIL_TIMEOUT', 15);
+            $mail->SMTPKeepAlive = false;
+            $mail->SMTPOptions = [
+                'ssl' => [
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                    'allow_self_signed' => true,
+                ],
+            ];
             $mail->setFrom($this->user, $this->fromName);
             $mail->addAddress($to);
             $mail->isHTML(true);

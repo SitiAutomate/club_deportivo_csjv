@@ -42,4 +42,6 @@ require_once __DIR__ . '/../models/Asignatura.php';
 require_once __DIR__ . '/../models/Ciudad.php';
 require_once __DIR__ . '/../models/Mes.php';
 require_once __DIR__ . '/../models/ParticipanteAdicional.php';
+require_once __DIR__ . '/../models/Equipo.php';
+require_once __DIR__ . '/../models/EquipoDeportista.php';
 require_once __DIR__ . '/ExternalApiService.php';

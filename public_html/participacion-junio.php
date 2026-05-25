@@ -57,7 +57,10 @@ $textoVentanaJunio = participacionJunioTextoVentana();
                     ¡Queremos seguir creando experiencias significativas para nuestros deportistas!
                 </p>
                 <p class="mb-3 header-descripcion" style="font-size: 1rem;">
-                    Por eso, hemos preparado este formulario para conocer la participación y expectativas frente a las actividades de vacaciones del Club Deportivo. Su respuesta será muy importante para proyectar espacios enriquecedores, dinámicos y acordes a las necesidades de nuestras familias.
+                    Por eso, hemos preparado este formulario para conocer la participación y las expectativas frente a las actividades de vacaciones del Club Deportivo. Su respuesta será muy importante para proyectar espacios enriquecedores, dinámicos y acordes con las necesidades de nuestras familias.
+                </p>
+                <p class="mb-3 header-descripcion" style="font-size: 1rem;">
+                    Recuerda que el grupo se abrirá durante este periodo solo si se cuenta con la participación necesaria para realizar los entrenamientos.
                 </p>
                 <p class="mb-0 header-descripcion" style="font-size: 1rem;">
                     Este formulario estará disponible <?= htmlspecialchars($textoVentanaJunio, ENT_QUOTES, 'UTF-8') ?>.
@@ -119,7 +122,7 @@ $textoVentanaJunio = participacionJunioTextoVentana();
                                 <label class="form-check-label fw-semibold" for="participaraNo">No</label>
                             </div>
                         </div>
-                        <p class="form-text mb-0" id="textoParticiparaNo">Si responde <strong>No</strong>, se registrará el retiro de vacaciones en todos los cursos activos del mes actual.</p>
+                        <p class="form-text mb-0" id="textoParticiparaNo">Si responde <strong>No</strong>, se registrará un <strong>retiro temporal por vacaciones</strong> en todos los cursos activos del mes actual para el periodo del 15 al 30 de junio. No implica salida definitiva del club deportivo.</p>
                         <p class="form-text text-primary mb-0 mt-2 d-none" id="hintValidarDocumento" role="status"></p>
                     </div>
                 </div>
