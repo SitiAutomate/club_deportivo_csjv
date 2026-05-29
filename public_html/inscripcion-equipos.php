@@ -24,17 +24,53 @@ require_once __DIR__ . '/../includes/csrf.php';
             --bs-success: #18A6E0;
             --bs-warning: #FF6D00;
             --bs-danger: #dc3545;
-            --bs-body-color: #3C3C3B;
-            --bs-heading-color: #20254A;
+            --bs-body-color: #334155;
+            --bs-heading-color: #1e293b;
         }
         a { text-decoration: none; }
         a:hover { text-decoration: underline; }
-        .equipo-card { border-left: 4px solid var(--bs-primary); }
-        .deportista-row { background: #f8fafc; }
+
+        .page-equipos {
+            background: #f8fafc;
+            color: #334155;
+        }
+        .page-equipos .card {
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+        }
+        .page-equipos .card-header {
+            background: #f1f5f9;
+            color: #1e293b;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .page-equipos .equipo-card { border-left: 4px solid #64748b; }
+        .page-equipos .deportista-row { background: #f8fafc; }
+        .page-equipos .text-muted { color: #64748b !important; }
+        .page-equipos .form-text { color: #64748b; }
+
+        .page-equipos #barEquiposInscritos {
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            color: #334155;
+        }
+        .page-equipos #badgeEquiposExistentes {
+            background: #334155 !important;
+            color: #fff !important;
+        }
+        .page-equipos #btnVerEquiposInscritos {
+            color: #334155;
+            border: 1px solid #94a3b8;
+            background: #fff;
+        }
+        .page-equipos #btnVerEquiposInscritos:hover {
+            background: #e2e8f0;
+            border-color: #64748b;
+            color: #1e293b;
+        }
     </style>
     <link href="assets/css/app.css?v=<?= @filemtime(__DIR__ . '/assets/css/app.css') ?: '1' ?>" rel="stylesheet">
 </head>
-<body>
+<body class="page-equipos">
     <div class="container py-4">
         <header class="header-inscripcion d-flex align-items-center gap-4 mb-5 py-4 px-4 rounded-3 shadow-sm">
             <img src="assets/images/logo.png?v=<?= @filemtime(__DIR__ . '/assets/images/logo.png') ?: '1' ?>" alt="Logo" class="header-logo flex-shrink-0" onerror="this.style.display='none'">
@@ -58,7 +94,7 @@ require_once __DIR__ . '/../includes/csrf.php';
                 <ol class="mb-0 ps-3">
                     <li class="mb-2">Acepte la autorización para el tratamiento de datos personales.</li>
                     <li class="mb-2">Ingrese el documento del responsable de pago y valídelo. Si no está registrado, complete sus datos.</li>
-                    <li class="mb-2">Seleccione el evento y la cantidad de equipos a inscribir (entre 1 y 4).</li>
+                    <li class="mb-2">Seleccione el evento y la cantidad de equipos a inscribir (entre 1 y 10).</li>
                     <li class="mb-2">Diligencie por cada equipo el nombre, rama, categoría, entrenador, asistente y la planilla de deportistas.</li>
                     <li class="mb-0">Al enviar, se confirmará la inscripción y recibirá un correo con el listado de equipos.</li>
                 </ol>
@@ -123,26 +159,21 @@ require_once __DIR__ . '/../includes/csrf.php';
                                 <label for="cantidadEquipos" class="form-label fw-bold">Cantidad de equipos</label>
                                 <select class="form-select" id="cantidadEquipos">
                                     <option value="">-- Seleccione --</option>
-                                    <option value="1">1 equipo</option>
-                                    <option value="2">2 equipos</option>
-                                    <option value="3">3 equipos</option>
-                                    <option value="4">4 equipos</option>
                                 </select>
-                                <div class="form-text">Mínimo 1, máximo 4.</div>
+                                <div class="form-text">Mínimo 1, máximo 10 por envío (hasta 10 equipos en total por responsable y evento).</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div id="cardEquiposExistentes" class="card mb-4 border-info" style="display:none;">
-                    <div class="card-header bg-info bg-opacity-10 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <h5 class="mb-0">Equipos ya inscritos</h5>
-                        <span class="badge text-bg-info" id="badgeEquiposExistentes"></span>
+                <div id="barEquiposInscritos" class="alert d-none flex-wrap align-items-center justify-content-between gap-2 mb-3" role="status">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <span class="badge" id="badgeEquiposExistentes"></span>
+                        <span class="small mb-0" id="textoEquiposExistentes"></span>
                     </div>
-                    <div class="card-body">
-                        <p class="small text-muted mb-3" id="textoEquiposExistentes"></p>
-                        <div id="listaEquiposExistentes" class="vstack gap-2"></div>
-                    </div>
+                    <button type="button" class="btn btn-sm" id="btnVerEquiposInscritos" style="display:none;">
+                        Ver equipos inscritos
+                    </button>
                 </div>
 
                 <div id="contenedorEquipos"></div>
@@ -157,6 +188,22 @@ require_once __DIR__ . '/../includes/csrf.php';
         </form>
 
         <div id="resultadoFinal" class="alert d-none" role="status"></div>
+    </div>
+
+    <!-- Modal equipos ya inscritos (solo lectura) -->
+    <div class="modal fade" id="modalEquiposInscritos" tabindex="-1" aria-labelledby="modalEquiposInscritosLabel">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalEquiposInscritosLabel">Equipos ya inscritos</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body" id="listaEquiposExistentes"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Modal Éxito -->

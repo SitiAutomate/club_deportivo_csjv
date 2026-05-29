@@ -30,6 +30,26 @@ class Inscripcion
     }
 
     /**
+     * Level Up (tipo 4): misma asignatura no puede repetirse para el mismo participante, curso y año.
+     */
+    public function existeDuplicadaConAsignatura(
+        string $participanteDoc,
+        string $idCurso,
+        $idAsignatura,
+        int $anio,
+        int $tipoId = 4
+    ): bool {
+        $where = [
+            'validador_participante' => $participanteDoc,
+            'IDCurso' => $idCurso,
+            'año' => $anio,
+            'Tipo' => $tipoId,
+            'Asignatura' => $idAsignatura,
+        ];
+        return $this->db->count('inscripciones_1', $where) > 0;
+    }
+
+    /**
      * Buscar inscripción existente por responsable + curso + año + tipo
      * (utilizado para flujos donde el responsable es también el "participante",
      * por ejemplo inscripciones por equipos / eventos tipo 18).
@@ -128,7 +148,8 @@ class Inscripcion
             'Modalidad' => $detalle['Modalidad'] ?? null,
             'parqueadero' => $detalle['parqueadero'] ?? null,
             'IDAsign' => $detalle['IDAsign'] ?? null,
-            'Sesión' => $detalle['Sesión'] ?? null
+            'Asignatura' => $detalle['Asignatura'] ?? null,
+            'Sesión' => $detalle['Sesión'] ?? $detalle['Sesion'] ?? null,
         ];
 
         $this->db->insert('inscripciones_1', $data);

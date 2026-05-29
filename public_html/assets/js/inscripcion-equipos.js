@@ -1,6 +1,7 @@
 (function () {
     'use strict';
 
+    const MAX_EQUIPOS = 10;
     const MAX_DEPORTISTAS = { 'Benjamín': 6, 'Mini': 10 };
     const TEL_PATTERN = /^3\d{9}$/;
     const TEL_INPUT_ATTRS = 'type="tel" inputmode="numeric" pattern="3[0-9]{9}" maxlength="10" minlength="10" placeholder="Ej: 3001234567"';
@@ -77,13 +78,16 @@
     const modalExitoEl = document.getElementById('modalExito');
     const modalExitoBody = document.getElementById('modalExitoBody');
     const btnCerrarExito = document.getElementById('btnCerrarExito');
-    const cardEquiposExistentes = document.getElementById('cardEquiposExistentes');
+    const barEquiposInscritos = document.getElementById('barEquiposInscritos');
     const listaEquiposExistentes = document.getElementById('listaEquiposExistentes');
     const badgeEquiposExistentes = document.getElementById('badgeEquiposExistentes');
     const textoEquiposExistentes = document.getElementById('textoEquiposExistentes');
+    const btnVerEquiposInscritos = document.getElementById('btnVerEquiposInscritos');
+    const modalEquiposInscritosEl = document.getElementById('modalEquiposInscritos');
 
     let modalResponsable = null;
     let modalExito = null;
+    let modalEquiposInscritos = null;
 
     let responsableActual = null;
     let eventosCache = [];
@@ -117,7 +121,7 @@
         const cant = parseInt(cantidadEquipos.value, 10);
         const eventoOk = !!eventoSelect.value;
         const respOk = !!responsableActual;
-        const cupoLleno = inscripcionExistenteCache && inscripcionExistenteCache.total_equipos >= 4;
+        const cupoLleno = inscripcionExistenteCache && inscripcionExistenteCache.total_equipos >= MAX_EQUIPOS;
         btnEnviar.disabled = !(respOk && eventoOk && cant > 0) || !!cupoLleno;
     }
 
@@ -209,23 +213,24 @@
             <div class="card-body">
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">Nombre del equipo</label>
+                        <label class="form-label fw-bold">Nombre del equipo <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" data-field="nombre_equipo" required>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label fw-bold">Rama</label>
+                        <label class="form-label fw-bold">Rama <span class="text-danger">*</span></label>
                         <select class="form-select" data-field="rama" required>
                             <option value="">-- Seleccione --</option>
                             <option value="Femenina">Femenina</option>
                             <option value="Masculina">Masculina</option>
+                            <option value="Mixta">Mixta</option>
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label fw-bold">Categoría</label>
+                        <label class="form-label fw-bold">Categoría <span class="text-danger">*</span></label>
                         <select class="form-select" data-field="categoria" required>
                             <option value="">-- Seleccione --</option>
-                            <option value="Benjamín">Benjamín (máx. 6)</option>
-                            <option value="Mini">Mini (máx. 10)</option>
+                            <option value="Benjamín">Benjamín — $300.000 (máx. 6 deportistas)</option>
+                            <option value="Mini">Mini — $400.000 (máx. 10 deportistas)</option>
                         </select>
                     </div>
                 </div>
@@ -233,17 +238,17 @@
                 <h6 class="fw-bold text-uppercase small text-muted mt-3">Entrenador</h6>
                 <div class="row g-3 mb-3">
                     <div class="col-md-5">
-                        <label class="form-label">Nombre del entrenador</label>
+                        <label class="form-label">Nombre del entrenador <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" data-field="entrenador_nombre" required>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Documento</label>
-                        <input type="text" class="form-control" data-field="entrenador_documento">
+                        <label class="form-label">Documento <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" data-field="entrenador_documento" required>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Celular de contacto</label>
-                        <input class="form-control" data-field="entrenador_contacto" ${TEL_INPUT_ATTRS}>
-                        <div class="invalid-feedback">Ingrese un celular válido de 10 dígitos.</div>
+                        <label class="form-label">Celular de contacto <span class="text-danger">*</span></label>
+                        <input class="form-control" data-field="entrenador_contacto" ${TEL_INPUT_ATTRS} required>
+                        <div class="invalid-feedback">Ingrese un celular válido de 10 dígitos (debe empezar por 3).</div>
                     </div>
                 </div>
 
@@ -329,17 +334,17 @@
         row.innerHTML = `
             <div class="row g-2 align-items-end">
                 <div class="col-12 col-md-5">
-                    <label class="form-label small mb-1">Nombre completo del/la deportista <span data-rol="num">#${idx + 1}</span></label>
-                    <input type="text" class="form-control form-control-sm" data-field-dep="nombre_completo">
+                    <label class="form-label small mb-1">Nombre completo del/la deportista <span data-rol="num">#${idx + 1}</span> <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control form-control-sm" data-field-dep="nombre_completo" required>
                 </div>
                 <div class="col-12 col-md-3">
-                    <label class="form-label small mb-1">Fecha de nacimiento <span class="text-muted">(${EDAD_MIN}–${EDAD_MAX} años)</span></label>
+                    <label class="form-label small mb-1">Fecha de nacimiento <span class="text-muted">(${EDAD_MIN}–${EDAD_MAX} años)</span> <span class="text-danger">*</span></label>
                     <input type="date" class="form-control form-control-sm" data-field-dep="fecha_nacimiento"
-                           min="${FECHA_MIN_NAC}" max="${FECHA_MAX_NAC}">
+                           min="${FECHA_MIN_NAC}" max="${FECHA_MAX_NAC}" required>
                 </div>
                 <div class="col-12 col-md-3">
-                    <label class="form-label small mb-1">Número de documento</label>
-                    <input type="text" class="form-control form-control-sm" data-field-dep="documento">
+                    <label class="form-label small mb-1">Número de documento <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control form-control-sm" data-field-dep="documento" required>
                 </div>
                 <div class="col-12 col-md-1 text-end">
                     <button type="button" class="btn btn-sm btn-outline-danger" data-action="del-deportista" title="Eliminar">×</button>
@@ -347,6 +352,11 @@
             </div>
         `;
         row.querySelector('[data-action="del-deportista"]').addEventListener('click', () => {
+            const total = lista.querySelectorAll('[data-rol="deportista-row"]').length;
+            if (total <= 1) {
+                alert('Debe mantener al menos un deportista en el equipo.');
+                return;
+            }
             row.remove();
             renumerarFilas(lista);
         });
@@ -361,15 +371,56 @@
         });
     }
 
+    function leerDeportistaRow(row) {
+        return {
+            nombre_completo: (row.querySelector('[data-field-dep="nombre_completo"]')?.value || '').trim(),
+            fecha_nacimiento: (row.querySelector('[data-field-dep="fecha_nacimiento"]')?.value || '').trim(),
+            documento: (row.querySelector('[data-field-dep="documento"]')?.value || '').trim(),
+        };
+    }
+
+    function deportistaRowActiva(d) {
+        return !!(d.nombre_completo || d.fecha_nacimiento || d.documento);
+    }
+
+    function recolectarDeportistasActivos(card) {
+        return Array.from(card.querySelectorAll('[data-rol="deportista-row"]'))
+            .map(leerDeportistaRow)
+            .filter(deportistaRowActiva);
+    }
+
+    function validarDeportistasEquipo(card, k) {
+        const rows = card.querySelectorAll('[data-rol="deportista-row"]');
+        let activos = 0;
+        for (let j = 0; j < rows.length; j++) {
+            const d = leerDeportistaRow(rows[j]);
+            if (!deportistaRowActiva(d)) continue;
+            activos++;
+            const n = j + 1;
+            if (!d.nombre_completo) {
+                return `Equipo ${k}, deportista #${n}: ingrese el nombre completo.`;
+            }
+            if (!d.fecha_nacimiento) {
+                return `Equipo ${k}, deportista #${n}: ingrese la fecha de nacimiento.`;
+            }
+            if (d.fecha_nacimiento < FECHA_MIN_NAC || d.fecha_nacimiento > FECHA_MAX_NAC) {
+                return `Equipo ${k}, deportista #${n}: la edad debe estar entre ${EDAD_MIN} y ${EDAD_MAX} años.`;
+            }
+            if (!d.documento) {
+                return `Equipo ${k}, deportista #${n}: ingrese el número de documento.`;
+            }
+        }
+        if (activos === 0) {
+            return `Equipo ${k}: registre al menos un deportista con todos sus datos.`;
+        }
+        return null;
+    }
+
     function recolectarEquipos() {
         const cards = contenedorEquipos.querySelectorAll('.equipo-card');
         return Array.from(cards).map((card) => {
             const get = (sel) => (card.querySelector(`[data-field="${sel}"]`)?.value || '').trim();
-            const deportistas = Array.from(card.querySelectorAll('[data-rol="deportista-row"]')).map((row) => ({
-                nombre_completo: (row.querySelector('[data-field-dep="nombre_completo"]')?.value || '').trim(),
-                fecha_nacimiento: (row.querySelector('[data-field-dep="fecha_nacimiento"]')?.value || '').trim(),
-                documento: (row.querySelector('[data-field-dep="documento"]')?.value || '').trim(),
-            })).filter((d) => d.nombre_completo !== '');
+            const deportistas = recolectarDeportistasActivos(card);
             return {
                 nombre_equipo: get('nombre_equipo'),
                 rama: get('rama'),
@@ -385,17 +436,16 @@
         });
     }
 
-    // ---- Inscripción existente (solo lectura) ----
+    // ---- Inscripción existente (solo lectura en modal) ----
     function mostrarSpinnerExistente() {
-        cardEquiposExistentes.style.display = '';
-        badgeEquiposExistentes.textContent = 'Cargando...';
-        textoEquiposExistentes.textContent = 'Consultando equipos ya inscritos para este responsable y evento...';
-        listaEquiposExistentes.innerHTML = `
-            <div class="d-flex align-items-center justify-content-center py-3 text-muted">
-                <div class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></div>
-                <span>Cargando equipos inscritos...</span>
-            </div>
-        `;
+        barEquiposInscritos.classList.remove('d-none');
+        badgeEquiposExistentes.textContent = '...';
+        textoEquiposExistentes.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Consultando equipos inscritos...';
+        if (btnVerEquiposInscritos) {
+            btnVerEquiposInscritos.style.display = 'none';
+            btnVerEquiposInscritos.disabled = true;
+        }
+        listaEquiposExistentes.innerHTML = '';
     }
 
     function verificarInscripcionExistente() {
@@ -462,15 +512,19 @@
 
     function mostrarInscripcionExistente(res) {
         const totalExistentes = parseInt(res.total_equipos || (res.equipos || []).length || 0, 10);
-        const disponibles = Math.max(0, 4 - totalExistentes);
+        const disponibles = Math.max(0, MAX_EQUIPOS - totalExistentes);
 
         const equiposHtml = (res.equipos || []).map(buildEquipoVisualHtml).join('');
         listaEquiposExistentes.innerHTML = equiposHtml || '<p class="text-muted small mb-0">Sin equipos registrados.</p>';
-        badgeEquiposExistentes.textContent = totalExistentes + ' / 4';
+        badgeEquiposExistentes.textContent = totalExistentes + ' / ' + MAX_EQUIPOS;
         textoEquiposExistentes.textContent = disponibles > 0
-            ? `Este responsable ya tiene ${totalExistentes} equipo(s) inscrito(s) en este evento. Puede agregar hasta ${disponibles} equipo(s) más.`
-            : `Este responsable ya alcanzó el máximo de 4 equipos para este evento. No es posible agregar más.`;
-        cardEquiposExistentes.style.display = '';
+            ? `Ya tiene ${totalExistentes} equipo(s) inscrito(s). Puede agregar hasta ${disponibles} más en este envío.`
+            : `Ya alcanzó el máximo de ${MAX_EQUIPOS} equipos para este evento. No es posible agregar más.`;
+        barEquiposInscritos.classList.remove('d-none');
+        if (btnVerEquiposInscritos) {
+            btnVerEquiposInscritos.style.display = totalExistentes > 0 ? '' : 'none';
+            btnVerEquiposInscritos.disabled = totalExistentes <= 0;
+        }
 
         contenedorEquipos.innerHTML = '';
         actualizarOpcionesCantidad(disponibles);
@@ -481,9 +535,19 @@
     function limpiarInscripcionExistente() {
         inscripcionExistenteCache = null;
         cantidadEquipos.disabled = false;
-        cardEquiposExistentes.style.display = 'none';
+        barEquiposInscritos.classList.add('d-none');
         listaEquiposExistentes.innerHTML = '';
-        actualizarOpcionesCantidad(4);
+        if (btnVerEquiposInscritos) {
+            btnVerEquiposInscritos.style.display = 'none';
+            btnVerEquiposInscritos.disabled = true;
+        }
+        actualizarOpcionesCantidad(MAX_EQUIPOS);
+    }
+
+    function abrirModalEquiposInscritos() {
+        if (!modalEquiposInscritosEl || !listaEquiposExistentes.innerHTML.trim()) return;
+        modalEquiposInscritos = modalEquiposInscritos || new bootstrap.Modal(modalEquiposInscritosEl);
+        modalEquiposInscritos.show();
     }
 
     // ---- Modal responsable ----
@@ -693,6 +757,8 @@
         renderEquipos(cant);
     });
 
+    btnVerEquiposInscritos && btnVerEquiposInscritos.addEventListener('click', abrirModalEquiposInscritos);
+
     // ---- Submit ----
     form.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -711,8 +777,8 @@
             alert('Seleccione un evento.');
             return;
         }
-        if (inscripcionExistenteCache && inscripcionExistenteCache.total_equipos >= 4) {
-            alert('Este responsable ya alcanzó el máximo de 4 equipos para este evento.');
+        if (inscripcionExistenteCache && inscripcionExistenteCache.total_equipos >= MAX_EQUIPOS) {
+            alert(`Este responsable ya alcanzó el máximo de ${MAX_EQUIPOS} equipos para este evento.`);
             return;
         }
         const cant = parseInt(cantidadEquipos.value, 10);
@@ -721,14 +787,14 @@
             return;
         }
         if (inscripcionExistenteCache) {
-            const disponibles = 4 - (inscripcionExistenteCache.total_equipos || 0);
+            const disponibles = MAX_EQUIPOS - (inscripcionExistenteCache.total_equipos || 0);
             if (cant > disponibles) {
                 alert(`Solo puede registrar hasta ${disponibles} equipo(s) adicional(es).`);
                 return;
             }
         }
 
-        const equipos = recolectarEquipos();
+        const cards = contenedorEquipos.querySelectorAll('.equipo-card');
 
         // Documentos ya registrados en inscripciones previas del mismo responsable+evento
         const docsExistentes = new Set();
@@ -742,36 +808,41 @@
         }
         const docsVistos = new Set(docsExistentes);
 
-        for (let i = 0; i < equipos.length; i++) {
-            const eq = equipos[i];
+        for (let i = 0; i < cards.length; i++) {
+            const card = cards[i];
             const k = i + 1;
-            if (!eq.nombre_equipo) return alert(`Equipo ${k}: ingrese el nombre del equipo.`);
-            if (!eq.rama) return alert(`Equipo ${k}: seleccione la rama.`);
-            if (!eq.categoria) return alert(`Equipo ${k}: seleccione la categoría.`);
-            if (!eq.entrenador_nombre) return alert(`Equipo ${k}: ingrese el nombre del entrenador.`);
-            if (eq.entrenador_contacto && !TEL_PATTERN.test(eq.entrenador_contacto)) {
+            const get = (sel) => (card.querySelector(`[data-field="${sel}"]`)?.value || '').trim();
+            const nombreEquipo = get('nombre_equipo');
+            const rama = get('rama');
+            const categoria = get('categoria');
+            const entrenadorNombre = get('entrenador_nombre');
+            const entrenadorDocumento = get('entrenador_documento');
+            const entrenadorContacto = get('entrenador_contacto');
+            const asistenteContacto = get('asistente_contacto');
+
+            if (!nombreEquipo) return alert(`Equipo ${k}: ingrese el nombre del equipo.`);
+            if (!rama) return alert(`Equipo ${k}: seleccione la rama.`);
+            if (!categoria) return alert(`Equipo ${k}: seleccione la categoría.`);
+            if (!entrenadorNombre) return alert(`Equipo ${k}: ingrese el nombre del entrenador.`);
+            if (!entrenadorDocumento) return alert(`Equipo ${k}: ingrese el documento del entrenador.`);
+            if (!entrenadorContacto) return alert(`Equipo ${k}: ingrese el celular del entrenador.`);
+            if (!TEL_PATTERN.test(entrenadorContacto)) {
                 return alert(`Equipo ${k}: el celular del entrenador debe tener 10 dígitos y empezar por 3.`);
             }
-            if (eq.asistente_contacto && !TEL_PATTERN.test(eq.asistente_contacto)) {
+            if (asistenteContacto && !TEL_PATTERN.test(asistenteContacto)) {
                 return alert(`Equipo ${k}: el celular del asistente debe tener 10 dígitos y empezar por 3.`);
             }
-            if (!eq.deportistas.length) return alert(`Equipo ${k}: registre al menos un deportista.`);
-            const max = MAX_DEPORTISTAS[eq.categoria] || 0;
-            if (max > 0 && eq.deportistas.length > max) {
-                return alert(`Equipo ${k}: máximo ${max} deportistas para ${eq.categoria}.`);
+
+            const errDep = validarDeportistasEquipo(card, k);
+            if (errDep) return alert(errDep);
+
+            const deportistas = recolectarDeportistasActivos(card);
+            const max = MAX_DEPORTISTAS[categoria] || 0;
+            if (max > 0 && deportistas.length > max) {
+                return alert(`Equipo ${k}: máximo ${max} deportistas para ${categoria}.`);
             }
-            for (let j = 0; j < eq.deportistas.length; j++) {
-                const d = eq.deportistas[j];
-                if (!d.fecha_nacimiento) {
-                    return alert(`Equipo ${k}, deportista #${j + 1}: ingrese la fecha de nacimiento.`);
-                }
-                if (d.fecha_nacimiento < FECHA_MIN_NAC || d.fecha_nacimiento > FECHA_MAX_NAC) {
-                    return alert(`Equipo ${k}, deportista #${j + 1}: la edad debe estar entre ${EDAD_MIN} y ${EDAD_MAX} años (fecha entre ${formatFechaDDMMYYYY(FECHA_MIN_NAC)} y ${formatFechaDDMMYYYY(FECHA_MAX_NAC)}).`);
-                }
-                const docu = String(d.documento || '').trim();
-                if (!docu) {
-                    return alert(`Equipo ${k}, deportista #${j + 1}: ingrese el número de documento.`);
-                }
+            for (let j = 0; j < deportistas.length; j++) {
+                const docu = String(deportistas[j].documento || '').trim();
                 if (docsVistos.has(docu)) {
                     if (docsExistentes.has(docu)) {
                         return alert(`Equipo ${k}, deportista #${j + 1}: el documento ${docu} ya está registrado en un equipo previamente inscrito.`);
@@ -781,6 +852,8 @@
                 docsVistos.add(docu);
             }
         }
+
+        const equipos = recolectarEquipos();
 
         spinner(btnEnviar, true);
         ajax('guardar-inscripcion-equipos.php', 'POST', {
@@ -843,5 +916,6 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
+    actualizarOpcionesCantidad(MAX_EQUIPOS);
     cargarEventos();
 })();

@@ -487,13 +487,15 @@
             t.required = false;
         });
 
-        const necesitaSpinner = tipo > 0 && (tipo === 1 || tipo === 2 || tipo === 5 || cfg.hasSelector !== false);
+        const necesitaSpinner = tipo > 0 && (tipo === 1 || tipo === 2 || tipo === 4 || tipo === 5 || tipo === 18 || cfg.hasSelector !== false);
         if (necesitaSpinner) {
             camposDinamicos.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted small">Cargando...</p></div>';
         }
         if (tipo === 1) cargarCamposTipo1();
         else if (tipo === 2) cargarCampamentos();
         else if (tipo === 5) cargarSalidas();
+        else if (tipo === 4) cargarLevelUp();
+        else if (tipo === 18) cargarOpenKewmgang();
         else if (cfg.hasSelector === false) cargarTipoDirecto(tipo);
         else cargarCamposPorTipo(tipo);
         actualizarVisibilidadCamposAdicionales(tipo, '');
@@ -623,6 +625,333 @@
             })
             .catch(() => {
                 camposDinamicos.innerHTML = '<p class="text-danger">Error al cargar opciones.</p>';
+            });
+    }
+
+    let levelupConfigCache = null;
+    let levelupAsignaturasCache = [];
+    let levelupAsignaturasNuevas = [];
+
+    function resetLevelUpAsignaturasSeleccion() {
+        levelupAsignaturasNuevas = [];
+        const lista = $('#levelupAsignaturasAgregadas');
+        if (lista) lista.innerHTML = '';
+        camposDinamicos.querySelectorAll('input[name="asignatura_ids[]"]').forEach((cb) => { cb.checked = false; });
+    }
+
+    function renderAsignaturasLevelup() {
+        const wrap = $('#wrapLevelupAsignaturas');
+        const lista = $('#levelupListaAsignaturas');
+        if (!wrap || !lista) return;
+
+        let html = '';
+        if (levelupAsignaturasCache.length) {
+            levelupAsignaturasCache.forEach((a) => {
+                html += `<div class="col-md-6 col-lg-4"><div class="form-check border rounded p-2 h-100">`;
+                html += `<input class="form-check-input" type="checkbox" name="asignatura_ids[]" value="${escapeHtml(a.id)}" id="asig_${escapeHtml(a.id)}">`;
+                html += `<label class="form-check-label" for="asig_${escapeHtml(a.id)}">${escapeHtml(a.nombre)}</label>`;
+                html += `</div></div>`;
+            });
+        } else {
+            html = '<p class="text-muted small col-12">No hay asignaturas registradas. Agregue al menos una abajo.</p>';
+        }
+        lista.innerHTML = html;
+        wrap.style.display = '';
+        resetLevelUpAsignaturasSeleccion();
+        refreshRequiredAsterisks(wrap);
+    }
+
+    function ocultarLevelUpDesdeNivel() {
+        const wrapPost = $('#wrapLevelupPostNivel');
+        const wrapMod = $('#wrapLevelupModalidad');
+        const selMod = $('#levelupModalidad');
+        const contTpl = $('#levelupTemplateContenedor');
+        const wrapAsig = $('#wrapLevelupAsignaturas');
+        if (wrapPost) wrapPost.style.display = 'none';
+        if (wrapMod) wrapMod.style.display = 'none';
+        if (selMod) { selMod.required = false; selMod.value = ''; }
+        if (contTpl) contTpl.innerHTML = '';
+        if (wrapAsig) wrapAsig.style.display = 'none';
+        if ($('#levelupCursoId')) $('#levelupCursoId').value = '';
+        if ($('#levelupNombreCurso')) $('#levelupNombreCurso').value = '';
+        resetLevelUpAsignaturasSeleccion();
+    }
+
+    function onLevelUpSedeChange() {
+        const sede = ($('#levelupSede')?.value || '').trim();
+        const wrapNivel = $('#wrapLevelupNivel');
+        const nivelSel = $('#levelupNivel');
+        if (!wrapNivel || !nivelSel) return;
+
+        ocultarLevelUpDesdeNivel();
+
+        if (!sede) {
+            wrapNivel.style.display = 'none';
+            nivelSel.disabled = true;
+            nivelSel.required = false;
+            nivelSel.innerHTML = '<option value="">-- Seleccione sede primero --</option>';
+            nivelSel.value = '';
+            return;
+        }
+
+        wrapNivel.style.display = '';
+        nivelSel.disabled = false;
+        nivelSel.required = true;
+        nivelSel.innerHTML = '<option value="">-- Seleccione --</option>'
+            + '<option value="1">Nivel 1 – Refuerzo a demanda</option>'
+            + '<option value="2">Nivel 2 – Ruta personalizada</option>';
+        nivelSel.value = '';
+        refreshRequiredAsterisks(camposDinamicos);
+    }
+
+    function actualizarLevelUpVista() {
+        if (!levelupConfigCache) return;
+        const sede = ($('#levelupSede')?.value || '').trim();
+        const nivel = parseInt($('#levelupNivel')?.value || '0', 10);
+        const wrapPost = $('#wrapLevelupPostNivel');
+        const wrapMod = $('#wrapLevelupModalidad');
+        const selMod = $('#levelupModalidad');
+        const curso = levelupConfigCache.cursos_por_sede_nivel?.[sede]?.[nivel];
+        const contTpl = $('#levelupTemplateContenedor');
+
+        if (!sede || !nivel || !curso) {
+            ocultarLevelUpDesdeNivel();
+            return;
+        }
+
+        if (wrapPost) wrapPost.style.display = '';
+
+        if ($('#levelupCursoId')) $('#levelupCursoId').value = curso.id;
+        if ($('#levelupNombreCurso')) $('#levelupNombreCurso').value = curso.nombre || '';
+
+        if (nivel === 1) {
+            if (wrapMod) wrapMod.style.display = '';
+            if (selMod) selMod.required = true;
+        } else {
+            if (wrapMod) wrapMod.style.display = 'none';
+            if (selMod) { selMod.required = false; selMod.value = 'Individual'; }
+        }
+
+        if (contTpl) cargarDetalleTemplate(4, curso.id, contTpl);
+        renderAsignaturasLevelup();
+        refreshRequiredAsterisks(camposDinamicos);
+    }
+
+    function cargarLevelUp() {
+        levelupAsignaturasNuevas = [];
+        levelupAsignaturasCache = [];
+        Promise.all([
+            ajax('get-levelup-config.php', 'GET'),
+            ajax('get-asignaturas.php', 'GET'),
+        ]).then(([cfgRes, asigRes]) => {
+            if (!cfgRes.success) {
+                camposDinamicos.innerHTML = '<p class="text-danger">No fue posible cargar la configuración de Level Up.</p>';
+                return;
+            }
+            levelupConfigCache = cfgRes;
+            levelupAsignaturasCache = (asigRes.success && Array.isArray(asigRes.items)) ? asigRes.items : [];
+            const sedes = cfgRes.sedes || ['MEDELLÍN', 'RETIRO'];
+
+            let html = '<div class="levelup-form">';
+            html += '<div class="row g-3 mb-3">';
+            html += '<div class="col-md-4"><label class="form-label fw-bold">Sede</label>';
+            html += '<select class="form-select" id="levelupSede" name="levelup_sede" required><option value="">-- Seleccione --</option>';
+            sedes.forEach(s => { html += `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`; });
+            html += '</select></div>';
+
+            html += '<div class="col-md-4" id="wrapLevelupNivel" style="display:none;">';
+            html += '<label class="form-label fw-bold">Nivel</label>';
+            html += '<select class="form-select" id="levelupNivel" name="levelup_nivel" disabled>';
+            html += '<option value="">-- Seleccione sede primero --</option>';
+            html += '</select></div>';
+            html += '</div>';
+
+            html += '<div id="wrapLevelupPostNivel" style="display:none;">';
+            html += '<div class="row g-3 mb-3">';
+            html += '<div class="col-md-4" id="wrapLevelupModalidad" style="display:none;">';
+            html += '<label class="form-label fw-bold">Modalidad</label>';
+            html += '<select class="form-select" id="levelupModalidad" name="levelup_modalidad">';
+            html += '<option value="">-- Seleccione --</option>';
+            html += '<option value="Individual">Individual</option>';
+            html += '<option value="Grupal">Grupal</option>';
+            html += '</select></div>';
+            html += '</div>';
+
+            html += '<input type="hidden" id="levelupCursoId" name="curso_id" value="">';
+            html += '<input type="hidden" id="levelupNombreCurso" name="nombreCurso" value="">';
+
+            html += '<div class="detalle-template-contenedor mb-3" id="levelupTemplateContenedor"></div>';
+
+            html += '<div id="wrapLevelupAsignaturas" style="display:none;" class="mb-3">';
+            html += '<label class="form-label fw-bold">Asignaturas</label>';
+            html += '<p class="small text-muted">Seleccione al menos una asignatura. Puede agregar otras si no aparecen en la lista.</p>';
+            html += '<div id="levelupListaAsignaturas" class="row g-2 mb-2"></div>';
+            html += '<div class="input-group mb-2">';
+            html += '<input type="text" class="form-control" id="levelupNuevaAsignatura" placeholder="Otra asignatura (ej. Matemáticas)">';
+            html += '<button type="button" class="btn btn-outline-primary" id="btnAgregarAsignaturaLevelup">Agregar</button>';
+            html += '</div>';
+            html += '<ul id="levelupAsignaturasAgregadas" class="list-group list-group-flush small mb-0"></ul>';
+            html += '</div></div></div>';
+
+            camposDinamicos.innerHTML = html;
+
+            $('#levelupSede')?.addEventListener('change', onLevelUpSedeChange);
+            $('#levelupNivel')?.addEventListener('change', actualizarLevelUpVista);
+            $('#btnAgregarAsignaturaLevelup')?.addEventListener('click', agregarAsignaturaLevelup);
+            $('#levelupNuevaAsignatura')?.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    agregarAsignaturaLevelup();
+                }
+            });
+
+            refreshRequiredAsterisks(document);
+            btnEnviar.disabled = false;
+        }).catch(() => {
+            camposDinamicos.innerHTML = '<p class="text-danger">Error al cargar Level Up.</p>';
+        });
+    }
+
+    function agregarAsignaturaLevelup() {
+        const input = $('#levelupNuevaAsignatura');
+        const lista = $('#levelupAsignaturasAgregadas');
+        if (!input || !lista) return;
+        const nombre = (input.value || '').trim();
+        if (!nombre) {
+            alert('Escriba el nombre de la asignatura a agregar.');
+            return;
+        }
+        const dup = levelupAsignaturasNuevas.some(n => n.toLowerCase() === nombre.toLowerCase());
+        const labels = camposDinamicos.querySelectorAll('#levelupListaAsignaturas .form-check-label');
+        let yaEnLista = false;
+        labels.forEach(lb => {
+            if ((lb.textContent || '').trim().toLowerCase() === nombre.toLowerCase()) yaEnLista = true;
+        });
+        if (dup || yaEnLista) {
+            alert('Esa asignatura ya está en la lista.');
+            return;
+        }
+        levelupAsignaturasNuevas.push(nombre);
+        const li = document.createElement('li');
+        li.className = 'list-group-item d-flex justify-content-between align-items-center';
+        li.dataset.nombre = nombre;
+        li.innerHTML = `<span>${escapeHtml(nombre)}</span><button type="button" class="btn btn-sm btn-outline-danger" data-action="quitar-asig-nueva">Quitar</button>`;
+        li.querySelector('[data-action="quitar-asig-nueva"]').addEventListener('click', () => {
+            levelupAsignaturasNuevas = levelupAsignaturasNuevas.filter(n => n !== nombre);
+            li.remove();
+        });
+        lista.appendChild(li);
+        input.value = '';
+    }
+
+    function actualizarOpenKewmgangCombate() {
+        const fest = $('#openkModFestival')?.checked;
+        const comb = $('#openkModCombate')?.checked;
+        const wrap = $('#wrapOpenkCombate');
+        if (!wrap) return;
+        const mostrar = !!comb;
+        wrap.style.display = mostrar ? '' : 'none';
+        wrap.querySelectorAll('select, input').forEach((el) => {
+            if (!mostrar) {
+                el.required = false;
+                if (el.tagName === 'SELECT') el.value = '';
+                else el.value = '';
+            }
+        });
+        ['openkRama', 'openkDivision', 'openkGrado'].forEach((id) => {
+            const el = $('#' + id);
+            if (el) el.required = mostrar;
+        });
+        if (mostrar) {
+            actualizarOpenKewmgangMedicion();
+        }
+        refreshRequiredAsterisks(camposDinamicos);
+    }
+
+    function actualizarOpenKewmgangMedicion() {
+        const division = $('#openkDivision')?.value || '';
+        const wrapEst = $('#wrapOpenkEstatura');
+        const wrapPeso = $('#wrapOpenkPeso');
+        const inpEst = $('#openkEstatura');
+        const inpPeso = $('#openkPeso');
+        if (!wrapEst || !wrapPeso) return;
+        const esJunior = division === 'Junior';
+        wrapEst.style.display = esJunior ? 'none' : '';
+        wrapPeso.style.display = esJunior ? '' : 'none';
+        if (inpEst) {
+            inpEst.required = !esJunior && !!division;
+            if (esJunior) inpEst.value = '';
+        }
+        if (inpPeso) {
+            inpPeso.required = esJunior;
+            if (!esJunior) inpPeso.value = '';
+        }
+        refreshRequiredAsterisks(camposDinamicos);
+    }
+
+    function cargarOpenKewmgang() {
+        ajax('get-cursos-por-tipo.php', 'GET', { tipo_id: 18, contexto: 'principal' }).catch(() => ({ success: false }))
+            .then((res) => {
+                if (!res.success || !res.items?.length) {
+                    camposDinamicos.innerHTML = '<p class="text-danger">No hay evento Open Kewmgang disponible en este momento.</p>';
+                    return;
+                }
+                const item = res.items[0];
+                const cursoId = String(item.id);
+                const nombreCurso = item.nombre || item.nombre_curso || 'Open Kewmgang';
+
+                let html = '<div class="open-kewmgang-form">';
+                html += '<input type="hidden" id="openkCursoId" name="curso_id" value="' + escapeHtml(cursoId) + '">';
+                html += '<input type="hidden" name="nombreCurso" value="' + escapeHtml(nombreCurso) + '">';
+                html += '<div class="detalle-template-contenedor mb-3" id="openkTemplateContenedor"></div>';
+
+                html += '<div class="mb-3"><label class="form-label fw-bold d-block">Modalidad</label>';
+                html += '<p class="small text-muted">Puede elegir una o dos modalidades. El valor es acumulable.</p>';
+                html += '<div class="form-check mb-2">';
+                html += '<input class="form-check-input" type="checkbox" name="openk_modalidades[]" value="Festival infantil" id="openkModFestival">';
+                html += '<label class="form-check-label" for="openkModFestival">1. Festival infantil ($60.000) — 4 a 11 años, no importa el cinturón</label>';
+                html += '</div>';
+                html += '<div class="form-check mb-3">';
+                html += '<input class="form-check-input" type="checkbox" name="openk_modalidades[]" value="Combate individual" id="openkModCombate">';
+                html += '<label class="form-check-label" for="openkModCombate">2. Combate individual ($75.000) — Sistema convencional, solo blanco a verde</label>';
+                html += '</div></div>';
+
+                html += '<div id="wrapOpenkCombate" style="display:none;">';
+                html += '<div class="row g-3 mb-3">';
+                html += '<div class="col-md-4"><label class="form-label fw-bold">Rama</label>';
+                html += '<select class="form-select" id="openkRama" name="openk_rama"><option value="">-- Seleccione --</option>';
+                html += '<option value="Femenino">Femenino</option><option value="Masculino">Masculino</option></select></div>';
+                html += '<div class="col-md-4"><label class="form-label fw-bold">División</label>';
+                html += '<select class="form-select" id="openkDivision" name="openk_division"><option value="">-- Seleccione --</option>';
+                html += '<option value="Benjamin">Benjamín (8 a 9 años)</option>';
+                html += '<option value="Pre cadetes">Pre cadetes (10 a 11 años)</option>';
+                html += '<option value="Cadetes">Cadetes (12 a 14 años)</option>';
+                html += '<option value="Junior">Junior (15 a 17 años)</option></select></div>';
+                html += '<div class="col-md-4"><label class="form-label fw-bold">Grado</label>';
+                html += '<select class="form-select" id="openkGrado" name="openk_grado"><option value="">-- Seleccione --</option>';
+                html += '<option value="Blancos">Blancos</option><option value="Amarillo">Amarillo</option><option value="Verde">Verde</option></select></div>';
+                html += '</div>';
+                html += '<div class="row g-3 mb-3">';
+                html += '<div class="col-md-4" id="wrapOpenkEstatura"><label class="form-label fw-bold">Estatura (cm)</label>';
+                html += '<input type="number" class="form-control" id="openkEstatura" name="openk_estatura" min="1" step="0.1" placeholder="Ej: 135"></div>';
+                html += '<div class="col-md-4" id="wrapOpenkPeso" style="display:none;"><label class="form-label fw-bold">Peso (kg)</label>';
+                html += '<input type="number" class="form-control" id="openkPeso" name="openk_peso" min="1" step="0.1" placeholder="Ej: 52"></div>';
+                html += '</div></div></div>';
+
+                camposDinamicos.innerHTML = html;
+
+                const contTpl = $('#openkTemplateContenedor');
+                if (contTpl) cargarDetalleTemplate(18, cursoId, contTpl);
+
+                $('#openkModFestival')?.addEventListener('change', actualizarOpenKewmgangCombate);
+                $('#openkModCombate')?.addEventListener('change', actualizarOpenKewmgangCombate);
+                $('#openkDivision')?.addEventListener('change', actualizarOpenKewmgangMedicion);
+
+                refreshRequiredAsterisks(document);
+                btnEnviar.disabled = false;
+            })
+            .catch(() => {
+                camposDinamicos.innerHTML = '<p class="text-danger">Error al cargar Open Kewmgang.</p>';
             });
     }
 
@@ -915,11 +1244,35 @@
         let tipoTexto = '';
         if (tipo === 1) tipoTexto = 'Curso(s)';
         else if (tipo === 2) tipoTexto = 'Campamento';
+        else if (tipo === 4) tipoTexto = 'Level Up';
         else if (tipo === 5) tipoTexto = 'Salida';
+        else if (tipo === 18) tipoTexto = 'Open Kewmgang';
         else tipoTexto = 'Inscripción';
         let detalleHtml = '';
         if (tipo === 1 && data.nombres_curso && data.nombres_curso.length) {
             detalleHtml = '<ul class="mb-0">' + data.nombres_curso.map(n => `<li>${escapeHtml(n)}</li>`).join('') + '</ul>';
+        } else if (tipo === 4) {
+            const cursoNom = data.nombreCurso || '';
+            const asigs = data.nombres_asignaturas || data.asignatura_nombres || [];
+            detalleHtml = escapeHtml(cursoNom);
+            if (data.levelup_modalidad || data.Sesión) {
+                detalleHtml += '<p class="mb-1 small text-muted">Modalidad: ' + escapeHtml(data.levelup_modalidad || data.Sesión) + '</p>';
+            }
+            if (data.levelup_sede || data.Sede) {
+                detalleHtml += '<p class="mb-1 small text-muted">Sede: ' + escapeHtml(data.levelup_sede || data.Sede) + '</p>';
+            }
+            if (asigs.length) {
+                detalleHtml += '<ul class="mb-0 mt-2">' + asigs.map(n => `<li>${escapeHtml(n)}</li>`).join('') + '</ul>';
+            }
+        } else if (tipo === 18) {
+            detalleHtml = escapeHtml(data.nombreCurso || 'Open Kewmgang');
+            const mods = data.openk_modalidades;
+            if (mods && mods.length) {
+                detalleHtml += '<ul class="mb-0 mt-2">' + mods.map(m => `<li>${escapeHtml(m)}</li>`).join('') + '</ul>';
+            }
+            if (res.valor_total) {
+                detalleHtml += '<p class="mb-0 small text-muted">Valor total: $' + Number(res.valor_total).toLocaleString('es-CO') + '</p>';
+            }
         } else if (data.nombreCurso) {
             detalleHtml = escapeHtml(data.nombreCurso);
         }
@@ -1025,6 +1378,86 @@
             data.Mes = mes;
             const anioCorto = anio % 100;
             data.Periodo = mes + String(anioCorto).padStart(2, '0');
+        } else if (tipo === 4) {
+            const sede = $('#levelupSede')?.value;
+            const nivel = parseInt($('#levelupNivel')?.value || '0', 10);
+            const cursoId = $('#levelupCursoId')?.value;
+            const nombreCurso = $('#levelupNombreCurso')?.value;
+            if (!formInscripcion.reportValidity()) {
+                return;
+            }
+            if (!sede || !nivel || !cursoId) {
+                alert('Complete sede y nivel para continuar.');
+                return;
+            }
+            const checks = camposDinamicos.querySelectorAll('input[name="asignatura_ids[]"]:checked');
+            const asignaturaIds = [...checks].map(c => c.value);
+            if (!asignaturaIds.length && !levelupAsignaturasNuevas.length) {
+                alert('Seleccione o agregue al menos una asignatura.');
+                return;
+            }
+            if (nivel === 1) {
+                const mod = $('#levelupModalidad')?.value;
+                if (!mod) {
+                    alert('Seleccione la modalidad Individual o Grupal.');
+                    return;
+                }
+                data.levelup_modalidad = mod;
+                data.Sesión = mod;
+            } else {
+                data.levelup_modalidad = 'Individual';
+                data.Sesión = 'Individual';
+            }
+            data.levelup_sede = sede;
+            data.levelup_nivel = nivel;
+            data.Sede = sede;
+            data.curso_id = cursoId;
+            data.IDCurso = cursoId;
+            data.nombreCurso = nombreCurso || '';
+            data.asignatura_ids = asignaturaIds;
+            data.asignaturas_nuevas = [...levelupAsignaturasNuevas];
+            const mesActual = String(new Date().getMonth() + 1).padStart(2, '0');
+            data.Mes = mesActual;
+            data.Periodo = mesActual + String(anio % 100).padStart(2, '0');
+        } else if (tipo === 18) {
+            const mods = [...camposDinamicos.querySelectorAll('input[name="openk_modalidades[]"]:checked')].map((c) => c.value);
+            if (!mods.length) {
+                alert('Seleccione al menos una modalidad.');
+                return;
+            }
+            const tieneCombate = mods.includes('Combate individual');
+            if (tieneCombate) {
+                const rama = $('#openkRama')?.value || '';
+                const division = $('#openkDivision')?.value || '';
+                const grado = $('#openkGrado')?.value || '';
+                if (!rama || !division || !grado) {
+                    alert('Complete rama, división y grado para combate individual.');
+                    return;
+                }
+                if (division === 'Junior') {
+                    if (!$('#openkPeso')?.value) {
+                        alert('Ingrese el peso en kg para la división Junior.');
+                        $('#openkPeso')?.focus();
+                        return;
+                    }
+                } else if (!$('#openkEstatura')?.value) {
+                    alert('Ingrese la estatura en cm.');
+                    $('#openkEstatura')?.focus();
+                    return;
+                }
+                data.openk_rama = rama;
+                data.openk_division = division;
+                data.openk_grado = grado;
+                data.openk_estatura = $('#openkEstatura')?.value || '';
+                data.openk_peso = $('#openkPeso')?.value || '';
+            }
+            data.openk_modalidades = mods;
+            data.curso_id = $('#openkCursoId')?.value || '';
+            data.IDCurso = data.curso_id;
+            data.nombreCurso = camposDinamicos.querySelector('input[name="nombreCurso"]')?.value || 'Open Kewmgang';
+            const mesActual = String(new Date().getMonth() + 1).padStart(2, '0');
+            data.Mes = mesActual;
+            data.Periodo = mesActual + String(anio % 100).padStart(2, '0');
         } else {
             const cfg = tiposConfig[tipo] || {};
             const sel = camposDinamicos.querySelector('select[required]');
@@ -1061,6 +1494,9 @@
             .then(r => r.json())
             .then(res => {
                 if (res.success) {
+                    if (tipo === 4 && res.nombres_asignaturas) {
+                        data.nombres_asignaturas = res.nombres_asignaturas;
+                    }
                     mostrarModalExito(data, participanteActual, responsableActual, res);
                     reiniciarFormulario();
                 } else {

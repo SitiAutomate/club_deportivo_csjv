@@ -12,9 +12,9 @@ function jsonResponse(array $data, int $statusCode = 200): void
 }
 
 /**
- * Validar formato de documento de participante (menor en Colombia).
+ * Validar formato de documento de participante.
  * - Si empieza por letras: pasaporte → 6-9 caracteres alfanuméricos (sin espacios).
- * - Si empieza por números: TI → 8-10 dígitos.
+ * - Si empieza por números: documento nacional/extranjería → 6-10 dígitos.
  */
 function validarDocumentoParticipante(string $documento): array
 {
@@ -35,11 +35,11 @@ function validarDocumentoParticipante(string $documento): array
     } elseif (ctype_digit($primer)) {
         $soloNumeros = preg_replace('/\D/', '', $doc);
         $len = strlen($soloNumeros);
-        if ($len < 8 || $len > 10) {
-            return ['valid' => false, 'error' => 'La Tarjeta de Identidad debe tener entre 8 y 10 dígitos.'];
+        if ($len < 6 || $len > 10) {
+            return ['valid' => false, 'error' => 'El documento numérico debe tener entre 6 y 10 dígitos.'];
         }
     } else {
-        return ['valid' => false, 'error' => 'El documento debe comenzar por letras (pasaporte) o números (Tarjeta de Identidad).'];
+        return ['valid' => false, 'error' => 'El documento debe comenzar por letras (pasaporte) o números (documento nacional/extranjería).'];
     }
     return ['valid' => true];
 }

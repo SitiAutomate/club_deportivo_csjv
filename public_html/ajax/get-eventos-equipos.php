@@ -1,11 +1,16 @@
 <?php
 require_once __DIR__ . '/../../includes/bootstrap.php';
+require_once __DIR__ . '/../../includes/eventos_tipo18.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
 $tipoId = 18;
+$festivegasIds = eventosTipo18FestivegasIds();
 $curso = new Curso($database);
-$rows = $curso->getPorTipo($tipoId, false);
+$rows = array_values(array_filter(
+    $curso->getPorTipo($tipoId, false),
+    fn($c) => in_array((string) ($c['ID_Curso'] ?? ''), $festivegasIds, true)
+));
 
 $formatearPrecio = function ($valor) {
     $digits = preg_replace('/[^0-9]/', '', (string) $valor);
@@ -31,5 +36,5 @@ jsonResponse([
     'success' => true,
     'tipo_id' => $tipoId,
     'items' => $items,
-    'default_id' => '1801'
+    'default_id' => $festivegasIds[0] ?? '1801',
 ]);

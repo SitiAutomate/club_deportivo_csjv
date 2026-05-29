@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../includes/bootstrap.php';
 require_once __DIR__ . '/../../includes/EmailService.php';
 require_once __DIR__ . '/../../includes/csrf.php';
+require_once __DIR__ . '/../../includes/eventos_tipo18.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     jsonResponse(['success' => false, 'error' => 'Método no permitido'], 405);
@@ -45,6 +46,9 @@ $curso = $database->get('cursos_2025', [
 if (!$curso) {
     jsonResponse(['success' => false, 'error' => 'El evento seleccionado no existe.', 'traceId' => $traceId], 404);
 }
+if (!eventosTipo18EsFestivegas($idCurso)) {
+    jsonResponse(['success' => false, 'error' => 'Este formulario solo permite inscripción de equipos para Festivegas.', 'traceId' => $traceId], 400);
+}
 $tipoId = (int) ($curso['Tipo'] ?? 18);
 $nombreCurso = $curso['Nombre_del_curso'] ?? $curso['Nombre_Corto_Curso'] ?? $idCurso;
 
@@ -53,6 +57,10 @@ $maxDeportistas = [
     'Benjamin' => 6,
     'Mini' => 10,
 ];
+
+$celularValido = static function (string $tel): bool {
+    return (bool) preg_match('/^3\d{9}$/', $tel);
+};
 
 $equiposNormalizados = [];
 foreach ($equipos as $i => $eq) {
@@ -68,10 +76,19 @@ foreach ($equipos as $i => $eq) {
     $asistenteContacto = trim((string) ($eq['asistente_contacto'] ?? ''));
     $deportistas = $eq['deportistas'] ?? [];
 
-    if ($nombreEquipo === '' || $rama === '' || $categoria === '' || $entrenadorNombre === '') {
-        jsonResponse(['success' => false, 'error' => "Equipo {$idx}: complete nombre, rama, categoría y datos del entrenador.", 'traceId' => $traceId], 400);
+    if ($nombreEquipo === '' || $rama === '' || $categoria === '') {
+        jsonResponse(['success' => false, 'error' => "Equipo {$idx}: complete nombre del equipo, rama y categoría.", 'traceId' => $traceId], 400);
     }
-    if (!in_array($rama, ['Femenina', 'Masculina'], true)) {
+    if ($entrenadorNombre === '' || $entrenadorDocumento === '' || $entrenadorContacto === '') {
+        jsonResponse(['success' => false, 'error' => "Equipo {$idx}: complete nombre, documento y celular del entrenador.", 'traceId' => $traceId], 400);
+    }
+    if (!$celularValido($entrenadorContacto)) {
+        jsonResponse(['success' => false, 'error' => "Equipo {$idx}: el celular del entrenador debe tener 10 dígitos y empezar por 3.", 'traceId' => $traceId], 400);
+    }
+    if ($asistenteContacto !== '' && !$celularValido($asistenteContacto)) {
+        jsonResponse(['success' => false, 'error' => "Equipo {$idx}: el celular del asistente debe tener 10 dígitos y empezar por 3.", 'traceId' => $traceId], 400);
+    }
+    if (!in_array($rama, ['Femenina', 'Masculina', 'Mixta'], true)) {
         jsonResponse(['success' => false, 'error' => "Equipo {$idx}: rama inválida.", 'traceId' => $traceId], 400);
     }
     $catKey = $categoria;
@@ -80,13 +97,35 @@ foreach ($equipos as $i => $eq) {
     }
 
     if (!is_array($deportistas)) $deportistas = [];
-    $deportistas = array_values(array_filter($deportistas, function ($d) {
-        return trim((string) ($d['nombre_completo'] ?? $d['nombre'] ?? '')) !== '';
-    }));
-    if (count($deportistas) < 1) {
-        jsonResponse(['success' => false, 'error' => "Equipo {$idx}: registre al menos un deportista.", 'traceId' => $traceId], 400);
+    $deportistasActivos = [];
+    foreach ($deportistas as $j => $d) {
+        $nombreDep = trim((string) ($d['nombre_completo'] ?? $d['nombre'] ?? ''));
+        $fechaDep = trim((string) ($d['fecha_nacimiento'] ?? ''));
+        $docDep = trim((string) ($d['documento'] ?? ''));
+        $activa = $nombreDep !== '' || $fechaDep !== '' || $docDep !== '';
+        if (!$activa) {
+            continue;
+        }
+        $numDep = $j + 1;
+        if ($nombreDep === '') {
+            jsonResponse(['success' => false, 'error' => "Equipo {$idx}, deportista #{$numDep}: ingrese el nombre completo.", 'traceId' => $traceId], 400);
+        }
+        if ($fechaDep === '') {
+            jsonResponse(['success' => false, 'error' => "Equipo {$idx}, deportista #{$numDep}: ingrese la fecha de nacimiento.", 'traceId' => $traceId], 400);
+        }
+        if ($docDep === '') {
+            jsonResponse(['success' => false, 'error' => "Equipo {$idx}, deportista #{$numDep}: ingrese el número de documento.", 'traceId' => $traceId], 400);
+        }
+        $deportistasActivos[] = [
+            'nombre_completo' => $nombreDep,
+            'fecha_nacimiento' => $fechaDep,
+            'documento' => $docDep,
+        ];
     }
-    if (count($deportistas) > $maxDeportistas[$catKey]) {
+    if (count($deportistasActivos) < 1) {
+        jsonResponse(['success' => false, 'error' => "Equipo {$idx}: registre al menos un deportista con todos sus datos.", 'traceId' => $traceId], 400);
+    }
+    if (count($deportistasActivos) > $maxDeportistas[$catKey]) {
         jsonResponse([
             'success' => false,
             'error' => "Equipo {$idx}: máximo {$maxDeportistas[$catKey]} deportistas para la categoría {$catKey}.",
@@ -98,19 +137,13 @@ foreach ($equipos as $i => $eq) {
         'nombre_equipo' => $nombreEquipo,
         'rama' => $rama,
         'categoria' => $catKey,
-        'entrenador_nombre' => $entrenadorNombre ?: null,
-        'entrenador_documento' => $entrenadorDocumento ?: null,
-        'entrenador_contacto' => $entrenadorContacto ?: null,
+        'entrenador_nombre' => $entrenadorNombre,
+        'entrenador_documento' => $entrenadorDocumento,
+        'entrenador_contacto' => $entrenadorContacto,
         'asistente_nombre' => $asistenteNombre ?: null,
         'asistente_documento' => $asistenteDocumento ?: null,
         'asistente_contacto' => $asistenteContacto ?: null,
-        'deportistas' => array_map(function ($d) {
-            return [
-                'nombre_completo' => trim((string) ($d['nombre_completo'] ?? $d['nombre'] ?? '')),
-                'fecha_nacimiento' => trim((string) ($d['fecha_nacimiento'] ?? '')),
-                'documento' => trim((string) ($d['documento'] ?? '')),
-            ];
-        }, $deportistas)
+        'deportistas' => $deportistasActivos,
     ];
 }
 
@@ -131,12 +164,13 @@ if ($inscripcionExistente) {
     }
 }
 
+$maxEquiposPorInscripcion = 10;
 $totalEquiposExistentes = count($equiposExistentes);
-$cupoDisponible = 4 - $totalEquiposExistentes;
+$cupoDisponible = $maxEquiposPorInscripcion - $totalEquiposExistentes;
 if ($cupoDisponible <= 0) {
     jsonResponse([
         'success' => false,
-        'error' => 'Este responsable ya alcanzó el máximo de 4 equipos para este evento.',
+        'error' => "Este responsable ya alcanzó el máximo de {$maxEquiposPorInscripcion} equipos para este evento.",
         'traceId' => $traceId
     ], 409);
 }
@@ -170,7 +204,15 @@ foreach ($equiposNormalizados as $i => $eq) {
     $idxEq = $i + 1;
     foreach ($eq['deportistas'] as $j => $d) {
         $idxD = $j + 1;
+        $nombreDep = trim((string) ($d['nombre_completo'] ?? ''));
         $fechaNac = trim((string) ($d['fecha_nacimiento'] ?? ''));
+        if ($nombreDep === '') {
+            jsonResponse([
+                'success' => false,
+                'error' => "Equipo {$idxEq}, deportista #{$idxD}: ingrese el nombre completo.",
+                'traceId' => $traceId
+            ], 400);
+        }
         if ($fechaNac === '') {
             jsonResponse([
                 'success' => false,
