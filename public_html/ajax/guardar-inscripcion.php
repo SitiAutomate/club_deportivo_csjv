@@ -435,6 +435,16 @@ try {
             jsonResponse(['success' => false, 'error' => 'Seleccione o registre al menos una asignatura.', 'traceId' => $traceId], 400);
         }
 
+        $levelupNivelGuardar = (int) ($input['levelup_nivel'] ?? 0);
+        $modalidadLevelup = trim((string) ($detalle['Sesión'] ?? ''));
+        if ($levelupNivelGuardar === 1 && $modalidadLevelup === 'Grupal' && count($idsAsignaturas) > 1) {
+            jsonResponse([
+                'success' => false,
+                'error' => 'En modalidad grupal (Nivel 1) solo puede inscribirse en una asignatura.',
+                'traceId' => $traceId,
+            ], 400);
+        }
+
         $idCurso = (string) ($detalle['IDCurso'] ?? '');
         $ids = [];
         $nombresAsignaturas = [];

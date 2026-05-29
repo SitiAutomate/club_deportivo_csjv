@@ -637,6 +637,89 @@
         const lista = $('#levelupAsignaturasAgregadas');
         if (lista) lista.innerHTML = '';
         camposDinamicos.querySelectorAll('input[name="asignatura_ids[]"]').forEach((cb) => { cb.checked = false; });
+        onLevelUpModalidadChange();
+    }
+
+    function getLevelUpNivelActual() {
+        return parseInt($('#levelupNivel')?.value || '0', 10);
+    }
+
+    function getLevelUpModalidadActual() {
+        const nivel = getLevelUpNivelActual();
+        if (nivel === 2) return 'Individual';
+        return ($('#levelupModalidad')?.value || '').trim();
+    }
+
+    function esLevelUpSeleccionUnica() {
+        return getLevelUpNivelActual() === 1 && getLevelUpModalidadActual() === 'Grupal';
+    }
+
+    function contarAsignaturasLevelup() {
+        const checked = camposDinamicos.querySelectorAll('input[name="asignatura_ids[]"]:checked').length;
+        return checked + levelupAsignaturasNuevas.length;
+    }
+
+    function onAsignaturaCheckboxLevelupChange(e) {
+        if (!esLevelUpSeleccionUnica() || !e.target?.checked) return;
+        camposDinamicos.querySelectorAll('input[name="asignatura_ids[]"]').forEach((cb) => {
+            if (cb !== e.target) cb.checked = false;
+        });
+        if (levelupAsignaturasNuevas.length) {
+            levelupAsignaturasNuevas = [];
+            const lista = $('#levelupAsignaturasAgregadas');
+            if (lista) lista.innerHTML = '';
+        }
+        onLevelUpModalidadChange();
+    }
+
+    function onLevelUpModalidadChange() {
+        const unica = esLevelUpSeleccionUnica();
+        const ayuda = $('#levelupAyudaAsignaturas');
+        const wrapAdd = $('#wrapLevelupAgregarAsignatura');
+        if (ayuda) {
+            ayuda.textContent = unica
+                ? 'En modalidad grupal solo puede seleccionar una asignatura.'
+                : 'Puede seleccionar una o varias asignaturas.';
+        }
+        if (wrapAdd) {
+            wrapAdd.style.display = unica && contarAsignaturasLevelup() >= 1 ? 'none' : '';
+        }
+        if (!unica) return;
+
+        const checks = [...camposDinamicos.querySelectorAll('input[name="asignatura_ids[]"]:checked')];
+        if (checks.length > 1) {
+            checks.slice(1).forEach((cb) => { cb.checked = false; });
+        }
+        if (levelupAsignaturasNuevas.length > 1) {
+            levelupAsignaturasNuevas = [levelupAsignaturasNuevas[0]];
+            const lista = $('#levelupAsignaturasAgregadas');
+            if (lista) {
+                lista.innerHTML = '';
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                li.dataset.nombre = levelupAsignaturasNuevas[0];
+                li.innerHTML = `<span>${escapeHtml(levelupAsignaturasNuevas[0])}</span><button type="button" class="btn btn-sm btn-outline-danger" data-action="quitar-asig-nueva">Quitar</button>`;
+                li.querySelector('[data-action="quitar-asig-nueva"]').addEventListener('click', () => {
+                    levelupAsignaturasNuevas = [];
+                    li.remove();
+                    onLevelUpModalidadChange();
+                });
+                lista.appendChild(li);
+            }
+        }
+        if (contarAsignaturasLevelup() > 1) {
+            const firstCheck = checks[0];
+            if (firstCheck) {
+                camposDinamicos.querySelectorAll('input[name="asignatura_ids[]"]').forEach((cb) => {
+                    if (cb !== firstCheck) cb.checked = false;
+                });
+                levelupAsignaturasNuevas = [];
+                const lista = $('#levelupAsignaturasAgregadas');
+                if (lista) lista.innerHTML = '';
+            } else if (levelupAsignaturasNuevas.length) {
+                levelupAsignaturasNuevas = [levelupAsignaturasNuevas[0]];
+            }
+        }
     }
 
     function renderAsignaturasLevelup() {
@@ -656,8 +739,12 @@
             html = '<p class="text-muted small col-12">No hay asignaturas registradas. Agregue al menos una abajo.</p>';
         }
         lista.innerHTML = html;
+        lista.querySelectorAll('input[name="asignatura_ids[]"]').forEach((cb) => {
+            cb.addEventListener('change', onAsignaturaCheckboxLevelupChange);
+        });
         wrap.style.display = '';
         resetLevelUpAsignaturasSeleccion();
+        onLevelUpModalidadChange();
         refreshRequiredAsterisks(wrap);
     }
 
@@ -734,6 +821,7 @@
 
         if (contTpl) cargarDetalleTemplate(4, curso.id, contTpl);
         renderAsignaturasLevelup();
+        onLevelUpModalidadChange();
         refreshRequiredAsterisks(camposDinamicos);
     }
 
@@ -782,11 +870,17 @@
 
             html += '<div class="detalle-template-contenedor mb-3" id="levelupTemplateContenedor"></div>';
 
+            html += '<div class="alert alert-warning border-warning small mb-3" id="levelupNotaCostos" role="note">';
+            html += '<strong>Nota importante:</strong> Los valores de referencia publicados corresponden a <strong>una asignatura</strong> por inscripción. ';
+            html += 'Si el estudiante requiere acompañamiento en varias asignaturas, el Club elaborará un <strong>plan personalizado</strong> según sus necesidades; ';
+            html += 'en ese caso, comuníquese con la coordinación del programa Level Up.';
+            html += '</div>';
+
             html += '<div id="wrapLevelupAsignaturas" style="display:none;" class="mb-3">';
             html += '<label class="form-label fw-bold">Asignaturas</label>';
-            html += '<p class="small text-muted">Seleccione al menos una asignatura. Puede agregar otras si no aparecen en la lista.</p>';
+            html += '<p class="small text-muted mb-2" id="levelupAyudaAsignaturas">Seleccione al menos una asignatura.</p>';
             html += '<div id="levelupListaAsignaturas" class="row g-2 mb-2"></div>';
-            html += '<div class="input-group mb-2">';
+            html += '<div class="input-group mb-2" id="wrapLevelupAgregarAsignatura">';
             html += '<input type="text" class="form-control" id="levelupNuevaAsignatura" placeholder="Otra asignatura (ej. Matemáticas)">';
             html += '<button type="button" class="btn btn-outline-primary" id="btnAgregarAsignaturaLevelup">Agregar</button>';
             html += '</div>';
@@ -797,6 +891,7 @@
 
             $('#levelupSede')?.addEventListener('change', onLevelUpSedeChange);
             $('#levelupNivel')?.addEventListener('change', actualizarLevelUpVista);
+            $('#levelupModalidad')?.addEventListener('change', onLevelUpModalidadChange);
             $('#btnAgregarAsignaturaLevelup')?.addEventListener('click', agregarAsignaturaLevelup);
             $('#levelupNuevaAsignatura')?.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
@@ -816,6 +911,10 @@
         const input = $('#levelupNuevaAsignatura');
         const lista = $('#levelupAsignaturasAgregadas');
         if (!input || !lista) return;
+        if (esLevelUpSeleccionUnica() && contarAsignaturasLevelup() >= 1) {
+            alert('En modalidad grupal solo puede registrar una asignatura. Si necesita más de una, elija modalidad individual o comuníquese con la coordinación Level Up.');
+            return;
+        }
         const nombre = (input.value || '').trim();
         if (!nombre) {
             alert('Escriba el nombre de la asignatura a agregar.');
@@ -839,9 +938,14 @@
         li.querySelector('[data-action="quitar-asig-nueva"]').addEventListener('click', () => {
             levelupAsignaturasNuevas = levelupAsignaturasNuevas.filter(n => n !== nombre);
             li.remove();
+            onLevelUpModalidadChange();
         });
         lista.appendChild(li);
         input.value = '';
+        if (esLevelUpSeleccionUnica()) {
+            camposDinamicos.querySelectorAll('input[name="asignatura_ids[]"]').forEach((cb) => { cb.checked = false; });
+        }
+        onLevelUpModalidadChange();
     }
 
     function actualizarOpenKewmgangCombate() {
@@ -1400,6 +1504,11 @@
                 const mod = $('#levelupModalidad')?.value;
                 if (!mod) {
                     alert('Seleccione la modalidad Individual o Grupal.');
+                    return;
+                }
+                const totalAsig = asignaturaIds.length + levelupAsignaturasNuevas.length;
+                if (mod === 'Grupal' && totalAsig !== 1) {
+                    alert('En modalidad grupal solo puede inscribir una asignatura.');
                     return;
                 }
                 data.levelup_modalidad = mod;
