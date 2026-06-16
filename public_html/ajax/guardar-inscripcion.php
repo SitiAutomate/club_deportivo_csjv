@@ -109,6 +109,14 @@ if ($tipoId === 1) {
     $mesActual = str_pad((string) date('n'), 2, '0', STR_PAD_LEFT);
     $detalle['Mes'] = $detalle['Mes'] ?? $mesActual;
     $detalle['Periodo'] = $detalle['Periodo'] ?? ($mesActual . str_pad((string) ($anio % 100), 2, '0', STR_PAD_LEFT));
+
+    if ($tipoId === 5 && !empty($detalle['IDCurso'])) {
+        require_once __DIR__ . '/../../includes/salidas_campos.php';
+        $errorSalida = salidasCamposAplicarDesdeInput((string) $detalle['IDCurso'], $input, $detalle);
+        if ($errorSalida !== null) {
+            jsonResponse(['success' => false, 'error' => $errorSalida, 'traceId' => $traceId], 400);
+        }
+    }
 } elseif ($tipoId === 4) {
     require_once __DIR__ . '/../../includes/levelup.php';
     $levelupSede = strtoupper(trim((string) ($input['levelup_sede'] ?? $input['Sede'] ?? '')));
@@ -218,6 +226,78 @@ if ($tipoId === 1) {
             'valor_total' => $precioTotal,
         ], JSON_UNESCAPED_UNICODE);
     }
+} elseif ($tipoId === 19) {
+    require_once __DIR__ . '/../../includes/arquitectos_cerebros.php';
+
+    $idCurso = trim((string) ($input['curso_id'] ?? $input['IDCurso'] ?? ''));
+    if (!arquitectosCerebrosEsCursoValido($idCurso)) {
+        jsonResponse(['success' => false, 'error' => 'Seleccione un curso válido de Arquitectos de Cerebros.', 'traceId' => $traceId], 400);
+    }
+
+    $familiaSjv = trim((string) ($input['familia_sjv'] ?? ''));
+    if (!in_array($familiaSjv, ['Sí', 'No'], true)) {
+        jsonResponse(['success' => false, 'error' => 'Indique si pertenece a la familia San José de las Vegas.', 'traceId' => $traceId], 400);
+    }
+
+    $organizacion = null;
+    if ($familiaSjv === 'No') {
+        $organizacion = trim((string) ($input['organizacion'] ?? ''));
+        if ($organizacion === '') {
+            jsonResponse(['success' => false, 'error' => 'Indique a qué organización pertenece.', 'traceId' => $traceId], 400);
+        }
+    }
+
+    $modalidadRol = arquitectosCerebrosModalidadDesdeInput($input);
+    if ($modalidadRol === '') {
+        jsonResponse(['success' => false, 'error' => 'Seleccione un rol principal válido.', 'traceId' => $traceId], 400);
+    }
+
+    $rowCurso = $database->get('cursos_2025', [
+        'Nombre_del_curso',
+        'Nombre_Corto_Curso',
+        'Cupos_maximos',
+        'Estado_del_curso',
+        'Fecha_Inicio',
+        'Fecha_Final',
+    ], ['ID_Curso' => $idCurso]);
+    if (!$rowCurso || ($rowCurso['Estado_del_curso'] ?? '') !== 'ACTIVO') {
+        jsonResponse(['success' => false, 'error' => 'El curso seleccionado no está disponible.', 'traceId' => $traceId], 404);
+    }
+
+    $configPath = __DIR__ . '/../../config/tipos_inscripcion.php';
+    $tiposConfig = file_exists($configPath) ? require $configPath : [];
+    $cfgTipo19 = $tiposConfig[19] ?? [];
+    if (!empty($cfgTipo19['filterByDate'])) {
+        $hoy = date('Y-m-d');
+        $fi = $rowCurso['Fecha_Inicio'] ?? null;
+        $ff = $rowCurso['Fecha_Final'] ?? null;
+        if (($fi && $hoy < $fi) || ($ff && $hoy > $ff)) {
+            jsonResponse(['success' => false, 'error' => 'La inscripción para este curso no está abierta en este momento.', 'traceId' => $traceId], 400);
+        }
+    }
+
+    $cupoMax = (int) ($rowCurso['Cupos_maximos'] ?? 0);
+    if ($cupoMax > 0) {
+        $estadosValidos = ['ACTIVO', 'Confirmado', 'confirmado', 'Incapacitado', 'incapacitado'];
+        $inscritos = (int) $database->count('inscripciones_1', [
+            'IDCurso' => $idCurso,
+            'año' => $anio,
+            'Estado' => $estadosValidos,
+        ]);
+        if ($inscritos >= $cupoMax) {
+            jsonResponse(['success' => false, 'error' => 'No hay cupos disponibles para este curso.', 'traceId' => $traceId], 400);
+        }
+    }
+
+    $detalle['IDCurso'] = $idCurso;
+    $detalle['nombreCurso'] = trim((string) ($input['nombreCurso'] ?? $rowCurso['Nombre_del_curso'] ?? $rowCurso['Nombre_Corto_Curso'] ?? 'Arquitectos de Cerebros'));
+    $detalle['Modalidad'] = $modalidadRol;
+    $detalle['familia_sjv'] = $familiaSjv;
+    $detalle['organizacion'] = $organizacion;
+    $detalle['Sede'] = $detalle['Sede'] ?? 'MEDELLÍN';
+    $mesActual = str_pad((string) date('n'), 2, '0', STR_PAD_LEFT);
+    $detalle['Mes'] = $mesActual;
+    $detalle['Periodo'] = $mesActual . str_pad((string) ($anio % 100), 2, '0', STR_PAD_LEFT);
 } else {
     $configPath = __DIR__ . '/../../config/tipos_inscripcion.php';
     $config = file_exists($configPath) ? require $configPath : [];
@@ -252,6 +332,12 @@ if ($tipoId === 1 && !empty($cursoIds)) {
     $idCurso = eventosTipo18OpenKewmgangId();
     if ($inscripcion->existeDuplicada($participanteDocumento, $idCurso, $anio, $tipoId)) {
         jsonResponse(['success' => false, 'error' => 'Este participante ya está inscrito en Open Kewmgang.', 'traceId' => $traceId], 400);
+    }
+} elseif ($tipoId === 19) {
+    require_once __DIR__ . '/../../includes/arquitectos_cerebros.php';
+    $idCurso = trim((string) ($input['curso_id'] ?? $input['IDCurso'] ?? ''));
+    if ($idCurso && $inscripcion->existeDuplicada($participanteDocumento, $idCurso, $anio, $tipoId)) {
+        jsonResponse(['success' => false, 'error' => 'Este participante ya está inscrito en el curso seleccionado.', 'traceId' => $traceId], 400);
     }
 } elseif ($tipoId !== 3) {
     $idCurso = $input['IDCurso'] ?? $input['curso_id'] ?? $input['campamento_id'] ?? $input['salida_id'] ?? null;

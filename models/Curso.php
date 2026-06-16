@@ -161,6 +161,7 @@ class Curso
             'Nombre_del_curso',
             'Nombre_Corto_Curso',
             'Tarifa_Curso',
+            'Cupos_maximos',
             'Fecha_Inicio',
             'Fecha_Final'
         ], $where);

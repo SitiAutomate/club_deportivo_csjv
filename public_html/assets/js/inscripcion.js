@@ -487,7 +487,7 @@
             t.required = false;
         });
 
-        const necesitaSpinner = tipo > 0 && (tipo === 1 || tipo === 2 || tipo === 4 || tipo === 5 || tipo === 18 || cfg.hasSelector !== false);
+        const necesitaSpinner = tipo > 0 && (tipo === 1 || tipo === 2 || tipo === 4 || tipo === 5 || tipo === 18 || tipo === 19 || cfg.hasSelector !== false);
         if (necesitaSpinner) {
             camposDinamicos.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted small">Cargando...</p></div>';
         }
@@ -496,6 +496,7 @@
         else if (tipo === 5) cargarSalidas();
         else if (tipo === 4) cargarLevelUp();
         else if (tipo === 18) cargarOpenKewmgang();
+        else if (tipo === 19) cargarArquitectosCerebros();
         else if (cfg.hasSelector === false) cargarTipoDirecto(tipo);
         else cargarCamposPorTipo(tipo);
         actualizarVisibilidadCamposAdicionales(tipo, '');
@@ -872,8 +873,7 @@
 
             html += '<div class="alert alert-warning border-warning small mb-3" id="levelupNotaCostos" role="note">';
             html += '<strong>Nota importante:</strong> Los valores de referencia publicados corresponden a <strong>una asignatura</strong> por inscripción. ';
-            html += 'Si el estudiante requiere acompañamiento en varias asignaturas, el Club elaborará un <strong>plan personalizado</strong> según sus necesidades; ';
-            html += 'en ese caso, comuníquese con la coordinación del programa Level Up.';
+            html += 'En caso de requerir acompañamiento en varias asignaturas, se realizará el diseño de un <strong>plan personalizado</strong> de acuerdo con las necesidades del estudiante.';
             html += '</div>';
 
             html += '<div id="wrapLevelupAsignaturas" style="display:none;" class="mb-3">';
@@ -912,7 +912,7 @@
         const lista = $('#levelupAsignaturasAgregadas');
         if (!input || !lista) return;
         if (esLevelUpSeleccionUnica() && contarAsignaturasLevelup() >= 1) {
-            alert('En modalidad grupal solo puede registrar una asignatura. Si necesita más de una, elija modalidad individual o comuníquese con la coordinación Level Up.');
+            alert('En modalidad grupal solo puede registrar una asignatura. Si necesita más de una, elija modalidad individual.');
             return;
         }
         const nombre = (input.value || '').trim();
@@ -1059,6 +1059,133 @@
             });
     }
 
+    const AC_ROLES = [
+        'Madre',
+        'Padre',
+        'Cuidador(a)',
+        'Docente',
+        'Profesional psicosocial',
+        'Agente educativo',
+        'Otro',
+    ];
+
+    const AC_CURSOS_LABEL = {
+        '4901': 'Arquitectos de Cerebros I (0 a 10 años)',
+        '4902': 'Arquitectos de Cerebros II (11 a 18 años)',
+    };
+
+    function actualizarAcFamiliaSjv() {
+        const val = $('#acFamiliaSjv')?.value || '';
+        const wrap = $('#wrapAcOrganizacion');
+        const inp = $('#acOrganizacion');
+        if (!wrap || !inp) return;
+        const mostrar = val === 'No';
+        wrap.style.display = mostrar ? '' : 'none';
+        inp.required = mostrar;
+        if (!mostrar) inp.value = '';
+        refreshRequiredAsterisks(camposDinamicos);
+    }
+
+    function actualizarAcRol() {
+        const val = $('#acRol')?.value || '';
+        const wrap = $('#wrapAcRolOtro');
+        const inp = $('#acRolOtro');
+        if (!wrap || !inp) return;
+        const mostrar = val === 'Otro';
+        wrap.style.display = mostrar ? '' : 'none';
+        inp.required = mostrar;
+        if (!mostrar) inp.value = '';
+        refreshRequiredAsterisks(camposDinamicos);
+    }
+
+    function actualizarAcCursoSeleccionado() {
+        const sel = camposDinamicos.querySelector('input[name="ac_curso_id"]:checked');
+        const cursoId = sel?.value || '';
+        const nombre = sel?.getAttribute('data-nombre') || '';
+        const hidId = $('#acCursoId');
+        const hidNom = $('#acNombreCurso');
+        if (hidId) hidId.value = cursoId;
+        if (hidNom) hidNom.value = nombre;
+        const contTpl = $('#acTemplateContenedor');
+        if (contTpl && cursoId) cargarDetalleTemplate(19, cursoId, contTpl);
+    }
+
+    function cargarArquitectosCerebros() {
+        ajax('get-cursos-por-tipo.php', 'GET', { tipo_id: 19 }).catch(() => ({ success: false }))
+            .then((res) => {
+                if (!res.success || !res.items?.length) {
+                    camposDinamicos.innerHTML = '<p class="text-danger">No hay cursos de Arquitectos de Cerebros disponibles en este momento.</p>';
+                    return;
+                }
+
+                let html = '<div class="arquitectos-cerebros-form">';
+                html += '<input type="hidden" id="acCursoId" name="curso_id" value="">';
+                html += '<input type="hidden" id="acNombreCurso" name="nombreCurso" value="">';
+
+                html += '<div class="mb-3">';
+                html += '<label class="form-label fw-bold d-block">¿En cuál curso deseas inscribirte?</label>';
+                res.items.forEach((it) => {
+                    const id = String(it.id);
+                    const label = AC_CURSOS_LABEL[id] || it.nombre_display || it.nombre || id;
+                    const nombre = it.nombre || it.nombre_curso || label;
+                    const fecha = it.fecha_display ? ` <span class="text-muted small">(${escapeHtml(it.fecha_display)})</span>` : '';
+                    html += '<div class="form-check mb-2">';
+                    html += `<input class="form-check-input" type="radio" name="ac_curso_id" value="${escapeHtml(id)}" id="acCurso_${escapeHtml(id)}" data-nombre="${escapeHtml(nombre)}" required>`;
+                    html += `<label class="form-check-label" for="acCurso_${escapeHtml(id)}">${escapeHtml(label)}${fecha}</label>`;
+                    html += '</div>';
+                });
+                html += '</div>';
+
+                html += '<div class="detalle-template-contenedor mb-3" id="acTemplateContenedor"></div>';
+
+                html += '<div class="mb-3">';
+                html += '<label class="form-label fw-bold">¿Eres familia San José de las Vegas?</label>';
+                html += '<select class="form-select" id="acFamiliaSjv" name="familia_sjv" required>';
+                html += '<option value="">-- Seleccione --</option>';
+                html += '<option value="Sí">Sí</option><option value="No">No</option>';
+                html += '</select></div>';
+
+                html += '<div class="mb-3" id="wrapAcOrganizacion" style="display:none;">';
+                html += '<label class="form-label fw-bold">¿A qué organización perteneces?</label>';
+                html += '<input type="text" class="form-control" id="acOrganizacion" name="organizacion" maxlength="150" placeholder="Nombre de la organización">';
+                html += '</div>';
+
+                html += '<div class="mb-3">';
+                html += '<label class="form-label fw-bold">¿Cuál es tu rol principal?</label>';
+                html += '<select class="form-select" id="acRol" name="ac_rol" required>';
+                html += '<option value="">-- Seleccione --</option>';
+                AC_ROLES.forEach((r) => {
+                    html += `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`;
+                });
+                html += '</select></div>';
+
+                html += '<div class="mb-3" id="wrapAcRolOtro" style="display:none;">';
+                html += '<label class="form-label fw-bold">Especifique su rol</label>';
+                html += '<input type="text" class="form-control" id="acRolOtro" name="ac_rol_otro" maxlength="100" placeholder="Describa su rol">';
+                html += '</div></div>';
+
+                camposDinamicos.innerHTML = html;
+
+                $('#acFamiliaSjv')?.addEventListener('change', actualizarAcFamiliaSjv);
+                $('#acRol')?.addEventListener('change', actualizarAcRol);
+                camposDinamicos.querySelectorAll('input[name="ac_curso_id"]').forEach((rb) => {
+                    rb.addEventListener('change', actualizarAcCursoSeleccionado);
+                });
+
+                const first = camposDinamicos.querySelector('input[name="ac_curso_id"]');
+                if (first) {
+                    first.checked = true;
+                    actualizarAcCursoSeleccionado();
+                }
+
+                refreshRequiredAsterisks(document);
+                btnEnviar.disabled = false;
+            })
+            .catch(() => {
+                camposDinamicos.innerHTML = '<p class="text-danger">Error al cargar Arquitectos de Cerebros.</p>';
+            });
+    }
+
     function actualizarActividadesPorLinea() {
         const linea = $('#filtroLinea')?.value;
         const sel = $('#filtroActividad');
@@ -1201,6 +1328,30 @@
             });
     }
 
+    function cargarCamposExtraSalida(salidaId) {
+        const wrap = $('#salidaCamposExtraContenedor');
+        if (!wrap) return;
+        wrap.innerHTML = '';
+        if (!salidaId) return;
+        ajax('get-salida-campos-config.php', 'GET', { salida_id: salidaId })
+            .then((res) => {
+                const cfg = res.config;
+                if (!cfg?.categoria?.options) return;
+                const cat = cfg.categoria;
+                let html = '<div class="mb-3">';
+                html += `<label class="form-label fw-bold">${escapeHtml(cat.label || 'Categoría')}</label>`;
+                html += '<select class="form-select" id="salidaCategoria" name="salida_categoria" required>';
+                html += '<option value="">-- Seleccione --</option>';
+                Object.entries(cat.options).forEach(([val, label]) => {
+                    html += `<option value="${escapeHtml(val)}">${escapeHtml(label)}</option>`;
+                });
+                html += '</select></div>';
+                wrap.innerHTML = html;
+                refreshRequiredAsterisks(wrap);
+            })
+            .catch(() => {});
+    }
+
     function cargarSalidas() {
         const tipoId = 5;
         ajax('get-salidas.php')
@@ -1219,11 +1370,18 @@
                 });
                 html += '</select></div>';
                 if (cfg.tieneTemplate) html += '<div class="detalle-template-contenedor"></div>';
+                html += '<div id="salidaCamposExtraContenedor"></div>';
                 camposDinamicos.innerHTML = html;
                 if (cfg.tieneTemplate) {
                     const sel = camposDinamicos.querySelector('.select-con-detalle');
                     const cont = camposDinamicos.querySelector('.detalle-template-contenedor');
-                    if (sel && cont) sel.addEventListener('change', () => cargarDetalleTemplate(tipoId, sel.value, cont));
+                    if (sel && cont) {
+                        sel.addEventListener('change', () => {
+                            cargarDetalleTemplate(tipoId, sel.value, cont);
+                            cargarCamposExtraSalida(sel.value);
+                            actualizarVisibilidadCamposAdicionales(tipoId, sel.value || '');
+                        });
+                    }
                 }
                 btnEnviar.disabled = false;
             })
@@ -1351,6 +1509,7 @@
         else if (tipo === 4) tipoTexto = 'Level Up';
         else if (tipo === 5) tipoTexto = 'Salida';
         else if (tipo === 18) tipoTexto = 'Open Kewmgang';
+        else if (tipo === 19) tipoTexto = 'Arquitectos de Cerebros';
         else tipoTexto = 'Inscripción';
         let detalleHtml = '';
         if (tipo === 1 && data.nombres_curso && data.nombres_curso.length) {
@@ -1377,8 +1536,22 @@
             if (res.valor_total) {
                 detalleHtml += '<p class="mb-0 small text-muted">Valor total: $' + Number(res.valor_total).toLocaleString('es-CO') + '</p>';
             }
+        } else if (tipo === 19) {
+            detalleHtml = escapeHtml(data.nombreCurso || 'Arquitectos de Cerebros');
+            if (data.Modalidad || data.ac_rol) {
+                detalleHtml += '<p class="mb-1 small text-muted">Rol: ' + escapeHtml(data.Modalidad || data.ac_rol) + '</p>';
+            }
+            if (data.familia_sjv) {
+                detalleHtml += '<p class="mb-1 small text-muted">Familia SJV: ' + escapeHtml(data.familia_sjv) + '</p>';
+            }
+            if (data.organizacion) {
+                detalleHtml += '<p class="mb-0 small text-muted">Organización: ' + escapeHtml(data.organizacion) + '</p>';
+            }
         } else if (data.nombreCurso) {
             detalleHtml = escapeHtml(data.nombreCurso);
+            if (tipo === 5 && data.Modalidad) {
+                detalleHtml += '<p class="mb-0 small text-muted">Categoría: ' + escapeHtml(data.Modalidad) + '</p>';
+            }
         }
         let html = '<div class="row"><div class="col-md-6"><h6 class="fw-bold">Participante</h6>';
         html += '<p class="mb-1">' + escapeHtml(participante?.nombre || participante?.Nombre_Completo || data.participante_id || '') + '</p>';
@@ -1567,6 +1740,44 @@
             const mesActual = String(new Date().getMonth() + 1).padStart(2, '0');
             data.Mes = mesActual;
             data.Periodo = mesActual + String(anio % 100).padStart(2, '0');
+        } else if (tipo === 19) {
+            const familiaSjv = $('#acFamiliaSjv')?.value || '';
+            if (!familiaSjv) {
+                alert('Indique si pertenece a la familia San José de las Vegas.');
+                $('#acFamiliaSjv')?.focus();
+                return;
+            }
+            if (familiaSjv === 'No' && !($('#acOrganizacion')?.value || '').trim()) {
+                alert('Indique a qué organización pertenece.');
+                $('#acOrganizacion')?.focus();
+                return;
+            }
+            const rol = $('#acRol')?.value || '';
+            if (!rol) {
+                alert('Seleccione su rol principal.');
+                $('#acRol')?.focus();
+                return;
+            }
+            if (rol === 'Otro' && !($('#acRolOtro')?.value || '').trim()) {
+                alert('Especifique su rol.');
+                $('#acRolOtro')?.focus();
+                return;
+            }
+            const cursoSel = camposDinamicos.querySelector('input[name="ac_curso_id"]:checked');
+            if (!cursoSel) {
+                alert('Seleccione el curso en el que desea inscribirse.');
+                return;
+            }
+            data.familia_sjv = familiaSjv;
+            data.organizacion = familiaSjv === 'No' ? ($('#acOrganizacion')?.value || '').trim() : '';
+            data.ac_rol = rol;
+            data.ac_rol_otro = rol === 'Otro' ? ($('#acRolOtro')?.value || '').trim() : '';
+            data.curso_id = cursoSel.value;
+            data.IDCurso = cursoSel.value;
+            data.nombreCurso = cursoSel.getAttribute('data-nombre') || $('#acNombreCurso')?.value || '';
+            const mesActual = String(new Date().getMonth() + 1).padStart(2, '0');
+            data.Mes = mesActual;
+            data.Periodo = mesActual + String(anio % 100).padStart(2, '0');
         } else {
             const cfg = tiposConfig[tipo] || {};
             const sel = camposDinamicos.querySelector('select[required]');
@@ -1586,6 +1797,18 @@
             if (!data.IDCurso) {
                 if (sel) { sel?.focus(); sel?.reportValidity(); }
                 return;
+            }
+            if (tipo === 5) {
+                const catInp = $('#salidaCategoria');
+                if (catInp?.required && !catInp.value) {
+                    alert('Seleccione la categoría.');
+                    catInp.focus();
+                    return;
+                }
+                if (catInp?.value) {
+                    data.salida_categoria = catInp.value;
+                    data.Modalidad = catInp.value;
+                }
             }
         }
 

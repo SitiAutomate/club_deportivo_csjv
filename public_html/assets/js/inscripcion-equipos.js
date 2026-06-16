@@ -229,8 +229,8 @@
                         <label class="form-label fw-bold">Categoría <span class="text-danger">*</span></label>
                         <select class="form-select" data-field="categoria" required>
                             <option value="">-- Seleccione --</option>
-                            <option value="Benjamín">Benjamín — $300.000 (máx. 6 deportistas)</option>
-                            <option value="Mini">Mini — $400.000 (máx. 10 deportistas)</option>
+                            <option value="Benjamín">Benjamín — $300.000 por grupo (máx. 6 deportistas)</option>
+                            <option value="Mini">Mini — $400.000 por grupo (máx. 10 deportistas)</option>
                         </select>
                     </div>
                 </div>

@@ -165,4 +165,17 @@ return [
         'tieneTemplate' => true,
         'defaultItemId' => null,
     ],
+    19 => [
+        'usaApiInscripcion' => false,
+        'layout' => 'arquitectos_cerebros',
+        'hasSelector' => false,
+        'filterByDate' => false,
+        'filterByCupos' => true,
+        'defaultSede' => 'MEDELLÍN',
+        'defaultMes' => null,
+        'hasTransporte' => false,
+        'selectorName' => 'curso_id',
+        'muestraDatosAdicionales' => false,
+        'tieneTemplate' => true,
+    ],
 ];

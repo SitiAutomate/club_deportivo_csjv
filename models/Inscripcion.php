@@ -146,6 +146,8 @@ class Inscripcion
             'club' => $detalle['club'] ?? null,
             'OBSERVACION' => $detalle['OBSERVACION'] ?? null,
             'Modalidad' => $detalle['Modalidad'] ?? null,
+            'familia_sjv' => $detalle['familia_sjv'] ?? null,
+            'organizacion' => $detalle['organizacion'] ?? null,
             'parqueadero' => $detalle['parqueadero'] ?? null,
             'IDAsign' => $detalle['IDAsign'] ?? null,
             'Asignatura' => $detalle['Asignatura'] ?? null,
