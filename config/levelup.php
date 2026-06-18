@@ -19,4 +19,15 @@ return [
     ],
     'modalidades_nivel_1' => ['Individual', 'Grupal'],
     'sesion_nivel_2' => 'Individual',
+    'niveles' => [
+        1 => [
+            'label' => 'Nivel 1 – Fortalecimiento de habilidades',
+            'nombre' => 'Fortalecimiento de habilidades',
+        ],
+        2 => [
+            'label' => 'Nivel 2 – Ruta de acompañamiento especializada',
+            'nombre' => 'Ruta de acompañamiento especializada',
+        ],
+    ],
+    'grado_academico_column' => 'categoria',
 ];

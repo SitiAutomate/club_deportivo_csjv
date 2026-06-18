@@ -755,11 +755,17 @@
         const selMod = $('#levelupModalidad');
         const contTpl = $('#levelupTemplateContenedor');
         const wrapAsig = $('#wrapLevelupAsignaturas');
+        const wrapGrado = $('#wrapLevelupGradoAcademico');
+        const inpGrado = $('#levelupGradoAcademico');
+        const nota = $('#levelupNotaCostos');
         if (wrapPost) wrapPost.style.display = 'none';
         if (wrapMod) wrapMod.style.display = 'none';
         if (selMod) { selMod.required = false; selMod.value = ''; }
         if (contTpl) contTpl.innerHTML = '';
         if (wrapAsig) wrapAsig.style.display = 'none';
+        if (wrapGrado) wrapGrado.style.display = 'none';
+        if (inpGrado) { inpGrado.required = false; inpGrado.value = ''; }
+        if (nota) nota.style.display = 'none';
         if ($('#levelupCursoId')) $('#levelupCursoId').value = '';
         if ($('#levelupNombreCurso')) $('#levelupNombreCurso').value = '';
         resetLevelUpAsignaturasSeleccion();
@@ -786,8 +792,8 @@
         nivelSel.disabled = false;
         nivelSel.required = true;
         nivelSel.innerHTML = '<option value="">-- Seleccione --</option>'
-            + '<option value="1">Nivel 1 – Refuerzo a demanda</option>'
-            + '<option value="2">Nivel 2 – Ruta personalizada</option>';
+            + '<option value="1">Nivel 1 – Fortalecimiento de habilidades</option>'
+            + '<option value="2">Nivel 2 – Ruta de acompañamiento especializada</option>';
         nivelSel.value = '';
         refreshRequiredAsterisks(camposDinamicos);
     }
@@ -819,6 +825,14 @@
             if (wrapMod) wrapMod.style.display = 'none';
             if (selMod) { selMod.required = false; selMod.value = 'Individual'; }
         }
+
+        const nota = $('#levelupNotaCostos');
+        if (nota) nota.style.display = nivel === 1 ? '' : 'none';
+
+        const wrapGrado = $('#wrapLevelupGradoAcademico');
+        const inpGrado = $('#levelupGradoAcademico');
+        if (wrapGrado) wrapGrado.style.display = '';
+        if (inpGrado) inpGrado.required = true;
 
         if (contTpl) cargarDetalleTemplate(4, curso.id, contTpl);
         renderAsignaturasLevelup();
@@ -871,9 +885,14 @@
 
             html += '<div class="detalle-template-contenedor mb-3" id="levelupTemplateContenedor"></div>';
 
-            html += '<div class="alert alert-warning border-warning small mb-3" id="levelupNotaCostos" role="note">';
+            html += '<div class="alert alert-warning border-warning small mb-3" id="levelupNotaCostos" style="display:none;" role="note">';
             html += '<strong>Nota importante:</strong> Los valores de referencia publicados corresponden a <strong>una asignatura</strong> por inscripción. ';
             html += 'En caso de requerir acompañamiento en varias asignaturas, se realizará el diseño de un <strong>plan personalizado</strong> de acuerdo con las necesidades del estudiante.';
+            html += '</div>';
+
+            html += '<div class="mb-3" id="wrapLevelupGradoAcademico" style="display:none;">';
+            html += '<label class="form-label fw-bold" for="levelupGradoAcademico">Grado académico</label>';
+            html += '<input type="text" class="form-control" id="levelupGradoAcademico" name="levelup_grado_academico" maxlength="50" placeholder="Ej: 5°, Transición, Prejardín">';
             html += '</div>';
 
             html += '<div id="wrapLevelupAsignaturas" style="display:none;" class="mb-3">';
@@ -1524,6 +1543,9 @@
             if (data.levelup_sede || data.Sede) {
                 detalleHtml += '<p class="mb-1 small text-muted">Sede: ' + escapeHtml(data.levelup_sede || data.Sede) + '</p>';
             }
+            if (data.categoria || data.levelup_grado_academico) {
+                detalleHtml += '<p class="mb-1 small text-muted">Grado académico: ' + escapeHtml(data.categoria || data.levelup_grado_academico) + '</p>';
+            }
             if (asigs.length) {
                 detalleHtml += '<ul class="mb-0 mt-2">' + asigs.map(n => `<li>${escapeHtml(n)}</li>`).join('') + '</ul>';
             }
@@ -1667,6 +1689,12 @@
                 alert('Complete sede y nivel para continuar.');
                 return;
             }
+            const gradoAcademico = ($('#levelupGradoAcademico')?.value || '').trim();
+            if (!gradoAcademico) {
+                alert('Ingrese el grado académico del participante.');
+                $('#levelupGradoAcademico')?.focus();
+                return;
+            }
             const checks = camposDinamicos.querySelectorAll('input[name="asignatura_ids[]"]:checked');
             const asignaturaIds = [...checks].map(c => c.value);
             if (!asignaturaIds.length && !levelupAsignaturasNuevas.length) {
@@ -1692,6 +1720,8 @@
             }
             data.levelup_sede = sede;
             data.levelup_nivel = nivel;
+            data.levelup_grado_academico = gradoAcademico;
+            data.categoria = gradoAcademico;
             data.Sede = sede;
             data.curso_id = cursoId;
             data.IDCurso = cursoId;

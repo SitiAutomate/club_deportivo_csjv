@@ -141,6 +141,12 @@ if ($tipoId === 1) {
     } else {
         $detalle['Sesión'] = 'Individual';
     }
+
+    $gradoAcademico = trim((string) ($input['levelup_grado_academico'] ?? $input['categoria'] ?? ''));
+    if ($gradoAcademico === '') {
+        jsonResponse(['success' => false, 'error' => 'Ingrese el grado académico del participante.', 'traceId' => $traceId], 400);
+    }
+    $detalle['categoria'] = $gradoAcademico;
 } elseif ($tipoId === 18) {
     require_once __DIR__ . '/../../includes/eventos_tipo18.php';
     $idCursoOk = eventosTipo18OpenKewmgangId();
@@ -562,6 +568,9 @@ try {
             . ' — Asignaturas: ' . implode(', ', $nombresAsignaturas);
         if (!empty($detalle['Sesión'])) {
             $detalleTexto .= ' (Modalidad: ' . $detalle['Sesión'] . ')';
+        }
+        if (!empty($detalle['categoria'])) {
+            $detalleTexto .= '. Grado académico: ' . $detalle['categoria'];
         }
 
         if ($responsableEmail) {

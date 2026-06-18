@@ -10,8 +10,10 @@ return [
             'column' => 'Modalidad',
             'label' => 'Categoría',
             'options' => [
-                'Mini e Infantil especial' => 'Mini e Infantil especial — Competencia: 7, 8 y 9 de agosto de 2026',
-                'Infantil (premenores) - Menores' => 'Infantil (premenores) - Menores — Competencia: 14, 15 y 16 de agosto de 2026',
+                'Mini' => 'Mini — Competencia: 7, 8 y 9 de agosto de 2026',
+                'Infantil especial' => 'Infantil especial — Competencia: 7, 8 y 9 de agosto de 2026',
+                'Infantil (premenores)' => 'Infantil (premenores) — Competencia: 14, 15 y 16 de agosto de 2026',
+                'Menores' => 'Menores — Competencia: 14, 15 y 16 de agosto de 2026',
             ],
         ],
     ],
