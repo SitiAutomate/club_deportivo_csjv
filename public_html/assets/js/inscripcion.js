@@ -757,6 +757,8 @@
         const wrapAsig = $('#wrapLevelupAsignaturas');
         const wrapGrado = $('#wrapLevelupGradoAcademico');
         const inpGrado = $('#levelupGradoAcademico');
+        const wrapDiag = $('#wrapLevelupDiagnostico');
+        const inpDiag = $('#levelupDiagnostico');
         const nota = $('#levelupNotaCostos');
         if (wrapPost) wrapPost.style.display = 'none';
         if (wrapMod) wrapMod.style.display = 'none';
@@ -765,6 +767,8 @@
         if (wrapAsig) wrapAsig.style.display = 'none';
         if (wrapGrado) wrapGrado.style.display = 'none';
         if (inpGrado) { inpGrado.required = false; inpGrado.value = ''; }
+        if (wrapDiag) wrapDiag.style.display = 'none';
+        if (inpDiag) { inpDiag.required = false; inpDiag.value = ''; }
         if (nota) nota.style.display = 'none';
         if ($('#levelupCursoId')) $('#levelupCursoId').value = '';
         if ($('#levelupNombreCurso')) $('#levelupNombreCurso').value = '';
@@ -834,8 +838,22 @@
         if (wrapGrado) wrapGrado.style.display = '';
         if (inpGrado) inpGrado.required = true;
 
+        const wrapAsig = $('#wrapLevelupAsignaturas');
+        const wrapDiag = $('#wrapLevelupDiagnostico');
+        const inpDiag = $('#levelupDiagnostico');
+        if (nivel === 1) {
+            if (wrapAsig) wrapAsig.style.display = '';
+            renderAsignaturasLevelup();
+            if (wrapDiag) wrapDiag.style.display = 'none';
+            if (inpDiag) { inpDiag.required = false; inpDiag.value = ''; }
+        } else {
+            if (wrapAsig) wrapAsig.style.display = 'none';
+            resetLevelUpAsignaturasSeleccion();
+            if (wrapDiag) wrapDiag.style.display = '';
+            if (inpDiag) inpDiag.required = true;
+        }
+
         if (contTpl) cargarDetalleTemplate(4, curso.id, contTpl);
-        renderAsignaturasLevelup();
         onLevelUpModalidadChange();
         refreshRequiredAsterisks(camposDinamicos);
     }
@@ -904,6 +922,11 @@
             html += '<button type="button" class="btn btn-outline-primary" id="btnAgregarAsignaturaLevelup">Agregar</button>';
             html += '</div>';
             html += '<ul id="levelupAsignaturasAgregadas" class="list-group list-group-flush small mb-0"></ul>';
+            html += '</div>';
+
+            html += '<div class="mb-3" id="wrapLevelupDiagnostico" style="display:none;">';
+            html += '<label class="form-label fw-bold" for="levelupDiagnostico">Diagnóstico</label>';
+            html += '<textarea class="form-control" id="levelupDiagnostico" name="levelup_diagnostico" rows="3" maxlength="500" placeholder="Describa el diagnóstico o la necesidad de apoyo del estudiante"></textarea>';
             html += '</div></div></div>';
 
             camposDinamicos.innerHTML = html;
@@ -1546,6 +1569,9 @@
             if (data.categoria || data.levelup_grado_academico) {
                 detalleHtml += '<p class="mb-1 small text-muted">Grado académico: ' + escapeHtml(data.categoria || data.levelup_grado_academico) + '</p>';
             }
+            if (data.levelup_diagnostico) {
+                detalleHtml += '<p class="mb-1 small text-muted">Diagnóstico: ' + escapeHtml(data.levelup_diagnostico) + '</p>';
+            }
             if (asigs.length) {
                 detalleHtml += '<ul class="mb-0 mt-2">' + asigs.map(n => `<li>${escapeHtml(n)}</li>`).join('') + '</ul>';
             }
@@ -1695,13 +1721,23 @@
                 $('#levelupGradoAcademico')?.focus();
                 return;
             }
-            const checks = camposDinamicos.querySelectorAll('input[name="asignatura_ids[]"]:checked');
-            const asignaturaIds = [...checks].map(c => c.value);
-            if (!asignaturaIds.length && !levelupAsignaturasNuevas.length) {
-                alert('Seleccione o agregue al menos una asignatura.');
-                return;
-            }
-            if (nivel === 1) {
+            if (nivel === 2) {
+                const diagnostico = ($('#levelupDiagnostico')?.value || '').trim();
+                if (!diagnostico) {
+                    alert('Ingrese el diagnóstico del participante.');
+                    $('#levelupDiagnostico')?.focus();
+                    return;
+                }
+                data.levelup_modalidad = 'Individual';
+                data.Sesión = 'Individual';
+                data.levelup_diagnostico = diagnostico;
+            } else {
+                const checks = camposDinamicos.querySelectorAll('input[name="asignatura_ids[]"]:checked');
+                const asignaturaIds = [...checks].map(c => c.value);
+                if (!asignaturaIds.length && !levelupAsignaturasNuevas.length) {
+                    alert('Seleccione o agregue al menos una asignatura.');
+                    return;
+                }
                 const mod = $('#levelupModalidad')?.value;
                 if (!mod) {
                     alert('Seleccione la modalidad Individual o Grupal.');
@@ -1714,9 +1750,8 @@
                 }
                 data.levelup_modalidad = mod;
                 data.Sesión = mod;
-            } else {
-                data.levelup_modalidad = 'Individual';
-                data.Sesión = 'Individual';
+                data.asignatura_ids = asignaturaIds;
+                data.asignaturas_nuevas = [...levelupAsignaturasNuevas];
             }
             data.levelup_sede = sede;
             data.levelup_nivel = nivel;
@@ -1726,8 +1761,6 @@
             data.curso_id = cursoId;
             data.IDCurso = cursoId;
             data.nombreCurso = nombreCurso || '';
-            data.asignatura_ids = asignaturaIds;
-            data.asignaturas_nuevas = [...levelupAsignaturasNuevas];
             const mesActual = String(new Date().getMonth() + 1).padStart(2, '0');
             data.Mes = mesActual;
             data.Periodo = mesActual + String(anio % 100).padStart(2, '0');
@@ -1858,6 +1891,9 @@
                 if (res.success) {
                     if (tipo === 4 && res.nombres_asignaturas) {
                         data.nombres_asignaturas = res.nombres_asignaturas;
+                    }
+                    if (tipo === 4 && res.levelup_diagnostico) {
+                        data.levelup_diagnostico = res.levelup_diagnostico;
                     }
                     mostrarModalExito(data, participanteActual, responsableActual, res);
                     reiniciarFormulario();

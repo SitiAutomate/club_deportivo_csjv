@@ -30,4 +30,5 @@ return [
         ],
     ],
     'grado_academico_column' => 'categoria',
+    'nivel_2_diagnostico_column' => 'Asignatura',
 ];

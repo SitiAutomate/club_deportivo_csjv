@@ -494,6 +494,57 @@ try {
         }
         jsonResponse(['success' => true, 'inscripcion_ids' => $ids, 'inscripcion_id' => $ids[0] ?? null, 'trace_id' => $traceId]);
     } elseif ($tipoId === 4) {
+        $levelupNivelGuardar = (int) ($input['levelup_nivel'] ?? 0);
+        $idCurso = (string) ($detalle['IDCurso'] ?? '');
+
+        if ($levelupNivelGuardar === 2) {
+            $diagnostico = trim((string) ($input['levelup_diagnostico'] ?? ''));
+            if ($diagnostico === '') {
+                jsonResponse(['success' => false, 'error' => 'Ingrese el diagnóstico del participante.', 'traceId' => $traceId], 400);
+            }
+            if ($inscripcion->existeDuplicada($participanteDocumento, $idCurso, $anio, $tipoId)) {
+                jsonResponse([
+                    'success' => false,
+                    'error' => 'Este participante ya está inscrito en este programa Level Up.',
+                    'traceId' => $traceId,
+                ], 400);
+            }
+
+            $detalle['Asignatura'] = $diagnostico;
+            $newId = $inscripcion->create($participanteDocumento, $responsableDocumento, $tipoId, $detalle);
+            if ((int) $newId <= 0) {
+                jsonResponse(['success' => false, 'error' => 'No fue posible registrar la inscripción. Intente de nuevo.', 'trace_id' => $traceId], 500);
+            }
+
+            $tipoTexto = 'Level Up';
+            $detalleTexto = ($detalle['nombreCurso'] ?? 'Level Up') . ' — Diagnóstico: ' . $diagnostico;
+            if (!empty($detalle['Sesión'])) {
+                $detalleTexto .= ' (Modalidad: ' . $detalle['Sesión'] . ')';
+            }
+            if (!empty($detalle['categoria'])) {
+                $detalleTexto .= '. Grado académico: ' . $detalle['categoria'];
+            }
+
+            if ($responsableEmail) {
+                $emailService = new EmailService();
+                $emailService->enviarConfirmacionInscripcion(
+                    $responsableEmail,
+                    $participanteNombre,
+                    $responsableNombre,
+                    $tipoTexto,
+                    $detalleTexto
+                );
+            }
+
+            jsonResponse([
+                'success' => true,
+                'inscripcion_id' => $newId,
+                'inscripcion_ids' => [$newId],
+                'levelup_diagnostico' => $diagnostico,
+                'trace_id' => $traceId,
+            ]);
+        }
+
         $asignaturaModel = new Asignatura($database);
         $asignaturaIds = $input['asignatura_ids'] ?? [];
         if (!is_array($asignaturaIds)) {
