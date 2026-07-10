@@ -143,6 +143,7 @@ class Inscripcion
             'UniqueID' => $uniqueId,
             'nombreCurso' => $detalle['nombreCurso'] ?? null,
             'categoria' => $detalle['categoria'] ?? null,
+            'Caso' => $detalle['Caso'] ?? null,
             'club' => $detalle['club'] ?? null,
             'OBSERVACION' => $detalle['OBSERVACION'] ?? null,
             'Modalidad' => $detalle['Modalidad'] ?? null,

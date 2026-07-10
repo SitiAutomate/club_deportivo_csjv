@@ -19,19 +19,20 @@ $curso = new Curso($database);
 $rows = $curso->getPorTipo($tipoId, $filterByDate);
 
 $contexto = trim((string) ($_GET['contexto'] ?? ''));
-if ($tipoId === 18 && $contexto !== '') {
+if ($tipoId === 18) {
     require_once __DIR__ . '/../../includes/eventos_tipo18.php';
-    if ($contexto === 'principal') {
-        $openId = eventosTipo18OpenKewmgangId();
-        $rows = array_values(array_filter(
-            $rows,
-            fn($c) => (string) ($c['ID_Curso'] ?? '') === $openId
-        ));
-    } elseif ($contexto === 'equipos') {
+    if ($contexto === 'equipos') {
         $festIds = eventosTipo18FestivegasIds();
         $rows = array_values(array_filter(
             $rows,
             fn($c) => in_array((string) ($c['ID_Curso'] ?? ''), $festIds, true)
+        ));
+    } else {
+        // Formulario principal: todos los eventos tipo 18 excepto Festivegas
+        $principalIds = eventosTipo18PrincipalIds();
+        $rows = array_values(array_filter(
+            $rows,
+            fn($c) => in_array((string) ($c['ID_Curso'] ?? ''), $principalIds, true)
         ));
     }
 }

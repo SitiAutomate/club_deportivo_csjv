@@ -149,88 +149,179 @@ if ($tipoId === 1) {
     $detalle['categoria'] = $gradoAcademico;
 } elseif ($tipoId === 18) {
     require_once __DIR__ . '/../../includes/eventos_tipo18.php';
-    $idCursoOk = eventosTipo18OpenKewmgangId();
-    $idCursoReq = trim((string) ($input['curso_id'] ?? $input['IDCurso'] ?? $idCursoOk));
-    if ($idCursoReq !== $idCursoOk || eventosTipo18EsFestivegas($idCursoReq)) {
-        jsonResponse(['success' => false, 'error' => 'Curso de inscripción no válido para este formulario.', 'traceId' => $traceId], 400);
+    $idCursoReq = trim((string) ($input['curso_id'] ?? $input['IDCurso'] ?? ''));
+    if ($idCursoReq === '' || !eventosTipo18EsPrincipal($idCursoReq) || eventosTipo18EsFestivegas($idCursoReq)) {
+        jsonResponse(['success' => false, 'error' => 'Seleccione un evento válido.', 'traceId' => $traceId], 400);
     }
 
-    $modalidades = $input['openk_modalidades'] ?? [];
-    if (!is_array($modalidades)) {
-        $modalidades = $modalidades ? [trim((string) $modalidades)] : [];
-    }
-    $modalidades = array_values(array_filter(array_map('trim', $modalidades)));
-    $permitidas = ['Festival infantil', 'Combate individual'];
-    foreach ($modalidades as $m) {
-        if (!in_array($m, $permitidas, true)) {
-            jsonResponse(['success' => false, 'error' => 'Modalidad no válida.', 'traceId' => $traceId], 400);
-        }
-    }
-    if (count($modalidades) < 1) {
-        jsonResponse(['success' => false, 'error' => 'Seleccione al menos una modalidad.', 'traceId' => $traceId], 400);
-    }
-
-    $tieneCombate = in_array('Combate individual', $modalidades, true);
-    $detalle['IDCurso'] = $idCursoOk;
-    $detalle['nombreCurso'] = trim((string) ($input['nombreCurso'] ?? 'Open Kewmgang'));
-    $detalle['Modalidad'] = implode(', ', $modalidades);
     $mesActual = str_pad((string) date('n'), 2, '0', STR_PAD_LEFT);
+    $detalle['IDCurso'] = $idCursoReq;
+    $detalle['nombreCurso'] = trim((string) ($input['nombreCurso'] ?? ''));
     $detalle['Mes'] = $mesActual;
     $detalle['Periodo'] = $mesActual . str_pad((string) ($anio % 100), 2, '0', STR_PAD_LEFT);
     $detalle['Sede'] = $detalle['Sede'] ?? 'MEDELLÍN';
 
-    $precioTotal = 0;
-    if (in_array('Festival infantil', $modalidades, true)) {
-        $precioTotal += 60000;
-    }
-    if (in_array('Combate individual', $modalidades, true)) {
-        $precioTotal += 75000;
-    }
-
-    if ($tieneCombate) {
-        $rama = trim((string) ($input['openk_rama'] ?? ''));
-        $division = trim((string) ($input['openk_division'] ?? ''));
-        $grado = trim((string) ($input['openk_grado'] ?? ''));
-        $estatura = trim((string) ($input['openk_estatura'] ?? ''));
-        $peso = trim((string) ($input['openk_peso'] ?? ''));
-
-        if (!in_array($rama, ['Femenino', 'Masculino'], true)) {
-            jsonResponse(['success' => false, 'error' => 'Seleccione la rama (Femenino o Masculino).', 'traceId' => $traceId], 400);
+    if (eventosTipo18EsOpenKewmgang($idCursoReq)) {
+        if ($detalle['nombreCurso'] === '') {
+            $detalle['nombreCurso'] = 'Open Kewmgang';
         }
-        $divisionesValidas = ['Benjamin', 'Pre cadetes', 'Cadetes', 'Junior'];
-        if (!in_array($division, $divisionesValidas, true)) {
-            jsonResponse(['success' => false, 'error' => 'Seleccione una división válida.', 'traceId' => $traceId], 400);
+        $modalidades = $input['openk_modalidades'] ?? [];
+        if (!is_array($modalidades)) {
+            $modalidades = $modalidades ? [trim((string) $modalidades)] : [];
         }
-        if (!in_array($grado, ['Blancos', 'Amarillo', 'Verde'], true)) {
-            jsonResponse(['success' => false, 'error' => 'Seleccione el grado (Blancos, Amarillo o Verde).', 'traceId' => $traceId], 400);
-        }
-
-        if ($division === 'Junior') {
-            if ($peso === '' || !is_numeric($peso) || (float) $peso <= 0) {
-                jsonResponse(['success' => false, 'error' => 'Ingrese el peso en kg para la división Junior.', 'traceId' => $traceId], 400);
+        $modalidades = array_values(array_filter(array_map('trim', $modalidades)));
+        $permitidas = ['Festival infantil', 'Combate individual'];
+        foreach ($modalidades as $m) {
+            if (!in_array($m, $permitidas, true)) {
+                jsonResponse(['success' => false, 'error' => 'Modalidad no válida.', 'traceId' => $traceId], 400);
             }
-            $estatura = null;
+        }
+        if (count($modalidades) < 1) {
+            jsonResponse(['success' => false, 'error' => 'Seleccione al menos una modalidad.', 'traceId' => $traceId], 400);
+        }
+
+        $tieneCombate = in_array('Combate individual', $modalidades, true);
+        $detalle['Modalidad'] = implode(', ', $modalidades);
+
+        $precioTotal = 0;
+        if (in_array('Festival infantil', $modalidades, true)) {
+            $precioTotal += 60000;
+        }
+        if (in_array('Combate individual', $modalidades, true)) {
+            $precioTotal += 75000;
+        }
+
+        if ($tieneCombate) {
+            $rama = trim((string) ($input['openk_rama'] ?? ''));
+            $division = trim((string) ($input['openk_division'] ?? ''));
+            $grado = trim((string) ($input['openk_grado'] ?? ''));
+            $estatura = trim((string) ($input['openk_estatura'] ?? ''));
+            $peso = trim((string) ($input['openk_peso'] ?? ''));
+
+            if (!in_array($rama, ['Femenino', 'Masculino'], true)) {
+                jsonResponse(['success' => false, 'error' => 'Seleccione la rama (Femenino o Masculino).', 'traceId' => $traceId], 400);
+            }
+            $divisionesValidas = ['Benjamin', 'Pre cadetes', 'Cadetes', 'Junior'];
+            if (!in_array($division, $divisionesValidas, true)) {
+                jsonResponse(['success' => false, 'error' => 'Seleccione una división válida.', 'traceId' => $traceId], 400);
+            }
+            if (!in_array($grado, ['Blancos', 'Amarillo', 'Verde'], true)) {
+                jsonResponse(['success' => false, 'error' => 'Seleccione el grado (Blancos, Amarillo o Verde).', 'traceId' => $traceId], 400);
+            }
+
+            if ($division === 'Junior') {
+                if ($peso === '' || !is_numeric($peso) || (float) $peso <= 0) {
+                    jsonResponse(['success' => false, 'error' => 'Ingrese el peso en kg para la división Junior.', 'traceId' => $traceId], 400);
+                }
+                $estatura = null;
+            } else {
+                if ($estatura === '' || !is_numeric($estatura) || (float) $estatura <= 0) {
+                    jsonResponse(['success' => false, 'error' => 'Ingrese la estatura en cm.', 'traceId' => $traceId], 400);
+                }
+                $peso = null;
+            }
+
+            $detalle['IDAsign'] = $rama;
+            $detalle['Sesión'] = $division;
+            $detalle['categoria'] = $grado;
+            $detalle['OBSERVACION'] = json_encode([
+                'modalidades' => $modalidades,
+                'valor_total' => $precioTotal,
+                'estatura_cm' => $estatura !== null ? (float) $estatura : null,
+                'peso_kg' => $peso !== null ? (float) $peso : null,
+            ], JSON_UNESCAPED_UNICODE);
         } else {
-            if ($estatura === '' || !is_numeric($estatura) || (float) $estatura <= 0) {
-                jsonResponse(['success' => false, 'error' => 'Ingrese la estatura en cm.', 'traceId' => $traceId], 400);
+            $detalle['OBSERVACION'] = json_encode([
+                'modalidades' => $modalidades,
+                'valor_total' => $precioTotal,
+            ], JSON_UNESCAPED_UNICODE);
+        }
+    } elseif ($cfgSoloCat = eventosTipo18ConfigSoloCategoria($idCursoReq)) {
+        if ($detalle['nombreCurso'] === '') {
+            $detalle['nombreCurso'] = (string) ($cfgSoloCat['nombre'] ?? 'Evento');
+        }
+        $categoriasOk = $cfgSoloCat['categorias'] ?? [];
+        $categoria = trim((string) ($input['evento_categoria'] ?? $input['cheer_categoria'] ?? $input['categoria'] ?? ''));
+        if ($categoria === '' || !in_array($categoria, $categoriasOk, true)) {
+            jsonResponse(['success' => false, 'error' => 'Seleccione una categoría válida.', 'traceId' => $traceId], 400);
+        }
+        // Alineado a 1802: categoria = clasificación; valor en OBSERVACION
+        $detalle['categoria'] = $categoria;
+        $detalle['OBSERVACION'] = json_encode([
+            'categoria' => $categoria,
+            'valor_total' => (int) ($cfgSoloCat['valor'] ?? 0),
+        ], JSON_UNESCAPED_UNICODE);
+    } elseif (eventosTipo18EsTkdNacional($idCursoReq)) {
+        if ($detalle['nombreCurso'] === '') {
+            $detalle['nombreCurso'] = 'Campeonato Nacional Inter clubes de Taekwondo';
+        }
+        $cfgTkd = eventosTipo18TkdNacionalConfig();
+        $modalidadesCfg = $cfgTkd['modalidades'] ?? [];
+        $esMapaPrecios = $modalidadesCfg !== [] && !isset($modalidadesCfg[0]);
+        $modalidadesOk = $esMapaPrecios ? array_keys($modalidadesCfg) : array_values($modalidadesCfg);
+        $categoriasOk = $cfgTkd['categorias'] ?? [];
+        $gradosOk = $cfgTkd['grados'] ?? [];
+        $generosOk = $cfgTkd['generos'] ?? ['Femenino', 'Masculino'];
+
+        $modalidades = $input['tkd_modalidades'] ?? [];
+        if (!is_array($modalidades)) {
+            $modalidades = $modalidades ? [trim((string) $modalidades)] : [];
+        }
+        $modalidades = array_values(array_filter(array_map('trim', $modalidades)));
+        foreach ($modalidades as $m) {
+            if (!in_array($m, $modalidadesOk, true)) {
+                jsonResponse(['success' => false, 'error' => 'Modalidad no válida.', 'traceId' => $traceId], 400);
             }
-            $peso = null;
+        }
+        if (count($modalidades) < 1) {
+            jsonResponse(['success' => false, 'error' => 'Seleccione al menos una modalidad.', 'traceId' => $traceId], 400);
         }
 
-        $detalle['IDAsign'] = $rama;
-        $detalle['Sesión'] = $division;
+        $categoria = trim((string) ($input['tkd_categoria'] ?? ''));
+        $grado = trim((string) ($input['tkd_grado'] ?? ''));
+        $genero = trim((string) ($input['tkd_genero'] ?? ''));
+        $peso = trim((string) ($input['tkd_peso'] ?? ''));
+        $estatura = trim((string) ($input['tkd_estatura'] ?? ''));
+
+        if ($categoria === '' || !in_array($categoria, $categoriasOk, true)) {
+            jsonResponse(['success' => false, 'error' => 'Seleccione una categoría válida.', 'traceId' => $traceId], 400);
+        }
+        if ($grado === '' || !in_array($grado, $gradosOk, true)) {
+            jsonResponse(['success' => false, 'error' => 'Seleccione un grado válido.', 'traceId' => $traceId], 400);
+        }
+        if ($genero === '' || !in_array($genero, $generosOk, true)) {
+            jsonResponse(['success' => false, 'error' => 'Seleccione el género (Femenino o Masculino).', 'traceId' => $traceId], 400);
+        }
+        if ($peso === '' || !is_numeric($peso) || (float) $peso <= 0) {
+            jsonResponse(['success' => false, 'error' => 'Ingrese el peso en kg.', 'traceId' => $traceId], 400);
+        }
+        if ($estatura === '' || !is_numeric($estatura) || (float) $estatura <= 0) {
+            jsonResponse(['success' => false, 'error' => 'Ingrese la estatura en cm.', 'traceId' => $traceId], 400);
+        }
+
+        $precioTotal = 0;
+        if ($esMapaPrecios) {
+            foreach ($modalidades as $m) {
+                $precioTotal += (int) ($modalidadesCfg[$m] ?? 0);
+            }
+        }
+
+        // Alineado a 1802:
+        // Modalidad = modalidades | IDAsign = género (rama) | Sesión = categoría (división) | categoria = grado
+        // Sobrantes (propuesta original): Asignatura = estatura | peso + valor en OBSERVACION
+        $detalle['Modalidad'] = implode(', ', $modalidades);
+        $detalle['IDAsign'] = $genero;
+        $detalle['Sesión'] = $categoria;
         $detalle['categoria'] = $grado;
+        $detalle['Asignatura'] = (string) $estatura;
         $detalle['OBSERVACION'] = json_encode([
             'modalidades' => $modalidades,
             'valor_total' => $precioTotal,
-            'estatura_cm' => $estatura !== null ? (float) $estatura : null,
-            'peso_kg' => $peso !== null ? (float) $peso : null,
+            'peso_kg' => (float) $peso,
+            'estatura_cm' => (float) $estatura,
         ], JSON_UNESCAPED_UNICODE);
     } else {
-        $detalle['OBSERVACION'] = json_encode([
-            'modalidades' => $modalidades,
-            'valor_total' => $precioTotal,
-        ], JSON_UNESCAPED_UNICODE);
+        jsonResponse(['success' => false, 'error' => 'Evento no configurado.', 'traceId' => $traceId], 400);
     }
 } elseif ($tipoId === 19) {
     require_once __DIR__ . '/../../includes/arquitectos_cerebros.php';
@@ -335,9 +426,9 @@ if ($tipoId === 1 && !empty($cursoIds)) {
     // Duplicados por asignatura se validan al guardar cada fila.
 } elseif ($tipoId === 18) {
     require_once __DIR__ . '/../../includes/eventos_tipo18.php';
-    $idCurso = eventosTipo18OpenKewmgangId();
-    if ($inscripcion->existeDuplicada($participanteDocumento, $idCurso, $anio, $tipoId)) {
-        jsonResponse(['success' => false, 'error' => 'Este participante ya está inscrito en Open Kewmgang.', 'traceId' => $traceId], 400);
+    $idCurso = trim((string) ($detalle['IDCurso'] ?? $input['curso_id'] ?? $input['IDCurso'] ?? ''));
+    if ($idCurso && $inscripcion->existeDuplicada($participanteDocumento, $idCurso, $anio, $tipoId)) {
+        jsonResponse(['success' => false, 'error' => 'Este participante ya está inscrito en este evento.', 'traceId' => $traceId], 400);
     }
 } elseif ($tipoId === 19) {
     require_once __DIR__ . '/../../includes/arquitectos_cerebros.php';
@@ -653,19 +744,31 @@ try {
             $obs = json_decode((string) $detalle['OBSERVACION'], true) ?: [];
         }
         $valorTotal = (int) ($obs['valor_total'] ?? 0);
-        $modalidadesTxt = $detalle['Modalidad'] ?? '';
-        $detalleTexto = ($detalle['nombreCurso'] ?? 'Open Kewmgang') . ' — ' . $modalidadesTxt;
+        $nombreEvento = $detalle['nombreCurso'] ?? 'Evento';
+        $detalleTexto = $nombreEvento;
+        if (!empty($detalle['Modalidad'])) {
+            $detalleTexto .= ' — ' . $detalle['Modalidad'];
+        }
         if ($valorTotal > 0) {
             $detalleTexto .= ' (Valor total: $' . number_format($valorTotal, 0, ',', '.') . ')';
         }
-        if (!empty($detalle['IDAsign'])) {
-            $detalleTexto .= '. Rama: ' . $detalle['IDAsign'];
+        if (!empty($detalle['categoria'])) {
+            $detalleTexto .= '. Categoría/Grado: ' . $detalle['categoria'];
         }
         if (!empty($detalle['Sesión'])) {
-            $detalleTexto .= ', División: ' . $detalle['Sesión'];
+            $detalleTexto .= ', División/Categoría: ' . $detalle['Sesión'];
         }
-        if (!empty($detalle['categoria'])) {
-            $detalleTexto .= ', Grado: ' . $detalle['categoria'];
+        if (!empty($detalle['Caso'])) {
+            $detalleTexto .= ', Caso: ' . $detalle['Caso'];
+        }
+        if (!empty($detalle['IDAsign'])) {
+            $detalleTexto .= ', Rama/Género: ' . $detalle['IDAsign'];
+        }
+        if (!empty($detalle['Asignatura'])) {
+            $detalleTexto .= ', Estatura: ' . $detalle['Asignatura'] . ' cm';
+        }
+        if (!empty($obs['peso_kg'])) {
+            $detalleTexto .= ', Peso: ' . $obs['peso_kg'] . ' kg';
         }
 
         if ($responsableEmail) {
@@ -674,7 +777,7 @@ try {
                 $responsableEmail,
                 $participanteNombre,
                 $responsableNombre,
-                'Open Kewmgang',
+                $nombreEvento,
                 $detalleTexto
             );
         }

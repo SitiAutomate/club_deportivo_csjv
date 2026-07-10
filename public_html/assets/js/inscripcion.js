@@ -495,7 +495,7 @@
         else if (tipo === 2) cargarCampamentos();
         else if (tipo === 5) cargarSalidas();
         else if (tipo === 4) cargarLevelUp();
-        else if (tipo === 18) cargarOpenKewmgang();
+        else if (tipo === 18) cargarEventosTipo18();
         else if (tipo === 19) cargarArquitectosCerebros();
         else if (cfg.hasSelector === false) cargarTipoDirecto(tipo);
         else cargarCamposPorTipo(tipo);
@@ -991,7 +991,6 @@
     }
 
     function actualizarOpenKewmgangCombate() {
-        const fest = $('#openkModFestival')?.checked;
         const comb = $('#openkModCombate')?.checked;
         const wrap = $('#wrapOpenkCombate');
         if (!wrap) return;
@@ -1035,69 +1034,199 @@
         refreshRequiredAsterisks(camposDinamicos);
     }
 
-    function cargarOpenKewmgang() {
+    const TIPO18_LABELS = {
+        '1802': 'Open Kewmgang',
+        '1803': 'Med Cheer Championships',
+        '1804': 'Campeonato Nacional Inter clubes de Taekwondo',
+        '1805': 'Copa Ciudad de Flores Gimnasia',
+        '1806': 'Volleyball Fest',
+    };
+
+    const TIPO18_CATEGORIAS = {
+        '1803': ['Tiny Diamonds', 'Mini Diamonds', 'Youth Diamonds', 'Senior'],
+        '1805': ['Pre nivel', 'Test de habilidades', 'Nivel 1', 'Nivel 2', 'Nivel 3'],
+        '1806': ['Sub 14 (Premenores e Infantil)'],
+    };
+
+    const TKD_MODALIDADES = [
+        { value: 'Festival infantil', label: 'Festival infantil ($120.000)' },
+        { value: 'Combate individual', label: 'Combate individual ($150.000)' },
+        { value: 'Poomsae', label: 'Poomsae ($150.000)' },
+        { value: 'Combate y poomsae', label: 'Combate y poomsae ($230.000)' },
+    ];
+    const TKD_CATEGORIAS = [
+        'Infantil (menores de 12 años)',
+        'Precadete A (2015-2016)',
+        'Precadete B (2017-2018)',
+        'Cadetes (2012-2014)',
+        'Junior (2009 a 2011)',
+    ];
+    const TKD_GRADOS = [
+        'Blanco',
+        'Blanco franja amarilla',
+        'Amarillo',
+        'Amarillo franja verde',
+        'Verde',
+        'Verde franja azul',
+        'Azul',
+        'Azul franja roja',
+        'Rojo',
+        'Rojo franja negra',
+    ];
+
+    function renderFormOpenKewmgang(cursoId, nombreCurso) {
+        let html = '<div class="open-kewmgang-form" id="formEventoTipo18">';
+        html += '<input type="hidden" id="t18CursoId" name="curso_id" value="' + escapeHtml(cursoId) + '">';
+        html += '<input type="hidden" name="nombreCurso" value="' + escapeHtml(nombreCurso) + '">';
+        html += '<div class="mb-3"><label class="form-label fw-bold d-block">Modalidad</label>';
+        html += '<p class="small text-muted">Puede elegir una o dos modalidades. El valor es acumulable.</p>';
+        html += '<div class="form-check mb-2">';
+        html += '<input class="form-check-input" type="checkbox" name="openk_modalidades[]" value="Festival infantil" id="openkModFestival">';
+        html += '<label class="form-check-label" for="openkModFestival">1. Festival infantil ($60.000) — 4 a 11 años, no importa el cinturón</label>';
+        html += '</div>';
+        html += '<div class="form-check mb-3">';
+        html += '<input class="form-check-input" type="checkbox" name="openk_modalidades[]" value="Combate individual" id="openkModCombate">';
+        html += '<label class="form-check-label" for="openkModCombate">2. Combate individual ($75.000) — Sistema convencional, solo blanco a verde</label>';
+        html += '</div></div>';
+        html += '<div id="wrapOpenkCombate" style="display:none;">';
+        html += '<div class="row g-3 mb-3">';
+        html += '<div class="col-md-4"><label class="form-label fw-bold">Rama</label>';
+        html += '<select class="form-select" id="openkRama" name="openk_rama"><option value="">-- Seleccione --</option>';
+        html += '<option value="Femenino">Femenino</option><option value="Masculino">Masculino</option></select></div>';
+        html += '<div class="col-md-4"><label class="form-label fw-bold">División</label>';
+        html += '<select class="form-select" id="openkDivision" name="openk_division"><option value="">-- Seleccione --</option>';
+        html += '<option value="Benjamin">Benjamín (8 a 9 años)</option>';
+        html += '<option value="Pre cadetes">Pre cadetes (10 a 11 años)</option>';
+        html += '<option value="Cadetes">Cadetes (12 a 14 años)</option>';
+        html += '<option value="Junior">Junior (15 a 17 años)</option></select></div>';
+        html += '<div class="col-md-4"><label class="form-label fw-bold">Grado</label>';
+        html += '<select class="form-select" id="openkGrado" name="openk_grado"><option value="">-- Seleccione --</option>';
+        html += '<option value="Blancos">Blancos</option><option value="Amarillo">Amarillo</option><option value="Verde">Verde</option></select></div>';
+        html += '</div>';
+        html += '<div class="row g-3 mb-3">';
+        html += '<div class="col-md-4" id="wrapOpenkEstatura"><label class="form-label fw-bold">Estatura (cm)</label>';
+        html += '<input type="number" class="form-control" id="openkEstatura" name="openk_estatura" min="1" step="0.1" placeholder="Ej: 135"></div>';
+        html += '<div class="col-md-4" id="wrapOpenkPeso" style="display:none;"><label class="form-label fw-bold">Peso (kg)</label>';
+        html += '<input type="number" class="form-control" id="openkPeso" name="openk_peso" min="1" step="0.1" placeholder="Ej: 52"></div>';
+        html += '</div></div></div>';
+        return html;
+    }
+
+    function renderFormCategoriaOnly(cursoId, nombreCurso) {
+        const cats = TIPO18_CATEGORIAS[cursoId] || [];
+        let html = '<div class="evento-categoria-form" id="formEventoTipo18">';
+        html += '<input type="hidden" id="t18CursoId" name="curso_id" value="' + escapeHtml(cursoId) + '">';
+        html += '<input type="hidden" name="nombreCurso" value="' + escapeHtml(nombreCurso) + '">';
+        html += '<div class="mb-3"><label class="form-label fw-bold">Categoría</label>';
+        html += '<select class="form-select" id="eventoCategoria" name="evento_categoria" required>';
+        html += '<option value="">-- Seleccione --</option>';
+        cats.forEach((c) => {
+            html += `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`;
+        });
+        html += '</select></div></div>';
+        return html;
+    }
+
+    function renderFormTkdNacional(cursoId, nombreCurso) {
+        let html = '<div class="tkd-nacional-form" id="formEventoTipo18">';
+        html += '<input type="hidden" id="t18CursoId" name="curso_id" value="' + escapeHtml(cursoId) + '">';
+        html += '<input type="hidden" name="nombreCurso" value="' + escapeHtml(nombreCurso) + '">';
+
+        html += '<div class="mb-3"><label class="form-label fw-bold d-block">Modalidad</label>';
+        html += '<p class="small text-muted">Puede seleccionar una o más modalidades.</p>';
+        TKD_MODALIDADES.forEach((m, i) => {
+            const id = 'tkdMod' + i;
+            html += '<div class="form-check mb-2">';
+            html += `<input class="form-check-input" type="checkbox" name="tkd_modalidades[]" value="${escapeHtml(m.value)}" id="${id}">`;
+            html += `<label class="form-check-label" for="${id}">${escapeHtml(m.label)}</label>`;
+            html += '</div>';
+        });
+        html += '</div>';
+
+        html += '<div class="row g-3 mb-3">';
+        html += '<div class="col-md-6"><label class="form-label fw-bold">Categoría</label>';
+        html += '<select class="form-select" id="tkdCategoria" name="tkd_categoria" required><option value="">-- Seleccione --</option>';
+        TKD_CATEGORIAS.forEach((c) => {
+            html += `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`;
+        });
+        html += '</select></div>';
+        html += '<div class="col-md-6"><label class="form-label fw-bold">Grado</label>';
+        html += '<select class="form-select" id="tkdGrado" name="tkd_grado" required><option value="">-- Seleccione --</option>';
+        TKD_GRADOS.forEach((g) => {
+            html += `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`;
+        });
+        html += '</select></div>';
+        html += '</div>';
+
+        html += '<div class="row g-3 mb-3">';
+        html += '<div class="col-md-4"><label class="form-label fw-bold">Género</label>';
+        html += '<select class="form-select" id="tkdGenero" name="tkd_genero" required><option value="">-- Seleccione --</option>';
+        html += '<option value="Femenino">Femenino</option><option value="Masculino">Masculino</option></select></div>';
+        html += '<div class="col-md-4"><label class="form-label fw-bold">Peso (kg)</label>';
+        html += '<input type="number" class="form-control" id="tkdPeso" name="tkd_peso" min="1" step="0.1" placeholder="Ej: 45" required></div>';
+        html += '<div class="col-md-4"><label class="form-label fw-bold">Estatura (cm)</label>';
+        html += '<input type="number" class="form-control" id="tkdEstatura" name="tkd_estatura" min="1" step="0.1" placeholder="Ej: 150" required></div>';
+        html += '</div></div>';
+        return html;
+    }
+
+    function onEventoTipo18Change() {
+        const sel = $('#t18EventoSelect');
+        const wrapForm = $('#t18FormContenedor');
+        const contTpl = $('#t18TemplateContenedor');
+        if (!sel || !wrapForm) return;
+        const cursoId = sel.value || '';
+        const nombre = sel.selectedOptions[0]?.getAttribute('data-nombre') || sel.selectedOptions[0]?.text || '';
+        wrapForm.innerHTML = '';
+        if (contTpl) contTpl.innerHTML = '';
+        if (!cursoId) {
+            refreshRequiredAsterisks(camposDinamicos);
+            return;
+        }
+        if (contTpl) cargarDetalleTemplate(18, cursoId, contTpl);
+        if (cursoId === '1802') {
+            wrapForm.innerHTML = renderFormOpenKewmgang(cursoId, nombre);
+            $('#openkModFestival')?.addEventListener('change', actualizarOpenKewmgangCombate);
+            $('#openkModCombate')?.addEventListener('change', actualizarOpenKewmgangCombate);
+            $('#openkDivision')?.addEventListener('change', actualizarOpenKewmgangMedicion);
+        } else if (cursoId === '1804') {
+            wrapForm.innerHTML = renderFormTkdNacional(cursoId, nombre);
+        } else if (TIPO18_CATEGORIAS[cursoId]) {
+            wrapForm.innerHTML = renderFormCategoriaOnly(cursoId, nombre);
+        } else {
+            wrapForm.innerHTML = '<p class="text-danger">Evento no configurado en el formulario.</p>';
+        }
+        refreshRequiredAsterisks(camposDinamicos);
+    }
+
+    function cargarEventosTipo18() {
         ajax('get-cursos-por-tipo.php', 'GET', { tipo_id: 18, contexto: 'principal' }).catch(() => ({ success: false }))
             .then((res) => {
                 if (!res.success || !res.items?.length) {
-                    camposDinamicos.innerHTML = '<p class="text-danger">No hay evento Open Kewmgang disponible en este momento.</p>';
+                    camposDinamicos.innerHTML = '<p class="text-danger">No hay eventos disponibles en este momento.</p>';
                     return;
                 }
-                const item = res.items[0];
-                const cursoId = String(item.id);
-                const nombreCurso = item.nombre || item.nombre_curso || 'Open Kewmgang';
-
-                let html = '<div class="open-kewmgang-form">';
-                html += '<input type="hidden" id="openkCursoId" name="curso_id" value="' + escapeHtml(cursoId) + '">';
-                html += '<input type="hidden" name="nombreCurso" value="' + escapeHtml(nombreCurso) + '">';
-                html += '<div class="detalle-template-contenedor mb-3" id="openkTemplateContenedor"></div>';
-
-                html += '<div class="mb-3"><label class="form-label fw-bold d-block">Modalidad</label>';
-                html += '<p class="small text-muted">Puede elegir una o dos modalidades. El valor es acumulable.</p>';
-                html += '<div class="form-check mb-2">';
-                html += '<input class="form-check-input" type="checkbox" name="openk_modalidades[]" value="Festival infantil" id="openkModFestival">';
-                html += '<label class="form-check-label" for="openkModFestival">1. Festival infantil ($60.000) — 4 a 11 años, no importa el cinturón</label>';
-                html += '</div>';
-                html += '<div class="form-check mb-3">';
-                html += '<input class="form-check-input" type="checkbox" name="openk_modalidades[]" value="Combate individual" id="openkModCombate">';
-                html += '<label class="form-check-label" for="openkModCombate">2. Combate individual ($75.000) — Sistema convencional, solo blanco a verde</label>';
-                html += '</div></div>';
-
-                html += '<div id="wrapOpenkCombate" style="display:none;">';
-                html += '<div class="row g-3 mb-3">';
-                html += '<div class="col-md-4"><label class="form-label fw-bold">Rama</label>';
-                html += '<select class="form-select" id="openkRama" name="openk_rama"><option value="">-- Seleccione --</option>';
-                html += '<option value="Femenino">Femenino</option><option value="Masculino">Masculino</option></select></div>';
-                html += '<div class="col-md-4"><label class="form-label fw-bold">División</label>';
-                html += '<select class="form-select" id="openkDivision" name="openk_division"><option value="">-- Seleccione --</option>';
-                html += '<option value="Benjamin">Benjamín (8 a 9 años)</option>';
-                html += '<option value="Pre cadetes">Pre cadetes (10 a 11 años)</option>';
-                html += '<option value="Cadetes">Cadetes (12 a 14 años)</option>';
-                html += '<option value="Junior">Junior (15 a 17 años)</option></select></div>';
-                html += '<div class="col-md-4"><label class="form-label fw-bold">Grado</label>';
-                html += '<select class="form-select" id="openkGrado" name="openk_grado"><option value="">-- Seleccione --</option>';
-                html += '<option value="Blancos">Blancos</option><option value="Amarillo">Amarillo</option><option value="Verde">Verde</option></select></div>';
-                html += '</div>';
-                html += '<div class="row g-3 mb-3">';
-                html += '<div class="col-md-4" id="wrapOpenkEstatura"><label class="form-label fw-bold">Estatura (cm)</label>';
-                html += '<input type="number" class="form-control" id="openkEstatura" name="openk_estatura" min="1" step="0.1" placeholder="Ej: 135"></div>';
-                html += '<div class="col-md-4" id="wrapOpenkPeso" style="display:none;"><label class="form-label fw-bold">Peso (kg)</label>';
-                html += '<input type="number" class="form-control" id="openkPeso" name="openk_peso" min="1" step="0.1" placeholder="Ej: 52"></div>';
-                html += '</div></div></div>';
-
+                let html = '<div class="eventos-tipo18-form">';
+                html += '<div class="mb-3"><label class="form-label fw-bold">Seleccione el evento</label>';
+                html += '<select class="form-select" id="t18EventoSelect" required>';
+                html += '<option value="">-- Seleccione --</option>';
+                res.items.forEach((it) => {
+                    const id = String(it.id);
+                    const label = TIPO18_LABELS[id] || it.nombre_display || it.nombre || id;
+                    const nombre = it.nombre || it.nombre_curso || label;
+                    const fecha = it.fecha_display ? ` (${it.fecha_display})` : '';
+                    html += `<option value="${escapeHtml(id)}" data-nombre="${escapeHtml(nombre)}">${escapeHtml(label)}${escapeHtml(fecha)}</option>`;
+                });
+                html += '</select></div>';
+                html += '<div class="detalle-template-contenedor mb-3" id="t18TemplateContenedor"></div>';
+                html += '<div id="t18FormContenedor"></div></div>';
                 camposDinamicos.innerHTML = html;
-
-                const contTpl = $('#openkTemplateContenedor');
-                if (contTpl) cargarDetalleTemplate(18, cursoId, contTpl);
-
-                $('#openkModFestival')?.addEventListener('change', actualizarOpenKewmgangCombate);
-                $('#openkModCombate')?.addEventListener('change', actualizarOpenKewmgangCombate);
-                $('#openkDivision')?.addEventListener('change', actualizarOpenKewmgangMedicion);
-
+                $('#t18EventoSelect')?.addEventListener('change', onEventoTipo18Change);
                 refreshRequiredAsterisks(document);
                 btnEnviar.disabled = false;
             })
             .catch(() => {
-                camposDinamicos.innerHTML = '<p class="text-danger">Error al cargar Open Kewmgang.</p>';
+                camposDinamicos.innerHTML = '<p class="text-danger">Error al cargar los eventos.</p>';
             });
     }
 
@@ -1550,7 +1679,7 @@
         else if (tipo === 2) tipoTexto = 'Campamento';
         else if (tipo === 4) tipoTexto = 'Level Up';
         else if (tipo === 5) tipoTexto = 'Salida';
-        else if (tipo === 18) tipoTexto = 'Open Kewmgang';
+        else if (tipo === 18) tipoTexto = 'Evento';
         else if (tipo === 19) tipoTexto = 'Arquitectos de Cerebros';
         else tipoTexto = 'Inscripción';
         let detalleHtml = '';
@@ -1576,10 +1705,21 @@
                 detalleHtml += '<ul class="mb-0 mt-2">' + asigs.map(n => `<li>${escapeHtml(n)}</li>`).join('') + '</ul>';
             }
         } else if (tipo === 18) {
-            detalleHtml = escapeHtml(data.nombreCurso || 'Open Kewmgang');
-            const mods = data.openk_modalidades;
-            if (mods && mods.length) {
-                detalleHtml += '<ul class="mb-0 mt-2">' + mods.map(m => `<li>${escapeHtml(m)}</li>`).join('') + '</ul>';
+            detalleHtml = escapeHtml(data.nombreCurso || 'Evento');
+            if (data.openk_modalidades?.length) {
+                detalleHtml += '<ul class="mb-0 mt-2">' + data.openk_modalidades.map(m => `<li>${escapeHtml(m)}</li>`).join('') + '</ul>';
+            }
+            if (data.tkd_modalidades?.length) {
+                detalleHtml += '<ul class="mb-0 mt-2">' + data.tkd_modalidades.map(m => `<li>${escapeHtml(m)}</li>`).join('') + '</ul>';
+            }
+            if (data.cheer_categoria || data.evento_categoria || data.categoria) {
+                detalleHtml += '<p class="mb-1 small text-muted">Categoría: ' + escapeHtml(data.cheer_categoria || data.evento_categoria || data.categoria) + '</p>';
+            }
+            if (data.tkd_grado) {
+                detalleHtml += '<p class="mb-1 small text-muted">Grado: ' + escapeHtml(data.tkd_grado) + '</p>';
+            }
+            if (data.tkd_genero) {
+                detalleHtml += '<p class="mb-1 small text-muted">Género: ' + escapeHtml(data.tkd_genero) + '</p>';
             }
             if (res.valor_total) {
                 detalleHtml += '<p class="mb-0 small text-muted">Valor total: $' + Number(res.valor_total).toLocaleString('es-CO') + '</p>';
@@ -1765,41 +1905,96 @@
             data.Mes = mesActual;
             data.Periodo = mesActual + String(anio % 100).padStart(2, '0');
         } else if (tipo === 18) {
-            const mods = [...camposDinamicos.querySelectorAll('input[name="openk_modalidades[]"]:checked')].map((c) => c.value);
-            if (!mods.length) {
-                alert('Seleccione al menos una modalidad.');
+            const cursoId = $('#t18CursoId')?.value || $('#t18EventoSelect')?.value || '';
+            const nombreCurso = camposDinamicos.querySelector('input[name="nombreCurso"]')?.value
+                || $('#t18EventoSelect')?.selectedOptions?.[0]?.getAttribute('data-nombre')
+                || '';
+            if (!cursoId) {
+                alert('Seleccione el evento.');
+                $('#t18EventoSelect')?.focus();
                 return;
             }
-            const tieneCombate = mods.includes('Combate individual');
-            if (tieneCombate) {
-                const rama = $('#openkRama')?.value || '';
-                const division = $('#openkDivision')?.value || '';
-                const grado = $('#openkGrado')?.value || '';
-                if (!rama || !division || !grado) {
-                    alert('Complete rama, división y grado para combate individual.');
+            data.curso_id = cursoId;
+            data.IDCurso = cursoId;
+            data.nombreCurso = nombreCurso;
+
+            if (cursoId === '1802') {
+                const mods = [...camposDinamicos.querySelectorAll('input[name="openk_modalidades[]"]:checked')].map((c) => c.value);
+                if (!mods.length) {
+                    alert('Seleccione al menos una modalidad.');
                     return;
                 }
-                if (division === 'Junior') {
-                    if (!$('#openkPeso')?.value) {
-                        alert('Ingrese el peso en kg para la división Junior.');
-                        $('#openkPeso')?.focus();
+                const tieneCombate = mods.includes('Combate individual');
+                if (tieneCombate) {
+                    const rama = $('#openkRama')?.value || '';
+                    const division = $('#openkDivision')?.value || '';
+                    const grado = $('#openkGrado')?.value || '';
+                    if (!rama || !division || !grado) {
+                        alert('Complete rama, división y grado para combate individual.');
                         return;
                     }
-                } else if (!$('#openkEstatura')?.value) {
-                    alert('Ingrese la estatura en cm.');
-                    $('#openkEstatura')?.focus();
+                    if (division === 'Junior') {
+                        if (!$('#openkPeso')?.value) {
+                            alert('Ingrese el peso en kg para la división Junior.');
+                            $('#openkPeso')?.focus();
+                            return;
+                        }
+                    } else if (!$('#openkEstatura')?.value) {
+                        alert('Ingrese la estatura en cm.');
+                        $('#openkEstatura')?.focus();
+                        return;
+                    }
+                    data.openk_rama = rama;
+                    data.openk_division = division;
+                    data.openk_grado = grado;
+                    data.openk_estatura = $('#openkEstatura')?.value || '';
+                    data.openk_peso = $('#openkPeso')?.value || '';
+                }
+                data.openk_modalidades = mods;
+            } else if (cursoId === '1804') {
+                const mods = [...camposDinamicos.querySelectorAll('input[name="tkd_modalidades[]"]:checked')].map((c) => c.value);
+                if (!mods.length) {
+                    alert('Seleccione al menos una modalidad.');
                     return;
                 }
-                data.openk_rama = rama;
-                data.openk_division = division;
-                data.openk_grado = grado;
-                data.openk_estatura = $('#openkEstatura')?.value || '';
-                data.openk_peso = $('#openkPeso')?.value || '';
+                const categoria = $('#tkdCategoria')?.value || '';
+                const grado = $('#tkdGrado')?.value || '';
+                const genero = $('#tkdGenero')?.value || '';
+                const peso = $('#tkdPeso')?.value || '';
+                const estatura = $('#tkdEstatura')?.value || '';
+                if (!categoria || !grado || !genero) {
+                    alert('Complete categoría, grado y género.');
+                    return;
+                }
+                if (!peso) {
+                    alert('Ingrese el peso en kg.');
+                    $('#tkdPeso')?.focus();
+                    return;
+                }
+                if (!estatura) {
+                    alert('Ingrese la estatura en cm.');
+                    $('#tkdEstatura')?.focus();
+                    return;
+                }
+                data.tkd_modalidades = mods;
+                data.tkd_categoria = categoria;
+                data.tkd_grado = grado;
+                data.tkd_genero = genero;
+                data.tkd_peso = peso;
+                data.tkd_estatura = estatura;
+            } else if (TIPO18_CATEGORIAS[cursoId]) {
+                const cat = $('#eventoCategoria')?.value || '';
+                if (!cat) {
+                    alert('Seleccione la categoría.');
+                    $('#eventoCategoria')?.focus();
+                    return;
+                }
+                data.evento_categoria = cat;
+                data.categoria = cat;
+            } else {
+                alert('Evento no configurado.');
+                return;
             }
-            data.openk_modalidades = mods;
-            data.curso_id = $('#openkCursoId')?.value || '';
-            data.IDCurso = data.curso_id;
-            data.nombreCurso = camposDinamicos.querySelector('input[name="nombreCurso"]')?.value || 'Open Kewmgang';
             const mesActual = String(new Date().getMonth() + 1).padStart(2, '0');
             data.Mes = mesActual;
             data.Periodo = mesActual + String(anio % 100).padStart(2, '0');
