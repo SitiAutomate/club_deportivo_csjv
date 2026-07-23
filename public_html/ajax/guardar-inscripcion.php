@@ -395,6 +395,81 @@ if ($tipoId === 1) {
     $mesActual = str_pad((string) date('n'), 2, '0', STR_PAD_LEFT);
     $detalle['Mes'] = $mesActual;
     $detalle['Periodo'] = $mesActual . str_pad((string) ($anio % 100), 2, '0', STR_PAD_LEFT);
+} elseif ($tipoId === 20) {
+    require_once __DIR__ . '/../../includes/copa_vegas.php';
+
+    $idCurso = trim((string) ($input['curso_id'] ?? $input['IDCurso'] ?? ''));
+    if (!copaVegasEsCursoValido($idCurso)) {
+        jsonResponse(['success' => false, 'error' => 'Curso de Copa Vegas no válido.', 'traceId' => $traceId], 400);
+    }
+
+    $disciplina = trim((string) ($input['cv_disciplina'] ?? $input['Modalidad'] ?? ''));
+    $categoria = trim((string) ($input['cv_categoria'] ?? $input['categoria'] ?? ''));
+    $sede = trim((string) ($input['cv_sede'] ?? $input['Sede'] ?? ''));
+    $internoExterno = trim((string) ($input['cv_interno_externo'] ?? $input['IDAsign'] ?? ''));
+    $entrenadorNombre = trim((string) ($input['cv_entrenador_nombre'] ?? ''));
+    $entrenadorContacto = trim((string) ($input['cv_entrenador_contacto'] ?? ''));
+
+    if (!copaVegasDisciplinaValida($disciplina)) {
+        jsonResponse(['success' => false, 'error' => 'Seleccione una disciplina válida.', 'traceId' => $traceId], 400);
+    }
+    if (!copaVegasCategoriaValida($disciplina, $categoria)) {
+        jsonResponse(['success' => false, 'error' => 'Seleccione una categoría válida para la disciplina.', 'traceId' => $traceId], 400);
+    }
+    if (!in_array($sede, copaVegasSedes(), true)) {
+        jsonResponse(['success' => false, 'error' => 'Seleccione una sede válida.', 'traceId' => $traceId], 400);
+    }
+    $opcionesIe = copaVegasConfig()['interno_externo'] ?? ['Interno', 'Externo'];
+    if (!in_array($internoExterno, $opcionesIe, true)) {
+        jsonResponse(['success' => false, 'error' => 'Indique si el deportista es interno o externo.', 'traceId' => $traceId], 400);
+    }
+    if ($entrenadorNombre === '') {
+        jsonResponse(['success' => false, 'error' => 'Ingrese el nombre del entrenador.', 'traceId' => $traceId], 400);
+    }
+    if ($entrenadorContacto === '') {
+        jsonResponse(['success' => false, 'error' => 'Ingrese el contacto del entrenador.', 'traceId' => $traceId], 400);
+    }
+
+    $rowCurso = $database->get('cursos_2025', [
+        'Nombre_del_curso',
+        'Nombre_Corto_Curso',
+        'Estado_del_curso',
+        'Fecha_Inicio',
+        'Fecha_Final',
+    ], ['ID_Curso' => $idCurso]);
+    if (!$rowCurso || ($rowCurso['Estado_del_curso'] ?? '') !== 'ACTIVO') {
+        jsonResponse(['success' => false, 'error' => 'Copa Vegas no está disponible en este momento.', 'traceId' => $traceId], 404);
+    }
+
+    $configPath = __DIR__ . '/../../config/tipos_inscripcion.php';
+    $tiposConfig = file_exists($configPath) ? require $configPath : [];
+    $cfgTipo20 = $tiposConfig[20] ?? [];
+    if (!empty($cfgTipo20['filterByDate'])) {
+        $hoy = date('Y-m-d');
+        $fi = $rowCurso['Fecha_Inicio'] ?? null;
+        $ff = $rowCurso['Fecha_Final'] ?? null;
+        if (($fi && $hoy < $fi) || ($ff && $hoy > $ff)) {
+            jsonResponse(['success' => false, 'error' => 'La inscripción para Copa Vegas no está abierta en este momento (fecha límite: 9 de agosto).', 'traceId' => $traceId], 400);
+        }
+    }
+
+    $precio = copaVegasPrecio($disciplina);
+    $detalle['IDCurso'] = $idCurso;
+    $detalle['nombreCurso'] = trim((string) ($input['nombreCurso'] ?? $rowCurso['Nombre_del_curso'] ?? $rowCurso['Nombre_Corto_Curso'] ?? 'Copa Vegas'));
+    $detalle['Modalidad'] = $disciplina;
+    $detalle['categoria'] = $categoria;
+    $detalle['Sede'] = $sede;
+    $detalle['IDAsign'] = $internoExterno;
+    $detalle['club'] = $entrenadorNombre;
+    $detalle['OBSERVACION'] = json_encode([
+        'entrenador_contacto' => $entrenadorContacto,
+        'valor' => $precio,
+        'disciplina' => $disciplina,
+        'categoria' => $categoria,
+    ], JSON_UNESCAPED_UNICODE);
+    $mesActual = str_pad((string) date('n'), 2, '0', STR_PAD_LEFT);
+    $detalle['Mes'] = $mesActual;
+    $detalle['Periodo'] = $mesActual . str_pad((string) ($anio % 100), 2, '0', STR_PAD_LEFT);
 } else {
     $configPath = __DIR__ . '/../../config/tipos_inscripcion.php';
     $config = file_exists($configPath) ? require $configPath : [];
@@ -435,6 +510,12 @@ if ($tipoId === 1 && !empty($cursoIds)) {
     $idCurso = trim((string) ($input['curso_id'] ?? $input['IDCurso'] ?? ''));
     if ($idCurso && $inscripcion->existeDuplicada($participanteDocumento, $idCurso, $anio, $tipoId)) {
         jsonResponse(['success' => false, 'error' => 'Este participante ya está inscrito en el curso seleccionado.', 'traceId' => $traceId], 400);
+    }
+} elseif ($tipoId === 20) {
+    require_once __DIR__ . '/../../includes/copa_vegas.php';
+    $idCurso = trim((string) ($detalle['IDCurso'] ?? $input['curso_id'] ?? $input['IDCurso'] ?? ''));
+    if ($idCurso && $inscripcion->existeDuplicada($participanteDocumento, $idCurso, $anio, $tipoId)) {
+        jsonResponse(['success' => false, 'error' => 'Este participante ya está inscrito en Copa Vegas.', 'traceId' => $traceId], 400);
     }
 } elseif ($tipoId !== 3) {
     $idCurso = $input['IDCurso'] ?? $input['curso_id'] ?? $input['campamento_id'] ?? $input['salida_id'] ?? null;
@@ -868,8 +949,27 @@ try {
                 $paModel->guardarParaInscripcion($id, $idCurso, $participantesAdicionales);
             }
         }
-        $tipoTexto = $tipoId === 2 ? 'Campamento' : ($tipoId === 5 || $tipoId === 3 ? 'Salida' : 'Inscripción');
+        $tipoTexto = $tipoId === 2 ? 'Campamento' : ($tipoId === 5 || $tipoId === 3 ? 'Salida' : ($tipoId === 20 ? 'Copa Vegas' : ($tipoId === 19 ? 'Arquitectos de Cerebros' : 'Inscripción')));
         $detalleTexto = $detalle['nombreCurso'] ?? '-';
+        if ($tipoId === 20) {
+            $obsCv = [];
+            if (!empty($detalle['OBSERVACION'])) {
+                $obsCv = json_decode((string) $detalle['OBSERVACION'], true) ?: [];
+            }
+            $valorCv = (int) ($obsCv['valor'] ?? 0);
+            $partes = array_filter([
+                !empty($detalle['Modalidad']) ? 'Disciplina: ' . $detalle['Modalidad'] : '',
+                !empty($detalle['categoria']) ? 'Categoría: ' . $detalle['categoria'] : '',
+                !empty($detalle['Sede']) ? 'Sede: ' . $detalle['Sede'] : '',
+                !empty($detalle['IDAsign']) ? $detalle['IDAsign'] : '',
+                $valorCv > 0 ? 'Valor: $' . number_format($valorCv, 0, ',', '.') : '',
+                !empty($detalle['club']) ? 'Entrenador: ' . $detalle['club'] : '',
+                !empty($obsCv['entrenador_contacto']) ? 'Contacto entrenador: ' . $obsCv['entrenador_contacto'] : '',
+            ]);
+            if ($partes) {
+                $detalleTexto .= ' — ' . implode('. ', $partes);
+            }
+        }
         $metodoPago = null;
         // English Camp: incluir método de pago seleccionado en el correo.
         $idCursoDetalle = (string) ($detalle['IDCurso'] ?? '');
@@ -916,7 +1016,14 @@ try {
                 ]);
             }
         }
-        jsonResponse(['success' => true, 'inscripcion_id' => $id, 'trace_id' => $traceId]);
+        jsonResponse([
+            'success' => true,
+            'inscripcion_id' => $id,
+            'trace_id' => $traceId,
+            'valor_total' => ($tipoId === 20 && !empty($detalle['OBSERVACION']))
+                ? (int) ((json_decode((string) $detalle['OBSERVACION'], true) ?: [])['valor'] ?? 0)
+                : null,
+        ]);
     }
 } catch (Exception $e) {
     AppLogger::error('guardar-inscripcion: ' . $e->getMessage(), ['traceId' => $traceId, 'trace' => $e->getTraceAsString()]);

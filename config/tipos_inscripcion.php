@@ -179,4 +179,17 @@ return [
         'muestraDatosAdicionales' => false,
         'tieneTemplate' => true,
     ],
+    20 => [
+        'usaApiInscripcion' => false,
+        'layout' => 'copa_vegas',
+        'hasSelector' => false,
+        'filterByDate' => true,
+        'defaultSede' => null,
+        'defaultMes' => null,
+        'hasTransporte' => false,
+        'selectorName' => 'curso_id',
+        'muestraDatosAdicionales' => false,
+        'tieneTemplate' => true,
+        'defaultItemId' => '2001',
+    ],
 ];

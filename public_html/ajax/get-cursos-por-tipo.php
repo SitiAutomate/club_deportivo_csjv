@@ -46,6 +46,15 @@ if ($tipoId === 19) {
     ));
 }
 
+if ($tipoId === 20) {
+    require_once __DIR__ . '/../../includes/copa_vegas.php';
+    $allowedId = copaVegasCursoId();
+    $rows = array_values(array_filter(
+        $rows,
+        fn($c) => (string) ($c['ID_Curso'] ?? '') === $allowedId
+    ));
+}
+
 $filterByCupos = !empty($cfg['filterByCupos']);
 if ($filterByCupos && !empty($rows)) {
     $anioCupos = (int) date('Y');

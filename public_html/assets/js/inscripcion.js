@@ -487,7 +487,7 @@
             t.required = false;
         });
 
-        const necesitaSpinner = tipo > 0 && (tipo === 1 || tipo === 2 || tipo === 4 || tipo === 5 || tipo === 18 || tipo === 19 || cfg.hasSelector !== false);
+        const necesitaSpinner = tipo > 0 && (tipo === 1 || tipo === 2 || tipo === 4 || tipo === 5 || tipo === 18 || tipo === 19 || tipo === 20 || cfg.hasSelector !== false);
         if (necesitaSpinner) {
             camposDinamicos.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted small">Cargando...</p></div>';
         }
@@ -497,6 +497,7 @@
         else if (tipo === 4) cargarLevelUp();
         else if (tipo === 18) cargarEventosTipo18();
         else if (tipo === 19) cargarArquitectosCerebros();
+        else if (tipo === 20) cargarCopaVegas();
         else if (cfg.hasSelector === false) cargarTipoDirecto(tipo);
         else cargarCamposPorTipo(tipo);
         actualizarVisibilidadCamposAdicionales(tipo, '');
@@ -1357,6 +1358,120 @@
             });
     }
 
+    let copaVegasConfigCache = null;
+
+    function formatearPrecioCopaVegas(valor) {
+        const n = Number(valor) || 0;
+        return '$' + n.toLocaleString('es-CO');
+    }
+
+    function actualizarCategoriasCopaVegas() {
+        const disc = $('#cvDisciplina')?.value || '';
+        const selCat = $('#cvCategoria');
+        const badge = $('#cvPrecioBadge');
+        if (!selCat) return;
+
+        const prev = selCat.value;
+        selCat.innerHTML = '<option value="">-- Seleccione --</option>';
+        const info = (copaVegasConfigCache?.disciplinas || []).find((d) => d.nombre === disc);
+        if (!info) {
+            if (badge) badge.style.display = 'none';
+            return;
+        }
+        (info.categorias || []).forEach((c) => {
+            const opt = document.createElement('option');
+            opt.value = c;
+            opt.textContent = c;
+            selCat.appendChild(opt);
+        });
+        if (prev && Array.from(selCat.options).some((o) => o.value === prev)) {
+            selCat.value = prev;
+        }
+        if (badge) {
+            badge.innerHTML = 'Inversión: <span class="precio-destacado">' + (info.precio_display || formatearPrecioCopaVegas(info.precio)) + '</span>';
+            badge.style.display = 'block';
+        }
+    }
+
+    function cargarCopaVegas() {
+        Promise.all([
+            ajax('get-cursos-por-tipo.php', 'GET', { tipo_id: 20 }).catch(() => ({ success: false })),
+            ajax('get-copa-vegas-config.php', 'GET', {}).catch(() => ({ success: false })),
+        ]).then(([resCursos, resCfg]) => {
+            if (!resCursos.success || !resCursos.items?.length) {
+                camposDinamicos.innerHTML = '<p class="text-danger">Copa Vegas no está disponible en este momento. Verifique que el curso esté activo y dentro de la fecha límite de inscripción.</p>';
+                return;
+            }
+            if (!resCfg.success || !resCfg.disciplinas?.length) {
+                camposDinamicos.innerHTML = '<p class="text-danger">No se pudo cargar la configuración de Copa Vegas.</p>';
+                return;
+            }
+
+            copaVegasConfigCache = resCfg;
+            const cursoId = String(resCfg.curso_id || resCursos.items[0].id || '2001');
+            const item = resCursos.items.find((it) => String(it.id) === cursoId) || resCursos.items[0];
+            const nombreCurso = item.nombre_curso || item.nombre || resCfg.nombre || 'Copa Vegas';
+            const sedes = resCfg.sedes || ['MEDELLÍN', 'RETIRO'];
+            const internoExterno = resCfg.interno_externo || ['Interno', 'Externo'];
+
+            let html = '<div class="copa-vegas-form">';
+            html += `<input type="hidden" id="cvCursoId" name="curso_id" value="${escapeHtml(String(item.id))}">`;
+            html += `<input type="hidden" id="cvNombreCurso" name="nombreCurso" value="${escapeHtml(nombreCurso)}">`;
+            html += '<div class="detalle-template-contenedor mb-3" id="cvTemplateContenedor"></div>';
+
+            html += '<div class="mb-3">';
+            html += '<label class="form-label fw-bold" for="cvDisciplina">Disciplina</label>';
+            html += '<select class="form-select" id="cvDisciplina" name="cv_disciplina" required>';
+            html += '<option value="">-- Seleccione --</option>';
+            resCfg.disciplinas.forEach((d) => {
+                html += `<option value="${escapeHtml(d.nombre)}" data-precio="${escapeHtml(String(d.precio || 0))}">${escapeHtml(d.nombre)}</option>`;
+            });
+            html += '</select>';
+            html += '<p class="cv-precio" id="cvPrecioBadge" style="display:none;"></p>';
+            html += '</div>';
+
+            html += '<div class="mb-3">';
+            html += '<label class="form-label fw-bold" for="cvCategoria">Categoría</label>';
+            html += '<select class="form-select" id="cvCategoria" name="cv_categoria" required>';
+            html += '<option value="">-- Primero seleccione disciplina --</option>';
+            html += '</select></div>';
+
+            html += '<div class="mb-3">';
+            html += '<label class="form-label fw-bold" for="cvSede">Sede de participación</label>';
+            html += '<select class="form-select" id="cvSede" name="cv_sede" required>';
+            html += '<option value="">-- Seleccione --</option>';
+            sedes.forEach((s) => {
+                html += `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`;
+            });
+            html += '</select></div>';
+
+            html += '<div class="mb-3">';
+            html += '<label class="form-label fw-bold" for="cvInternoExterno">¿El deportista es interno o externo?</label>';
+            html += '<select class="form-select" id="cvInternoExterno" name="cv_interno_externo" required>';
+            html += '<option value="">-- Seleccione --</option>';
+            internoExterno.forEach((v) => {
+                html += `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`;
+            });
+            html += '</select></div>';
+
+            html += '<div class="row g-3 mb-3">';
+            html += '<div class="col-md-6"><label class="form-label fw-bold" for="cvEntrenadorNombre">Nombre del entrenador</label>';
+            html += '<input type="text" class="form-control" id="cvEntrenadorNombre" name="cv_entrenador_nombre" maxlength="120" required placeholder="Nombre completo"></div>';
+            html += '<div class="col-md-6"><label class="form-label fw-bold" for="cvEntrenadorContacto">Contacto del entrenador</label>';
+            html += '<input type="text" class="form-control" id="cvEntrenadorContacto" name="cv_entrenador_contacto" maxlength="80" required placeholder="Celular o correo"></div>';
+            html += '</div></div>';
+
+            camposDinamicos.innerHTML = html;
+            cargarDetalleTemplate(20, item.id, $('#cvTemplateContenedor'));
+            $('#cvDisciplina')?.addEventListener('change', actualizarCategoriasCopaVegas);
+            actualizarVisibilidadCamposAdicionales(20, item.id);
+            refreshRequiredAsterisks(document);
+            btnEnviar.disabled = false;
+        }).catch(() => {
+            camposDinamicos.innerHTML = '<p class="text-danger">Error al cargar Copa Vegas.</p>';
+        });
+    }
+
     function actualizarActividadesPorLinea() {
         const linea = $('#filtroLinea')?.value;
         const sel = $('#filtroActividad');
@@ -1681,6 +1796,7 @@
         else if (tipo === 5) tipoTexto = 'Salida';
         else if (tipo === 18) tipoTexto = 'Evento';
         else if (tipo === 19) tipoTexto = 'Arquitectos de Cerebros';
+        else if (tipo === 20) tipoTexto = 'Copa Vegas';
         else tipoTexto = 'Inscripción';
         let detalleHtml = '';
         if (tipo === 1 && data.nombres_curso && data.nombres_curso.length) {
@@ -1734,6 +1850,23 @@
             }
             if (data.organizacion) {
                 detalleHtml += '<p class="mb-0 small text-muted">Organización: ' + escapeHtml(data.organizacion) + '</p>';
+            }
+        } else if (tipo === 20) {
+            detalleHtml = escapeHtml(data.nombreCurso || 'Copa Vegas');
+            if (data.Modalidad || data.cv_disciplina) {
+                detalleHtml += '<p class="mb-1 small text-muted">Disciplina: ' + escapeHtml(data.Modalidad || data.cv_disciplina) + '</p>';
+            }
+            if (data.categoria || data.cv_categoria) {
+                detalleHtml += '<p class="mb-1 small text-muted">Categoría: ' + escapeHtml(data.categoria || data.cv_categoria) + '</p>';
+            }
+            if (data.Sede || data.cv_sede) {
+                detalleHtml += '<p class="mb-1 small text-muted">Sede: ' + escapeHtml(data.Sede || data.cv_sede) + '</p>';
+            }
+            if (data.IDAsign || data.cv_interno_externo) {
+                detalleHtml += '<p class="mb-1 small text-muted">' + escapeHtml(data.IDAsign || data.cv_interno_externo) + '</p>';
+            }
+            if (res.valor_total) {
+                detalleHtml += '<p class="mb-0 small text-muted">Valor: $' + Number(res.valor_total).toLocaleString('es-CO') + '</p>';
             }
         } else if (data.nombreCurso) {
             detalleHtml = escapeHtml(data.nombreCurso);
@@ -2033,6 +2166,59 @@
             data.curso_id = cursoSel.value;
             data.IDCurso = cursoSel.value;
             data.nombreCurso = cursoSel.getAttribute('data-nombre') || $('#acNombreCurso')?.value || '';
+            const mesActual = String(new Date().getMonth() + 1).padStart(2, '0');
+            data.Mes = mesActual;
+            data.Periodo = mesActual + String(anio % 100).padStart(2, '0');
+        } else if (tipo === 20) {
+            const disciplina = $('#cvDisciplina')?.value || '';
+            const categoria = $('#cvCategoria')?.value || '';
+            const sede = $('#cvSede')?.value || '';
+            const internoExterno = $('#cvInternoExterno')?.value || '';
+            const entrenadorNombre = ($('#cvEntrenadorNombre')?.value || '').trim();
+            const entrenadorContacto = ($('#cvEntrenadorContacto')?.value || '').trim();
+            if (!disciplina) {
+                alert('Seleccione la disciplina.');
+                $('#cvDisciplina')?.focus();
+                return;
+            }
+            if (!categoria) {
+                alert('Seleccione la categoría.');
+                $('#cvCategoria')?.focus();
+                return;
+            }
+            if (!sede) {
+                alert('Seleccione la sede de participación.');
+                $('#cvSede')?.focus();
+                return;
+            }
+            if (!internoExterno) {
+                alert('Indique si el deportista es interno o externo.');
+                $('#cvInternoExterno')?.focus();
+                return;
+            }
+            if (!entrenadorNombre) {
+                alert('Ingrese el nombre del entrenador.');
+                $('#cvEntrenadorNombre')?.focus();
+                return;
+            }
+            if (!entrenadorContacto) {
+                alert('Ingrese el contacto del entrenador.');
+                $('#cvEntrenadorContacto')?.focus();
+                return;
+            }
+            data.curso_id = $('#cvCursoId')?.value || '';
+            data.IDCurso = data.curso_id;
+            data.nombreCurso = $('#cvNombreCurso')?.value || 'Copa Vegas';
+            data.cv_disciplina = disciplina;
+            data.cv_categoria = categoria;
+            data.cv_sede = sede;
+            data.cv_interno_externo = internoExterno;
+            data.cv_entrenador_nombre = entrenadorNombre;
+            data.cv_entrenador_contacto = entrenadorContacto;
+            data.Modalidad = disciplina;
+            data.categoria = categoria;
+            data.Sede = sede;
+            data.IDAsign = internoExterno;
             const mesActual = String(new Date().getMonth() + 1).padStart(2, '0');
             data.Mes = mesActual;
             data.Periodo = mesActual + String(anio % 100).padStart(2, '0');
