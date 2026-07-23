@@ -1041,12 +1041,14 @@
         '1804': 'Campeonato Nacional Inter clubes de Taekwondo',
         '1805': 'Copa Ciudad de Flores Gimnasia',
         '1806': 'Volleyball Fest',
+        '1807': 'Baby Voleibol',
     };
 
     const TIPO18_CATEGORIAS = {
         '1803': ['Tiny Diamonds', 'Mini Diamonds', 'Youth Diamonds', 'Senior'],
         '1805': ['Pre nivel', 'Test de habilidades', 'Nivel 1', 'Nivel 2', 'Nivel 3'],
         '1806': ['Sub 14 (Premenores e Infantil)'],
+        '1807': ['Mini', 'Infantil'],
     };
 
     const TKD_MODALIDADES = [
