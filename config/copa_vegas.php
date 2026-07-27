@@ -27,6 +27,10 @@ return [
         ],
         'Fútbol' => [
             'precio' => 150000,
+            'categorias' => ['Sub 6', 'Sub 8', 'Sub 10', 'Sub 12', 'Sub 14', 'Sub 16'],
+        ],
+        'Gimnasia' => [
+            'precio' => 80000,
             'categorias' => [
                 'Test de habilidades',
                 'Prenivel',
@@ -35,10 +39,6 @@ return [
                 'Nivel 3',
                 'AC1',
             ],
-        ],
-        'Gimnasia' => [
-            'precio' => 80000,
-            'categorias' => ['Sub 6', 'Sub 8', 'Sub 10', 'Sub 12', 'Sub 14', 'Sub 16'],
         ],
         'Patinaje' => [
             'precio' => 80000,

@@ -1042,6 +1042,7 @@
         '1805': 'Copa Ciudad de Flores Gimnasia',
         '1806': 'Volleyball Fest',
         '1807': 'Baby Voleibol',
+        '1808': 'The Big Show',
     };
 
     const TIPO18_CATEGORIAS = {
@@ -1049,6 +1050,11 @@
         '1805': ['Pre nivel', 'Test de habilidades', 'Nivel 1', 'Nivel 2', 'Nivel 3'],
         '1806': ['Sub 14 (Premenores e Infantil)'],
         '1807': ['Mini', 'Infantil'],
+        '1808': ['Tiny gold', 'Mini gold', 'Youth gold', 'Junior', 'Youth emerald retiro'],
+    };
+
+    const TIPO18_CATEGORIA_LABELS = {
+        '1808': 'Seleccione la categoría de participación de la deportista',
     };
 
     const TKD_MODALIDADES = [
@@ -1117,10 +1123,11 @@
 
     function renderFormCategoriaOnly(cursoId, nombreCurso) {
         const cats = TIPO18_CATEGORIAS[cursoId] || [];
+        const labelCat = TIPO18_CATEGORIA_LABELS[cursoId] || 'Categoría';
         let html = '<div class="evento-categoria-form" id="formEventoTipo18">';
         html += '<input type="hidden" id="t18CursoId" name="curso_id" value="' + escapeHtml(cursoId) + '">';
         html += '<input type="hidden" name="nombreCurso" value="' + escapeHtml(nombreCurso) + '">';
-        html += '<div class="mb-3"><label class="form-label fw-bold">Categoría</label>';
+        html += '<div class="mb-3"><label class="form-label fw-bold">' + escapeHtml(labelCat) + '</label>';
         html += '<select class="form-select" id="eventoCategoria" name="evento_categoria" required>';
         html += '<option value="">-- Seleccione --</option>';
         cats.forEach((c) => {
@@ -1395,6 +1402,18 @@
         }
     }
 
+    function actualizarColegioCopaVegas() {
+        const esExterno = ($('#cvInternoExterno')?.value || '') === 'Externo';
+        const wrap = $('#wrapCvColegio');
+        const inp = $('#cvColegioClub');
+        if (wrap) wrap.style.display = esExterno ? 'block' : 'none';
+        if (inp) {
+            inp.required = esExterno;
+            if (!esExterno) inp.value = '';
+        }
+        refreshRequiredAsterisks(document);
+    }
+
     function cargarCopaVegas() {
         Promise.all([
             ajax('get-cursos-por-tipo.php', 'GET', { tipo_id: 20 }).catch(() => ({ success: false })),
@@ -1456,6 +1475,11 @@
             });
             html += '</select></div>';
 
+            html += '<div class="mb-3" id="wrapCvColegio" style="display:none;">';
+            html += '<label class="form-label fw-bold" for="cvColegioClub">Nombre del colegio o club</label>';
+            html += '<input type="text" class="form-control" id="cvColegioClub" name="cv_colegio_club" maxlength="150" placeholder="Colegio o club al que pertenece">';
+            html += '</div>';
+
             html += '<div class="row g-3 mb-3">';
             html += '<div class="col-md-6"><label class="form-label fw-bold" for="cvEntrenadorNombre">Nombre del entrenador</label>';
             html += '<input type="text" class="form-control" id="cvEntrenadorNombre" name="cv_entrenador_nombre" maxlength="120" required placeholder="Nombre completo"></div>';
@@ -1466,6 +1490,7 @@
             camposDinamicos.innerHTML = html;
             cargarDetalleTemplate(20, item.id, $('#cvTemplateContenedor'));
             $('#cvDisciplina')?.addEventListener('change', actualizarCategoriasCopaVegas);
+            $('#cvInternoExterno')?.addEventListener('change', actualizarColegioCopaVegas);
             actualizarVisibilidadCamposAdicionales(20, item.id);
             refreshRequiredAsterisks(document);
             btnEnviar.disabled = false;
@@ -1867,6 +1892,9 @@
             if (data.IDAsign || data.cv_interno_externo) {
                 detalleHtml += '<p class="mb-1 small text-muted">' + escapeHtml(data.IDAsign || data.cv_interno_externo) + '</p>';
             }
+            if (data.organizacion || data.cv_colegio_club) {
+                detalleHtml += '<p class="mb-1 small text-muted">Colegio/club: ' + escapeHtml(data.organizacion || data.cv_colegio_club) + '</p>';
+            }
             if (res.valor_total) {
                 detalleHtml += '<p class="mb-0 small text-muted">Valor: $' + Number(res.valor_total).toLocaleString('es-CO') + '</p>';
             }
@@ -2176,6 +2204,7 @@
             const categoria = $('#cvCategoria')?.value || '';
             const sede = $('#cvSede')?.value || '';
             const internoExterno = $('#cvInternoExterno')?.value || '';
+            const colegioClub = ($('#cvColegioClub')?.value || '').trim();
             const entrenadorNombre = ($('#cvEntrenadorNombre')?.value || '').trim();
             const entrenadorContacto = ($('#cvEntrenadorContacto')?.value || '').trim();
             if (!disciplina) {
@@ -2198,6 +2227,11 @@
                 $('#cvInternoExterno')?.focus();
                 return;
             }
+            if (internoExterno === 'Externo' && !colegioClub) {
+                alert('Ingrese el nombre del colegio o club.');
+                $('#cvColegioClub')?.focus();
+                return;
+            }
             if (!entrenadorNombre) {
                 alert('Ingrese el nombre del entrenador.');
                 $('#cvEntrenadorNombre')?.focus();
@@ -2215,12 +2249,14 @@
             data.cv_categoria = categoria;
             data.cv_sede = sede;
             data.cv_interno_externo = internoExterno;
+            data.cv_colegio_club = internoExterno === 'Externo' ? colegioClub : '';
             data.cv_entrenador_nombre = entrenadorNombre;
             data.cv_entrenador_contacto = entrenadorContacto;
             data.Modalidad = disciplina;
             data.categoria = categoria;
             data.Sede = sede;
             data.IDAsign = internoExterno;
+            data.organizacion = data.cv_colegio_club;
             const mesActual = String(new Date().getMonth() + 1).padStart(2, '0');
             data.Mes = mesActual;
             data.Periodo = mesActual + String(anio % 100).padStart(2, '0');

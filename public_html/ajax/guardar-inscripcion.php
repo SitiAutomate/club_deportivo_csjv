@@ -409,6 +409,7 @@ if ($tipoId === 1) {
     $internoExterno = trim((string) ($input['cv_interno_externo'] ?? $input['IDAsign'] ?? ''));
     $entrenadorNombre = trim((string) ($input['cv_entrenador_nombre'] ?? ''));
     $entrenadorContacto = trim((string) ($input['cv_entrenador_contacto'] ?? ''));
+    $colegioClub = trim((string) ($input['cv_colegio_club'] ?? $input['organizacion'] ?? ''));
 
     if (!copaVegasDisciplinaValida($disciplina)) {
         jsonResponse(['success' => false, 'error' => 'Seleccione una disciplina válida.', 'traceId' => $traceId], 400);
@@ -422,6 +423,12 @@ if ($tipoId === 1) {
     $opcionesIe = copaVegasConfig()['interno_externo'] ?? ['Interno', 'Externo'];
     if (!in_array($internoExterno, $opcionesIe, true)) {
         jsonResponse(['success' => false, 'error' => 'Indique si el deportista es interno o externo.', 'traceId' => $traceId], 400);
+    }
+    if ($internoExterno === 'Externo' && $colegioClub === '') {
+        jsonResponse(['success' => false, 'error' => 'Ingrese el nombre del colegio o club.', 'traceId' => $traceId], 400);
+    }
+    if ($internoExterno !== 'Externo') {
+        $colegioClub = '';
     }
     if ($entrenadorNombre === '') {
         jsonResponse(['success' => false, 'error' => 'Ingrese el nombre del entrenador.', 'traceId' => $traceId], 400);
@@ -460,12 +467,14 @@ if ($tipoId === 1) {
     $detalle['categoria'] = $categoria;
     $detalle['Sede'] = $sede;
     $detalle['IDAsign'] = $internoExterno;
+    $detalle['organizacion'] = $colegioClub !== '' ? $colegioClub : null;
     $detalle['club'] = $entrenadorNombre;
     $detalle['OBSERVACION'] = json_encode([
         'entrenador_contacto' => $entrenadorContacto,
         'valor' => $precio,
         'disciplina' => $disciplina,
         'categoria' => $categoria,
+        'colegio_club' => $colegioClub !== '' ? $colegioClub : null,
     ], JSON_UNESCAPED_UNICODE);
     $mesActual = str_pad((string) date('n'), 2, '0', STR_PAD_LEFT);
     $detalle['Mes'] = $mesActual;
@@ -962,6 +971,7 @@ try {
                 !empty($detalle['categoria']) ? 'Categoría: ' . $detalle['categoria'] : '',
                 !empty($detalle['Sede']) ? 'Sede: ' . $detalle['Sede'] : '',
                 !empty($detalle['IDAsign']) ? $detalle['IDAsign'] : '',
+                !empty($detalle['organizacion']) ? 'Colegio/club: ' . $detalle['organizacion'] : '',
                 $valorCv > 0 ? 'Valor: $' . number_format($valorCv, 0, ',', '.') : '',
                 !empty($detalle['club']) ? 'Entrenador: ' . $detalle['club'] : '',
                 !empty($obsCv['entrenador_contacto']) ? 'Contacto entrenador: ' . $obsCv['entrenador_contacto'] : '',

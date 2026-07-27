@@ -20,7 +20,7 @@ function eventosTipo18FestivegasIds(): array
 function eventosTipo18PrincipalIds(): array
 {
     $cfg = eventosTipo18Config();
-    $ids = $cfg['principal_curso_ids'] ?? ['1802', '1803', '1804', '1805', '1806', '1807'];
+    $ids = $cfg['principal_curso_ids'] ?? ['1802', '1803', '1804', '1805', '1806', '1807', '1808'];
     return array_map('strval', $ids);
 }
 
@@ -66,6 +66,13 @@ function eventosTipo18BabyVoleibolId(): string
     return $id !== '' ? $id : '1807';
 }
 
+function eventosTipo18BigShowId(): string
+{
+    $cfg = eventosTipo18Config();
+    $id = trim((string) ($cfg['big_show_curso_id'] ?? '1808'));
+    return $id !== '' ? $id : '1808';
+}
+
 function eventosTipo18EsFestivegas(string $idCurso): bool
 {
     return in_array((string) $idCurso, eventosTipo18FestivegasIds(), true);
@@ -107,6 +114,11 @@ function eventosTipo18EsBabyVoleibol(string $idCurso): bool
     return (string) $idCurso === eventosTipo18BabyVoleibolId();
 }
 
+function eventosTipo18EsBigShow(string $idCurso): bool
+{
+    return (string) $idCurso === eventosTipo18BigShowId();
+}
+
 function eventosTipo18MedCheerConfig(): array
 {
     return eventosTipo18Config()['med_cheer'] ?? [];
@@ -132,6 +144,11 @@ function eventosTipo18BabyVoleibolConfig(): array
     return eventosTipo18Config()['baby_voleibol'] ?? [];
 }
 
+function eventosTipo18BigShowConfig(): array
+{
+    return eventosTipo18Config()['big_show'] ?? [];
+}
+
 /**
  * Eventos tipo 18 que solo piden categoría (como Med Cheer).
  * @return array{nombre:string,categorias:array,valor:int}|null
@@ -149,6 +166,9 @@ function eventosTipo18ConfigSoloCategoria(string $idCurso): ?array
     }
     if (eventosTipo18EsBabyVoleibol($idCurso)) {
         return eventosTipo18BabyVoleibolConfig();
+    }
+    if (eventosTipo18EsBigShow($idCurso)) {
+        return eventosTipo18BigShowConfig();
     }
     return null;
 }

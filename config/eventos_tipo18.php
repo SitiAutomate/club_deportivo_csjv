@@ -7,13 +7,14 @@
  */
 return [
     'festivegas_curso_ids' => ['1801'],
-    'principal_curso_ids' => ['1802', '1803', '1804', '1805', '1806', '1807'],
+    'principal_curso_ids' => ['1802', '1803', '1804', '1805', '1806', '1807', '1808'],
     'open_kewmgang_curso_id' => '1802',
     'med_cheer_curso_id' => '1803',
     'tkd_nacional_curso_id' => '1804',
     'copa_flores_curso_id' => '1805',
     'volleyball_fest_curso_id' => '1806',
     'baby_voleibol_curso_id' => '1807',
+    'big_show_curso_id' => '1808',
 
     'med_cheer' => [
         'nombre' => 'Med Cheer Championships',
@@ -84,5 +85,17 @@ return [
         ],
         'valor' => 400000,
         'valor_label' => 'por equipo',
+    ],
+
+    'big_show' => [
+        'nombre' => 'The Big Show',
+        'categorias' => [
+            'Tiny gold',
+            'Mini gold',
+            'Youth gold',
+            'Junior',
+            'Youth emerald retiro',
+        ],
+        'valor' => 90000,
     ],
 ];
