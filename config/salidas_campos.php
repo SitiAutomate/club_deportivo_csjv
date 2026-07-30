@@ -17,4 +17,16 @@ return [
             ],
         ],
     ],
+    '5122' => [
+        'categoria' => [
+            'column' => 'Modalidad',
+            'label' => 'Categoría',
+            'options' => [
+                'Sub 9' => 'Sub 9',
+                'Sub 10' => 'Sub 10',
+                'Sub 13' => 'Sub 13',
+                'Sub 14' => 'Sub 14',
+            ],
+        ],
+    ],
 ];
