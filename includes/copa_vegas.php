@@ -61,3 +61,19 @@ function copaVegasFormatearPrecio(int $valor): string
 {
     return '$' . number_format($valor, 0, ',', '.');
 }
+
+function copaVegasDisciplinasEquipo(): array
+{
+    $ids = copaVegasConfig()['disciplinas_equipo'] ?? ['Fútbol', 'Baloncesto', 'Voleibol'];
+    return array_values(array_filter(array_map('strval', $ids)));
+}
+
+function copaVegasEsDisciplinaEquipo(string $disciplina): bool
+{
+    return in_array($disciplina, copaVegasDisciplinasEquipo(), true);
+}
+
+function copaVegasOpcionesProcedencia(): array
+{
+    return copaVegasConfig()['interno_externo'] ?? ['San José de Las Vegas', 'Externo'];
+}

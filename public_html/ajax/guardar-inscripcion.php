@@ -410,6 +410,7 @@ if ($tipoId === 1) {
     $entrenadorNombre = trim((string) ($input['cv_entrenador_nombre'] ?? ''));
     $entrenadorContacto = trim((string) ($input['cv_entrenador_contacto'] ?? ''));
     $colegioClub = trim((string) ($input['cv_colegio_club'] ?? $input['organizacion'] ?? ''));
+    $eps = trim((string) ($input['cv_eps'] ?? $input['Asignatura'] ?? ''));
 
     if (!copaVegasDisciplinaValida($disciplina)) {
         jsonResponse(['success' => false, 'error' => 'Seleccione una disciplina válida.', 'traceId' => $traceId], 400);
@@ -420,9 +421,12 @@ if ($tipoId === 1) {
     if (!in_array($sede, copaVegasSedes(), true)) {
         jsonResponse(['success' => false, 'error' => 'Seleccione una sede válida.', 'traceId' => $traceId], 400);
     }
-    $opcionesIe = copaVegasConfig()['interno_externo'] ?? ['Interno', 'Externo'];
+    $opcionesIe = copaVegasOpcionesProcedencia();
     if (!in_array($internoExterno, $opcionesIe, true)) {
-        jsonResponse(['success' => false, 'error' => 'Indique si el deportista es interno o externo.', 'traceId' => $traceId], 400);
+        jsonResponse(['success' => false, 'error' => 'Indique si el deportista es de San José de Las Vegas o externo.', 'traceId' => $traceId], 400);
+    }
+    if (copaVegasEsDisciplinaEquipo($disciplina)) {
+        jsonResponse(['success' => false, 'error' => 'Fútbol, baloncesto y voleibol se inscriben por equipos.', 'traceId' => $traceId], 400);
     }
     if ($internoExterno === 'Externo' && $colegioClub === '') {
         jsonResponse(['success' => false, 'error' => 'Ingrese el nombre del colegio o club.', 'traceId' => $traceId], 400);
@@ -430,11 +434,22 @@ if ($tipoId === 1) {
     if ($internoExterno !== 'Externo') {
         $colegioClub = '';
     }
+    $cantidadDeportistas = null;
+    if ($disciplina === 'Porrismo' && $internoExterno === 'Externo') {
+        $cantidadRaw = trim((string) ($input['cv_cantidad_deportistas'] ?? ''));
+        if ($cantidadRaw === '' || !ctype_digit($cantidadRaw) || (int) $cantidadRaw < 1) {
+            jsonResponse(['success' => false, 'error' => 'Indique cuántos deportistas participarán.', 'traceId' => $traceId], 400);
+        }
+        $cantidadDeportistas = (int) $cantidadRaw;
+    }
     if ($entrenadorNombre === '') {
         jsonResponse(['success' => false, 'error' => 'Ingrese el nombre del entrenador.', 'traceId' => $traceId], 400);
     }
     if ($entrenadorContacto === '') {
         jsonResponse(['success' => false, 'error' => 'Ingrese el contacto del entrenador.', 'traceId' => $traceId], 400);
+    }
+    if ($eps === '') {
+        jsonResponse(['success' => false, 'error' => 'Ingrese la EPS.', 'traceId' => $traceId], 400);
     }
 
     $rowCurso = $database->get('cursos_2025', [
@@ -456,7 +471,7 @@ if ($tipoId === 1) {
         $fi = $rowCurso['Fecha_Inicio'] ?? null;
         $ff = $rowCurso['Fecha_Final'] ?? null;
         if (($fi && $hoy < $fi) || ($ff && $hoy > $ff)) {
-            jsonResponse(['success' => false, 'error' => 'La inscripción para Copa Vegas no está abierta en este momento (fecha límite: 9 de agosto).', 'traceId' => $traceId], 400);
+            jsonResponse(['success' => false, 'error' => 'La inscripción para Copa Vegas no está abierta en este momento (fecha límite: 16 de agosto).', 'traceId' => $traceId], 400);
         }
     }
 
@@ -469,12 +484,16 @@ if ($tipoId === 1) {
     $detalle['IDAsign'] = $internoExterno;
     $detalle['organizacion'] = $colegioClub !== '' ? $colegioClub : null;
     $detalle['club'] = $entrenadorNombre;
+    $detalle['Asignatura'] = $eps;
+    $detalle['Sesión'] = $cantidadDeportistas !== null ? (string) $cantidadDeportistas : null;
     $detalle['OBSERVACION'] = json_encode([
         'entrenador_contacto' => $entrenadorContacto,
         'valor' => $precio,
         'disciplina' => $disciplina,
         'categoria' => $categoria,
         'colegio_club' => $colegioClub !== '' ? $colegioClub : null,
+        'eps' => $eps,
+        'cantidad_deportistas' => $cantidadDeportistas,
     ], JSON_UNESCAPED_UNICODE);
     $mesActual = str_pad((string) date('n'), 2, '0', STR_PAD_LEFT);
     $detalle['Mes'] = $mesActual;
@@ -972,6 +991,8 @@ try {
                 !empty($detalle['Sede']) ? 'Sede: ' . $detalle['Sede'] : '',
                 !empty($detalle['IDAsign']) ? $detalle['IDAsign'] : '',
                 !empty($detalle['organizacion']) ? 'Colegio/club: ' . $detalle['organizacion'] : '',
+                !empty($detalle['Asignatura']) ? 'EPS: ' . $detalle['Asignatura'] : '',
+                !empty($detalle['Sesión']) ? 'Deportistas: ' . $detalle['Sesión'] : '',
                 $valorCv > 0 ? 'Valor: $' . number_format($valorCv, 0, ',', '.') : '',
                 !empty($detalle['club']) ? 'Entrenador: ' . $detalle['club'] : '',
                 !empty($obsCv['entrenador_contacto']) ? 'Contacto entrenador: ' . $obsCv['entrenador_contacto'] : '',

@@ -1403,7 +1403,8 @@
     }
 
     function actualizarColegioCopaVegas() {
-        const esExterno = ($('#cvInternoExterno')?.value || '') === 'Externo';
+        const procedencia = $('#cvInternoExterno')?.value || '';
+        const esExterno = procedencia === 'Externo';
         const wrap = $('#wrapCvColegio');
         const inp = $('#cvColegioClub');
         if (wrap) wrap.style.display = esExterno ? 'block' : 'none';
@@ -1411,7 +1412,53 @@
             inp.required = esExterno;
             if (!esExterno) inp.value = '';
         }
+        actualizarCantidadPorrismoCopaVegas();
         refreshRequiredAsterisks(document);
+    }
+
+    function actualizarCantidadPorrismoCopaVegas() {
+        const disc = $('#cvDisciplina')?.value || '';
+        const procedencia = $('#cvInternoExterno')?.value || '';
+        const show = disc === 'Porrismo' && procedencia === 'Externo';
+        const wrap = $('#wrapCvCantidadDeportistas');
+        const inp = $('#cvCantidadDeportistas');
+        if (wrap) wrap.style.display = show ? 'block' : 'none';
+        if (inp) {
+            inp.required = show;
+            if (!show) inp.value = '';
+        }
+        refreshRequiredAsterisks(document);
+    }
+
+    function esDisciplinaEquipoCopaVegas(nombre) {
+        const list = copaVegasConfigCache?.disciplinas_equipo || ['Fútbol', 'Baloncesto', 'Voleibol'];
+        return list.includes(nombre);
+    }
+
+    function redirigirCopaVegasEquipos(disciplina) {
+        if (!responsableActual) {
+            alert('Primero valide el documento del responsable para continuar con la inscripción por equipos.');
+            docResponsable?.focus();
+            return;
+        }
+        const cursoId = $('#cvCursoId')?.value || copaVegasConfigCache?.curso_id || '2001';
+        const params = new URLSearchParams({
+            responsable: String(responsableActual.documento || responsableActual.id || ''),
+            curso_id: String(cursoId),
+            tipo: '20',
+            disciplina: disciplina || '',
+        });
+        window.location.href = basePath + 'inscripcion-equipos.php?' + params.toString();
+    }
+
+    function onDisciplinaCopaVegasChange() {
+        const disc = $('#cvDisciplina')?.value || '';
+        if (esDisciplinaEquipoCopaVegas(disc)) {
+            redirigirCopaVegasEquipos(disc);
+            return;
+        }
+        actualizarCategoriasCopaVegas();
+        actualizarCantidadPorrismoCopaVegas();
     }
 
     function cargarCopaVegas() {
@@ -1433,7 +1480,8 @@
             const item = resCursos.items.find((it) => String(it.id) === cursoId) || resCursos.items[0];
             const nombreCurso = item.nombre_curso || item.nombre || resCfg.nombre || 'Copa Vegas';
             const sedes = resCfg.sedes || ['MEDELLÍN', 'RETIRO'];
-            const internoExterno = resCfg.interno_externo || ['Interno', 'Externo'];
+            const procedenciaOpts = resCfg.interno_externo || ['San José de Las Vegas', 'Externo'];
+            const disciplinasEquipo = resCfg.disciplinas_equipo || ['Fútbol', 'Baloncesto', 'Voleibol'];
 
             let html = '<div class="copa-vegas-form">';
             html += `<input type="hidden" id="cvCursoId" name="curso_id" value="${escapeHtml(String(item.id))}">`;
@@ -1445,12 +1493,16 @@
             html += '<select class="form-select" id="cvDisciplina" name="cv_disciplina" required>';
             html += '<option value="">-- Seleccione --</option>';
             resCfg.disciplinas.forEach((d) => {
-                html += `<option value="${escapeHtml(d.nombre)}" data-precio="${escapeHtml(String(d.precio || 0))}">${escapeHtml(d.nombre)}</option>`;
+                const esEquipo = disciplinasEquipo.includes(d.nombre);
+                const hint = esEquipo ? ' (inscripción por equipos)' : '';
+                html += `<option value="${escapeHtml(d.nombre)}" data-precio="${escapeHtml(String(d.precio || 0))}" data-equipo="${esEquipo ? '1' : '0'}">${escapeHtml(d.nombre)}${hint}</option>`;
             });
             html += '</select>';
             html += '<p class="cv-precio" id="cvPrecioBadge" style="display:none;"></p>';
+            html += '<p class="small text-muted mb-0 mt-1">Fútbol, baloncesto y voleibol se inscriben por equipos.</p>';
             html += '</div>';
 
+            html += '<div id="cvCamposIndividuales">';
             html += '<div class="mb-3">';
             html += '<label class="form-label fw-bold" for="cvCategoria">Categoría</label>';
             html += '<select class="form-select" id="cvCategoria" name="cv_categoria" required>';
@@ -1467,10 +1519,10 @@
             html += '</select></div>';
 
             html += '<div class="mb-3">';
-            html += '<label class="form-label fw-bold" for="cvInternoExterno">¿El deportista es interno o externo?</label>';
+            html += '<label class="form-label fw-bold" for="cvInternoExterno">¿El deportista es de San José de Las Vegas o externo?</label>';
             html += '<select class="form-select" id="cvInternoExterno" name="cv_interno_externo" required>';
             html += '<option value="">-- Seleccione --</option>';
-            internoExterno.forEach((v) => {
+            procedenciaOpts.forEach((v) => {
                 html += `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`;
             });
             html += '</select></div>';
@@ -1480,16 +1532,26 @@
             html += '<input type="text" class="form-control" id="cvColegioClub" name="cv_colegio_club" maxlength="150" placeholder="Colegio o club al que pertenece">';
             html += '</div>';
 
+            html += '<div class="mb-3" id="wrapCvCantidadDeportistas" style="display:none;">';
+            html += '<label class="form-label fw-bold" for="cvCantidadDeportistas">¿Cuántos deportistas participarán?</label>';
+            html += '<input type="number" class="form-control" id="cvCantidadDeportistas" name="cv_cantidad_deportistas" min="1" max="99" step="1" placeholder="Cantidad">';
+            html += '</div>';
+
             html += '<div class="row g-3 mb-3">';
             html += '<div class="col-md-6"><label class="form-label fw-bold" for="cvEntrenadorNombre">Nombre del entrenador</label>';
             html += '<input type="text" class="form-control" id="cvEntrenadorNombre" name="cv_entrenador_nombre" maxlength="120" required placeholder="Nombre completo"></div>';
             html += '<div class="col-md-6"><label class="form-label fw-bold" for="cvEntrenadorContacto">Contacto del entrenador</label>';
             html += '<input type="text" class="form-control" id="cvEntrenadorContacto" name="cv_entrenador_contacto" maxlength="80" required placeholder="Celular o correo"></div>';
-            html += '</div></div>';
+            html += '</div>';
+
+            html += '<div class="mb-3">';
+            html += '<label class="form-label fw-bold" for="cvEps">EPS</label>';
+            html += '<input type="text" class="form-control" id="cvEps" name="cv_eps" maxlength="100" required placeholder="Nombre de la EPS">';
+            html += '</div></div></div>';
 
             camposDinamicos.innerHTML = html;
             cargarDetalleTemplate(20, item.id, $('#cvTemplateContenedor'));
-            $('#cvDisciplina')?.addEventListener('change', actualizarCategoriasCopaVegas);
+            $('#cvDisciplina')?.addEventListener('change', onDisciplinaCopaVegasChange);
             $('#cvInternoExterno')?.addEventListener('change', actualizarColegioCopaVegas);
             actualizarVisibilidadCamposAdicionales(20, item.id);
             refreshRequiredAsterisks(document);
@@ -1895,6 +1957,9 @@
             if (data.organizacion || data.cv_colegio_club) {
                 detalleHtml += '<p class="mb-1 small text-muted">Colegio/club: ' + escapeHtml(data.organizacion || data.cv_colegio_club) + '</p>';
             }
+            if (data.Asignatura || data.cv_eps) {
+                detalleHtml += '<p class="mb-1 small text-muted">EPS: ' + escapeHtml(data.Asignatura || data.cv_eps) + '</p>';
+            }
             if (res.valor_total) {
                 detalleHtml += '<p class="mb-0 small text-muted">Valor: $' + Number(res.valor_total).toLocaleString('es-CO') + '</p>';
             }
@@ -2201,12 +2266,18 @@
             data.Periodo = mesActual + String(anio % 100).padStart(2, '0');
         } else if (tipo === 20) {
             const disciplina = $('#cvDisciplina')?.value || '';
+            if (esDisciplinaEquipoCopaVegas(disciplina)) {
+                redirigirCopaVegasEquipos(disciplina);
+                return;
+            }
             const categoria = $('#cvCategoria')?.value || '';
             const sede = $('#cvSede')?.value || '';
             const internoExterno = $('#cvInternoExterno')?.value || '';
             const colegioClub = ($('#cvColegioClub')?.value || '').trim();
+            const cantidadDeportistas = ($('#cvCantidadDeportistas')?.value || '').trim();
             const entrenadorNombre = ($('#cvEntrenadorNombre')?.value || '').trim();
             const entrenadorContacto = ($('#cvEntrenadorContacto')?.value || '').trim();
+            const eps = ($('#cvEps')?.value || '').trim();
             if (!disciplina) {
                 alert('Seleccione la disciplina.');
                 $('#cvDisciplina')?.focus();
@@ -2223,7 +2294,7 @@
                 return;
             }
             if (!internoExterno) {
-                alert('Indique si el deportista es interno o externo.');
+                alert('Indique si el deportista es de San José de Las Vegas o externo.');
                 $('#cvInternoExterno')?.focus();
                 return;
             }
@@ -2231,6 +2302,14 @@
                 alert('Ingrese el nombre del colegio o club.');
                 $('#cvColegioClub')?.focus();
                 return;
+            }
+            if (disciplina === 'Porrismo' && internoExterno === 'Externo') {
+                const n = parseInt(cantidadDeportistas, 10);
+                if (!n || n < 1) {
+                    alert('Indique cuántos deportistas participarán.');
+                    $('#cvCantidadDeportistas')?.focus();
+                    return;
+                }
             }
             if (!entrenadorNombre) {
                 alert('Ingrese el nombre del entrenador.');
@@ -2242,6 +2321,11 @@
                 $('#cvEntrenadorContacto')?.focus();
                 return;
             }
+            if (!eps) {
+                alert('Ingrese la EPS.');
+                $('#cvEps')?.focus();
+                return;
+            }
             data.curso_id = $('#cvCursoId')?.value || '';
             data.IDCurso = data.curso_id;
             data.nombreCurso = $('#cvNombreCurso')?.value || 'Copa Vegas';
@@ -2250,13 +2334,16 @@
             data.cv_sede = sede;
             data.cv_interno_externo = internoExterno;
             data.cv_colegio_club = internoExterno === 'Externo' ? colegioClub : '';
+            data.cv_cantidad_deportistas = (disciplina === 'Porrismo' && internoExterno === 'Externo') ? cantidadDeportistas : '';
             data.cv_entrenador_nombre = entrenadorNombre;
             data.cv_entrenador_contacto = entrenadorContacto;
+            data.cv_eps = eps;
             data.Modalidad = disciplina;
             data.categoria = categoria;
             data.Sede = sede;
             data.IDAsign = internoExterno;
             data.organizacion = data.cv_colegio_club;
+            data.Asignatura = eps;
             const mesActual = String(new Date().getMonth() + 1).padStart(2, '0');
             data.Mes = mesActual;
             data.Periodo = mesActual + String(anio % 100).padStart(2, '0');

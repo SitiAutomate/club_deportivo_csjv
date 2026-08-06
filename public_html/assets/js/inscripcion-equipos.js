@@ -2,23 +2,12 @@
     'use strict';
 
     const MAX_EQUIPOS = 10;
-    const MAX_DEPORTISTAS = { 'Benjamín': 6, 'Mini': 10 };
     const TEL_PATTERN = /^3\d{9}$/;
     const TEL_INPUT_ATTRS = 'type="tel" inputmode="numeric" pattern="3[0-9]{9}" maxlength="10" minlength="10" placeholder="Ej: 3001234567"';
-    const EDAD_MIN = 7;
-    const EDAD_MAX = 12;
-
-    function calcFechaISORestandoAnios(anios) {
-        const d = new Date();
-        d.setFullYear(d.getFullYear() - anios);
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const dd = String(d.getDate()).padStart(2, '0');
-        return `${yyyy}-${mm}-${dd}`;
-    }
-
-    const FECHA_MAX_NAC = calcFechaISORestandoAnios(EDAD_MIN);
-    const FECHA_MIN_NAC = calcFechaISORestandoAnios(EDAD_MAX);
+    const URL_PARAMS = new URLSearchParams(window.location.search);
+    const PREFILL_RESPONSABLE = (URL_PARAMS.get('responsable') || URL_PARAMS.get('doc') || '').trim();
+    const PREFILL_DISCIPLINA = (URL_PARAMS.get('disciplina') || '').trim();
+    const PREFILL_CURSO = (URL_PARAMS.get('curso_id') || URL_PARAMS.get('evento') || '').trim();
 
     function formatFechaDDMMYYYY(valor) {
         if (!valor) return '';
@@ -92,6 +81,27 @@
     let responsableActual = null;
     let eventosCache = [];
     let inscripcionExistenteCache = null;
+    let copaVegasConfig = null;
+    let tipoEventoActual = 20;
+
+    function disciplinasEquipoOptions() {
+        const allowed = copaVegasConfig?.disciplinas_equipo || ['Fútbol', 'Baloncesto', 'Voleibol'];
+        return (copaVegasConfig?.disciplinas || []).filter((d) => allowed.includes(d.nombre));
+    }
+
+    function categoriasDeDisciplina(nombre) {
+        const d = (copaVegasConfig?.disciplinas || []).find((x) => x.nombre === nombre);
+        return d?.categorias || [];
+    }
+
+    function cargarConfigCopaVegas() {
+        return ajax('get-copa-vegas-config.php', 'GET')
+            .then((res) => {
+                if (res && res.success) copaVegasConfig = res;
+                return res;
+            })
+            .catch(() => null);
+    }
 
     // ---- Helpers ----
     function spinner(btn, show) {
@@ -147,16 +157,17 @@
         });
     }
 
-    // ---- Eventos (cursos tipo 18) ----
+    // ---- Eventos (Copa Vegas) ----
     function cargarEventos() {
         eventoSelect.innerHTML = '<option value="">-- Cargando eventos... --</option>';
-        ajax('get-eventos-equipos.php', 'GET')
+        return ajax('get-eventos-equipos.php', 'GET')
             .then((res) => {
                 if (!res.success || !Array.isArray(res.items)) {
                     eventoSelect.innerHTML = '<option value="">-- No hay eventos disponibles --</option>';
                     return;
                 }
                 eventosCache = res.items;
+                tipoEventoActual = parseInt(res.tipo_id || '20', 10) || 20;
                 if (res.items.length === 0) {
                     eventoSelect.innerHTML = '<option value="">-- No hay eventos disponibles --</option>';
                     return;
@@ -169,9 +180,12 @@
                     opt.dataset.nombre = it.nombre;
                     eventoSelect.appendChild(opt);
                 });
-                const def = res.default_id;
+                const def = PREFILL_CURSO || res.default_id;
                 if (def && res.items.some((it) => String(it.id) === String(def))) {
                     eventoSelect.value = def;
+                    eventoSelect.dispatchEvent(new Event('change'));
+                } else if (res.items.length === 1) {
+                    eventoSelect.value = res.items[0].id;
                     eventoSelect.dispatchEvent(new Event('change'));
                 }
             })
@@ -202,6 +216,13 @@
     }
 
     function buildEquipoCard(idx) {
+        const disciplinas = disciplinasEquipoOptions();
+        const optsDisc = disciplinas.map((d) => {
+            const selected = PREFILL_DISCIPLINA && d.nombre === PREFILL_DISCIPLINA ? ' selected' : '';
+            const precio = d.precio_display ? ` — ${esc(d.precio_display)}` : '';
+            return `<option value="${esc(d.nombre)}"${selected}>${esc(d.nombre)}${precio}</option>`;
+        }).join('');
+
         const card = document.createElement('div');
         card.className = 'card mb-4 equipo-card';
         card.dataset.equipo = idx;
@@ -216,7 +237,14 @@
                         <label class="form-label fw-bold">Nombre del equipo <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" data-field="nombre_equipo" required>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Disciplina <span class="text-danger">*</span></label>
+                        <select class="form-select" data-field="disciplina" required>
+                            <option value="">-- Seleccione --</option>
+                            ${optsDisc}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
                         <label class="form-label fw-bold">Rama <span class="text-danger">*</span></label>
                         <select class="form-select" data-field="rama" required>
                             <option value="">-- Seleccione --</option>
@@ -225,12 +253,10 @@
                             <option value="Mixta">Mixta</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-8">
                         <label class="form-label fw-bold">Categoría <span class="text-danger">*</span></label>
                         <select class="form-select" data-field="categoria" required>
-                            <option value="">-- Seleccione --</option>
-                            <option value="Benjamín">Benjamín — $300.000 por grupo (máx. 6 deportistas)</option>
-                            <option value="Mini">Mini — $400.000 por grupo (máx. 10 deportistas)</option>
+                            <option value="">-- Primero seleccione disciplina --</option>
                         </select>
                     </div>
                 </div>
@@ -252,75 +278,46 @@
                     </div>
                 </div>
 
-                <h6 class="fw-bold text-uppercase small text-muted">Asistente (opcional)</h6>
-                <div class="row g-3 mb-3">
-                    <div class="col-md-5">
-                        <label class="form-label">Nombre del asistente</label>
-                        <input type="text" class="form-control" data-field="asistente_nombre">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Documento</label>
-                        <input type="text" class="form-control" data-field="asistente_documento">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Celular de contacto</label>
-                        <input class="form-control" data-field="asistente_contacto" ${TEL_INPUT_ATTRS}>
-                        <div class="invalid-feedback">Ingrese un celular válido de 10 dígitos.</div>
-                    </div>
-                </div>
-
                 <div class="d-flex justify-content-between align-items-center mt-4 mb-2">
                     <h6 class="fw-bold text-uppercase small text-muted mb-0">Deportistas del equipo</h6>
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-sm btn-outline-primary" data-action="add-deportista">+ Deportista</button>
-                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-action="add-deportista">+ Deportista</button>
                 </div>
-                <div class="alert alert-info py-2 small d-none" data-rol="aviso-categoria"></div>
+                <div class="alert alert-info py-2 small" data-rol="aviso-categoria">Registre al menos un deportista.</div>
                 <div data-rol="lista-deportistas" class="vstack gap-2"></div>
             </div>
         `;
 
         const lista = card.querySelector('[data-rol="lista-deportistas"]');
         const badge = card.querySelector('[data-rol="badge-cat"]');
-        const aviso = card.querySelector('[data-rol="aviso-categoria"]');
+        const selDisc = card.querySelector('[data-field="disciplina"]');
         const selCat = card.querySelector('[data-field="categoria"]');
         const addBtn = card.querySelector('[data-action="add-deportista"]');
 
-        // Activar máscara de solo números en celulares
         card.querySelectorAll('input[data-field$="_contacto"]').forEach(soloNumeros);
 
+        function refillCategorias() {
+            const disc = selDisc.value;
+            const cats = categoriasDeDisciplina(disc);
+            const prev = selCat.value;
+            selCat.innerHTML = '<option value="">-- Seleccione --</option>';
+            cats.forEach((c) => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c;
+                selCat.appendChild(opt);
+            });
+            if (prev && cats.includes(prev)) selCat.value = prev;
+            badge.textContent = 'Categoría: ' + (selCat.value || '-');
+        }
+
+        selDisc.addEventListener('change', refillCategorias);
         selCat.addEventListener('change', () => {
-            const cat = selCat.value;
-            badge.textContent = 'Categoría: ' + (cat || '-');
-            const max = MAX_DEPORTISTAS[cat] || 0;
-            if (cat) {
-                aviso.classList.remove('d-none');
-                aviso.textContent = `La categoría ${cat} permite máximo ${max} deportistas.`;
-            } else {
-                aviso.classList.add('d-none');
-            }
-            const filas = lista.querySelectorAll('[data-rol="deportista-row"]');
-            if (max > 0 && filas.length > max) {
-                for (let i = filas.length - 1; i >= max; i--) filas[i].remove();
-                renumerarFilas(lista);
-            }
+            badge.textContent = 'Categoría: ' + (selCat.value || '-');
         });
+        if (selDisc.value) refillCategorias();
 
         addBtn.addEventListener('click', () => {
-            const cat = selCat.value;
-            const max = MAX_DEPORTISTAS[cat] || 0;
-            const actual = lista.querySelectorAll('[data-rol="deportista-row"]').length;
-            if (!cat) {
-                aviso.classList.remove('d-none');
-                aviso.textContent = 'Seleccione la categoría primero.';
-                return;
-            }
-            if (actual >= max) {
-                aviso.classList.remove('d-none');
-                aviso.textContent = `Ya alcanzó el máximo de ${max} deportistas para la categoría ${cat}.`;
-                return;
-            }
-            addDeportistaRow(lista, actual);
+            addDeportistaRow(lista, lista.querySelectorAll('[data-rol="deportista-row"]').length);
         });
 
         addDeportistaRow(lista, 0);
@@ -338,9 +335,8 @@
                     <input type="text" class="form-control form-control-sm" data-field-dep="nombre_completo" required>
                 </div>
                 <div class="col-12 col-md-3">
-                    <label class="form-label small mb-1">Fecha de nacimiento <span class="text-muted">(${EDAD_MIN}–${EDAD_MAX} años)</span> <span class="text-danger">*</span></label>
-                    <input type="date" class="form-control form-control-sm" data-field-dep="fecha_nacimiento"
-                           min="${FECHA_MIN_NAC}" max="${FECHA_MAX_NAC}" required>
+                    <label class="form-label small mb-1">Fecha de nacimiento <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control form-control-sm" data-field-dep="fecha_nacimiento" required>
                 </div>
                 <div class="col-12 col-md-3">
                     <label class="form-label small mb-1">Número de documento <span class="text-danger">*</span></label>
@@ -403,9 +399,6 @@
             if (!d.fecha_nacimiento) {
                 return `Equipo ${k}, deportista #${n}: ingrese la fecha de nacimiento.`;
             }
-            if (d.fecha_nacimiento < FECHA_MIN_NAC || d.fecha_nacimiento > FECHA_MAX_NAC) {
-                return `Equipo ${k}, deportista #${n}: la edad debe estar entre ${EDAD_MIN} y ${EDAD_MAX} años.`;
-            }
             if (!d.documento) {
                 return `Equipo ${k}, deportista #${n}: ingrese el número de documento.`;
             }
@@ -423,14 +416,15 @@
             const deportistas = recolectarDeportistasActivos(card);
             return {
                 nombre_equipo: get('nombre_equipo'),
+                disciplina: get('disciplina'),
                 rama: get('rama'),
                 categoria: get('categoria'),
                 entrenador_nombre: get('entrenador_nombre'),
                 entrenador_documento: get('entrenador_documento'),
                 entrenador_contacto: get('entrenador_contacto'),
-                asistente_nombre: get('asistente_nombre'),
-                asistente_documento: get('asistente_documento'),
-                asistente_contacto: get('asistente_contacto'),
+                asistente_nombre: null,
+                asistente_documento: null,
+                asistente_contacto: null,
                 deportistas,
             };
         });
@@ -458,7 +452,7 @@
         return ajax('get-inscripcion-equipos-existente.php', 'POST', {
             responsable_documento: responsableActual.documento,
             curso_id: eventoSelect.value,
-            tipo_id: 18
+            tipo_id: tipoEventoActual
         }).then((res) => {
             if (res && res.success && res.exists) {
                 inscripcionExistenteCache = res;
@@ -488,15 +482,12 @@
             <div class="card mb-3 equipo-card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h6 class="mb-0">Equipo ${idx + 1}: ${esc(eq.nombre_equipo)}</h6>
-                    <span class="badge text-bg-secondary">${esc(eq.rama)} / ${esc(eq.categoria)}</span>
+                    <span class="badge text-bg-secondary">${eq.disciplina ? esc(eq.disciplina) + ' · ' : ''}${esc(eq.rama)} / ${esc(eq.categoria)}</span>
                 </div>
                 <div class="card-body">
                     <div class="row g-2 mb-2 small">
-                        <div class="col-md-6"><strong>Entrenador:</strong> ${esc(eq.entrenador_nombre) || '-'}<br>
+                        <div class="col-md-12"><strong>Entrenador:</strong> ${esc(eq.entrenador_nombre) || '-'}<br>
                             <span class="text-muted">Doc: ${esc(eq.entrenador_documento) || '-'} · Cel: ${esc(eq.entrenador_contacto) || '-'}</span>
-                        </div>
-                        <div class="col-md-6"><strong>Asistente:</strong> ${esc(eq.asistente_nombre) || '-'}<br>
-                            <span class="text-muted">Doc: ${esc(eq.asistente_documento) || '-'} · Cel: ${esc(eq.asistente_contacto) || '-'}</span>
                         </div>
                     </div>
                     <table class="table table-sm table-bordered mb-0">
@@ -693,7 +684,19 @@
         }
     });
 
-    btnValidarResp.addEventListener('click', () => {
+    const pageLoading = document.getElementById('pageEquiposLoading');
+
+    function setPageLoading(show, mensaje) {
+        if (!pageLoading) return;
+        if (mensaje) {
+            const p = pageLoading.querySelector('p.fw-semibold');
+            if (p) p.textContent = mensaje;
+        }
+        pageLoading.classList.toggle('d-none', !show);
+        pageLoading.setAttribute('aria-busy', show ? 'true' : 'false');
+    }
+
+    function validarResponsableDocumento(documento) {
         hideMsg(responsableError);
         responsableInfo.classList.add('d-none');
         responsableActual = null;
@@ -702,14 +705,13 @@
         limpiarInscripcionExistente();
         btnEnviar.disabled = true;
 
-        const documento = docResponsable.value.trim();
         if (!documento) {
             showMsg(responsableError, 'Ingrese el documento del responsable.', true);
-            return;
+            return Promise.resolve(false);
         }
 
         spinner(btnValidarResp, true);
-        ajax('validar-responsable.php', 'POST', {
+        return ajax('validar-responsable.php', 'POST', {
             documento,
             participante_id: documento
         }).then((res) => {
@@ -717,19 +719,32 @@
             if (!res.exists) {
                 abrirModalResponsable(documento);
                 showMsg(responsableInfo, 'No encontramos este responsable. Complete sus datos en el formulario.', true);
-                return;
+                return false;
             }
             responsableActual = res.responsable;
+            docResponsable.value = res.responsable.documento || documento;
+            docResponsable.classList.remove('is-invalid');
+            docResponsable.classList.add('is-valid');
             showMsg(responsableInfo, `Responsable: ${res.responsable.nombre || res.responsable.documento}`, false);
             cardEvento.style.display = '';
-            if (eventosCache.length === 0) cargarEventos();
+            if (eventosCache.length === 0) {
+                return cargarEventos().then(() => {
+                    actualizarEnvio();
+                    return eventoSelect.value ? verificarInscripcionExistente().then(() => true) : true;
+                });
+            }
             actualizarEnvio();
-            if (eventoSelect.value) verificarInscripcionExistente();
+            return eventoSelect.value ? verificarInscripcionExistente().then(() => true) : true;
         }).catch((err) => {
             showMsg(responsableError, err.message || 'Error de conexión.', true);
+            return false;
         }).finally(() => {
             spinner(btnValidarResp, false);
         });
+    }
+
+    btnValidarResp.addEventListener('click', () => {
+        validarResponsableDocumento(docResponsable.value.trim());
     });
 
     docResponsable.addEventListener('input', () => {
@@ -813,14 +828,15 @@
             const k = i + 1;
             const get = (sel) => (card.querySelector(`[data-field="${sel}"]`)?.value || '').trim();
             const nombreEquipo = get('nombre_equipo');
+            const disciplina = get('disciplina');
             const rama = get('rama');
             const categoria = get('categoria');
             const entrenadorNombre = get('entrenador_nombre');
             const entrenadorDocumento = get('entrenador_documento');
             const entrenadorContacto = get('entrenador_contacto');
-            const asistenteContacto = get('asistente_contacto');
 
             if (!nombreEquipo) return alert(`Equipo ${k}: ingrese el nombre del equipo.`);
+            if (!disciplina) return alert(`Equipo ${k}: seleccione la disciplina.`);
             if (!rama) return alert(`Equipo ${k}: seleccione la rama.`);
             if (!categoria) return alert(`Equipo ${k}: seleccione la categoría.`);
             if (!entrenadorNombre) return alert(`Equipo ${k}: ingrese el nombre del entrenador.`);
@@ -829,18 +845,11 @@
             if (!TEL_PATTERN.test(entrenadorContacto)) {
                 return alert(`Equipo ${k}: el celular del entrenador debe tener 10 dígitos y empezar por 3.`);
             }
-            if (asistenteContacto && !TEL_PATTERN.test(asistenteContacto)) {
-                return alert(`Equipo ${k}: el celular del asistente debe tener 10 dígitos y empezar por 3.`);
-            }
 
             const errDep = validarDeportistasEquipo(card, k);
             if (errDep) return alert(errDep);
 
             const deportistas = recolectarDeportistasActivos(card);
-            const max = MAX_DEPORTISTAS[categoria] || 0;
-            if (max > 0 && deportistas.length > max) {
-                return alert(`Equipo ${k}: máximo ${max} deportistas para ${categoria}.`);
-            }
             for (let j = 0; j < deportistas.length; j++) {
                 const docu = String(deportistas[j].documento || '').trim();
                 if (docsVistos.has(docu)) {
@@ -869,11 +878,11 @@
                 ? inscripcionExistenteCache.equipos
                 : [];
             const existentesHtml = equiposExistentesPrev.map((e, i) => `
-                <li>Equipo ${i + 1}: ${esc(e.nombre_equipo)} <span class="text-muted">(${esc(e.rama)} / ${esc(e.categoria)})</span> <span class="badge text-bg-secondary ms-1">Previo</span></li>
+                <li>Equipo ${i + 1}: ${esc(e.nombre_equipo)} <span class="text-muted">(${esc(e.disciplina || '')}${e.disciplina ? ' / ' : ''}${esc(e.rama)} / ${esc(e.categoria)})</span> <span class="badge text-bg-secondary ms-1">Previo</span></li>
             `).join('');
             const offset = equiposExistentesPrev.length;
             const nuevosHtml = equipos.map((e, i) => `
-                <li>Equipo ${offset + i + 1}: ${esc(e.nombre_equipo)} <span class="text-muted">(${esc(e.rama)} / ${esc(e.categoria)})</span> <span class="badge text-bg-success ms-1">Nuevo</span></li>
+                <li>Equipo ${offset + i + 1}: ${esc(e.nombre_equipo)} <span class="text-muted">(${esc(e.disciplina || '')}${e.disciplina ? ' / ' : ''}${esc(e.rama)} / ${esc(e.categoria)})</span> <span class="badge text-bg-success ms-1">Nuevo</span></li>
             `).join('');
             const totalEquipos = res.total_equipos || (offset + equipos.length);
             const equiposExistentesCount = res.equipos_existentes != null ? res.equipos_existentes : offset;
@@ -917,5 +926,29 @@
     });
 
     actualizarOpcionesCantidad(MAX_EQUIPOS);
-    cargarEventos();
+
+    if (PREFILL_RESPONSABLE) {
+        setPageLoading(true, 'Preparando inscripción de equipos...');
+        checkPoliticas.checked = true;
+        contenido.style.display = '';
+        docResponsable.value = PREFILL_RESPONSABLE;
+
+        Promise.all([cargarConfigCopaVegas(), cargarEventos()])
+            .then(() => {
+                setPageLoading(true, 'Validando responsable...');
+                docResponsable.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return validarResponsableDocumento(PREFILL_RESPONSABLE);
+            })
+            .finally(() => {
+                setPageLoading(false);
+                const cardResp = docResponsable.closest('.card');
+                if (cardResp) {
+                    cardResp.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                    docResponsable.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+    } else {
+        Promise.all([cargarConfigCopaVegas(), cargarEventos()]);
+    }
 })();

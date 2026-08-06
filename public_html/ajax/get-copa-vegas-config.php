@@ -21,6 +21,7 @@ jsonResponse([
     'curso_id' => copaVegasCursoId(),
     'nombre' => $cfg['nombre'] ?? 'Copa Vegas',
     'sedes' => copaVegasSedes(),
-    'interno_externo' => $cfg['interno_externo'] ?? ['Interno', 'Externo'],
+    'interno_externo' => copaVegasOpcionesProcedencia(),
+    'disciplinas_equipo' => copaVegasDisciplinasEquipo(),
     'disciplinas' => $disciplinas,
 ]);

@@ -25,6 +25,7 @@ class Equipo
             'nombre_equipo' => trim($data['nombre_equipo'] ?? ''),
             'rama' => $data['rama'] ?? null,
             'categoria' => $data['categoria'] ?? null,
+            'disciplina' => $data['disciplina'] ?? null,
             'entrenador_nombre' => $data['entrenador_nombre'] ?? null,
             'entrenador_documento' => $data['entrenador_documento'] ?? null,
             'entrenador_contacto' => $data['entrenador_contacto'] ?? null,

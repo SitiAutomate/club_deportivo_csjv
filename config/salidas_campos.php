@@ -29,4 +29,17 @@ return [
             ],
         ],
     ],
+    '5123' => [
+        'categoria' => [
+            'column' => 'Modalidad',
+            'label' => 'Categoría',
+            'options' => [
+                'Mini Femenino' => 'Mini Femenino',
+                'Mini Masculino' => 'Mini Masculino',
+                'Infantil Femenino' => 'Infantil Femenino',
+                'Infantil Masculino' => 'Infantil Masculino',
+                'Junior Masculino' => 'Junior Masculino',
+            ],
+        ],
+    ],
 ];

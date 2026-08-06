@@ -67,21 +67,45 @@ require_once __DIR__ . '/../includes/csrf.php';
             border-color: #64748b;
             color: #1e293b;
         }
+
+        .page-equipos-loading {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 0.85rem;
+            background: rgba(248, 250, 252, 0.92);
+            color: #1e293b;
+        }
+        .page-equipos-loading.d-none { display: none !important; }
+        .page-equipos-loading .spinner-border {
+            width: 2.5rem;
+            height: 2.5rem;
+            color: #20254A;
+        }
     </style>
     <link href="assets/css/app.css?v=<?= @filemtime(__DIR__ . '/assets/css/app.css') ?: '1' ?>" rel="stylesheet">
 </head>
 <body class="page-equipos">
+    <div id="pageEquiposLoading" class="page-equipos-loading d-none" aria-live="polite" aria-busy="true">
+        <div class="spinner-border" role="status" aria-hidden="true"></div>
+        <p class="mb-0 fw-semibold">Preparando inscripción de equipos...</p>
+        <p class="mb-0 small text-muted">Validando responsable y cargando el evento</p>
+    </div>
     <div class="container py-4">
         <header class="header-inscripcion d-flex align-items-center gap-4 mb-5 py-4 px-4 rounded-3 shadow-sm">
             <img src="assets/images/logo.png?v=<?= @filemtime(__DIR__ . '/assets/images/logo.png') ?: '1' ?>" alt="Logo" class="header-logo flex-shrink-0" onerror="this.style.display='none'">
             <div class="header-text flex-grow-1">
-                <h1 class="mb-1 display-6 fw-bold">Inscripción de equipos</h1>
+                <h1 class="mb-1 display-6 fw-bold">Inscripción de equipos – Copa Vegas</h1>
                 <p class="h5 mb-2 text-muted">Club Deportivo y Fundación Maex</p>
                 <p class="mb-2 header-descripcion" style="font-size: 1rem;">
-                    Una jornada pensada para disfrutar, aprender y vivir la pasión por el deporte en un ambiente de integración, alegría y compañerismo.
+                    Formulario para inscribir equipos de fútbol, baloncesto y voleibol en la Copa Vegas 2026.
                 </p>
                 <p class="mb-0 header-descripcion" style="font-size: 1rem;">
-                    Diligencie los datos del responsable de pago, seleccione el evento y registre los equipos a inscribir.
+                    Diligencie los datos del responsable de pago, confirme el evento y registre los equipos a inscribir.
                 </p>
             </div>
         </header>
@@ -94,8 +118,8 @@ require_once __DIR__ . '/../includes/csrf.php';
                 <ol class="mb-0 ps-3">
                     <li class="mb-2">Acepte la autorización para el tratamiento de datos personales.</li>
                     <li class="mb-2">Ingrese el documento del responsable de pago y valídelo. Si no está registrado, complete sus datos.</li>
-                    <li class="mb-2">Seleccione el evento y la cantidad de equipos a inscribir (entre 1 y 10).</li>
-                    <li class="mb-2">Diligencie por cada equipo el nombre, rama, categoría, entrenador, asistente y la planilla de deportistas.</li>
+                    <li class="mb-2">Confirme el evento Copa Vegas y la cantidad de equipos a inscribir (entre 1 y 10).</li>
+                    <li class="mb-2">Diligencie por cada equipo el nombre, disciplina, rama, categoría, entrenador y la planilla de deportistas (mínimo 1).</li>
                     <li class="mb-0">Al enviar, se confirmará la inscripción y recibirá un correo con el listado de equipos.</li>
                 </ol>
             </div>

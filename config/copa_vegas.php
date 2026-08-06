@@ -9,14 +9,15 @@ return [
     'curso_id' => '2001',
     'nombre' => 'Copa Vegas',
     'sedes' => ['MEDELLÍN', 'RETIRO'],
-    'interno_externo' => ['Interno', 'Externo'],
+    'interno_externo' => ['San José de Las Vegas', 'Externo'],
+    'disciplinas_equipo' => ['Fútbol', 'Baloncesto', 'Voleibol'],
     'disciplinas' => [
         'Ajedrez' => [
             'precio' => 40000,
             'categorias' => ['Sub 6', 'Sub 8', 'Sub 10', 'Sub 12'],
         ],
         'Baloncesto' => [
-            'precio' => 150000,
+            'precio' => 170000,
             'categorias' => [
                 'Mini femenino',
                 'Mini masculino',
@@ -26,7 +27,7 @@ return [
             ],
         ],
         'Fútbol' => [
-            'precio' => 150000,
+            'precio' => 170000,
             'categorias' => ['Sub 6', 'Sub 8', 'Sub 10', 'Sub 12', 'Sub 14', 'Sub 16'],
         ],
         'Gimnasia' => [
@@ -60,7 +61,7 @@ return [
             ],
         ],
         'Voleibol' => [
-            'precio' => 150000,
+            'precio' => 170000,
             'categorias' => ['Benjamin', 'Mini', 'Infantil', 'Premenores', 'Menores'],
         ],
     ],
