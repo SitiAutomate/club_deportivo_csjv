@@ -24,4 +24,11 @@ if (file_exists($file) && is_readable($file)) {
     $html = file_get_contents($file);
 }
 
+if ($html !== '' && strpos($html, '{{fecha_limite}}') !== false) {
+    require_once __DIR__ . '/../../includes/copa_vegas.php';
+    $rowCurso = $database->get('cursos_2025', ['Fecha_Final'], ['ID_Curso' => (string) $itemId]);
+    $fechaLimite = copaVegasFormatearFechaLimite((string) ($rowCurso['Fecha_Final'] ?? ''));
+    $html = str_replace('{{fecha_limite}}', $fechaLimite !== '' ? $fechaLimite : 'Por confirmar', $html);
+}
+
 echo json_encode(['success' => true, 'html' => $html]);

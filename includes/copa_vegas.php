@@ -77,3 +77,21 @@ function copaVegasOpcionesProcedencia(): array
 {
     return copaVegasConfig()['interno_externo'] ?? ['San José de Las Vegas', 'Externo'];
 }
+
+function copaVegasFormatearFechaLimite(?string $fecha): string
+{
+    if ($fecha === null || trim($fecha) === '') {
+        return '';
+    }
+    $d = date_create($fecha);
+    if (!$d) {
+        return '';
+    }
+    $meses = [
+        1 => 'enero', 2 => 'febrero', 3 => 'marzo', 4 => 'abril',
+        5 => 'mayo', 6 => 'junio', 7 => 'julio', 8 => 'agosto',
+        9 => 'septiembre', 10 => 'octubre', 11 => 'noviembre', 12 => 'diciembre',
+    ];
+    $mes = $meses[(int) $d->format('n')] ?? $d->format('m');
+    return (int) $d->format('j') . ' de ' . $mes . ' de ' . $d->format('Y');
+}

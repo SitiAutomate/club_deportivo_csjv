@@ -471,11 +471,17 @@ if ($tipoId === 1) {
         $fi = $rowCurso['Fecha_Inicio'] ?? null;
         $ff = $rowCurso['Fecha_Final'] ?? null;
         if (($fi && $hoy < $fi) || ($ff && $hoy > $ff)) {
-            jsonResponse(['success' => false, 'error' => 'La inscripción para Copa Vegas no está abierta en este momento (fecha límite: 16 de agosto).', 'traceId' => $traceId], 400);
+            $fechaLimiteTxt = copaVegasFormatearFechaLimite((string) $ff);
+            $sufijo = $fechaLimiteTxt !== '' ? ' (fecha límite: ' . $fechaLimiteTxt . ')' : '';
+            jsonResponse(['success' => false, 'error' => 'La inscripción para Copa Vegas no está abierta en este momento' . $sufijo . '.', 'traceId' => $traceId], 400);
         }
     }
 
     $precio = copaVegasPrecio($disciplina);
+    $esInternoSjv = in_array($internoExterno, ['San José de Las Vegas', 'Interno'], true);
+    if ($esInternoSjv) {
+        $precio = 0;
+    }
     $detalle['IDCurso'] = $idCurso;
     $detalle['nombreCurso'] = trim((string) ($input['nombreCurso'] ?? $rowCurso['Nombre_del_curso'] ?? $rowCurso['Nombre_Corto_Curso'] ?? 'Copa Vegas'));
     $detalle['Modalidad'] = $disciplina;
@@ -489,6 +495,7 @@ if ($tipoId === 1) {
     $detalle['OBSERVACION'] = json_encode([
         'entrenador_contacto' => $entrenadorContacto,
         'valor' => $precio,
+        'gratuito' => $esInternoSjv,
         'disciplina' => $disciplina,
         'categoria' => $categoria,
         'colegio_club' => $colegioClub !== '' ? $colegioClub : null,
@@ -542,8 +549,15 @@ if ($tipoId === 1 && !empty($cursoIds)) {
 } elseif ($tipoId === 20) {
     require_once __DIR__ . '/../../includes/copa_vegas.php';
     $idCurso = trim((string) ($detalle['IDCurso'] ?? $input['curso_id'] ?? $input['IDCurso'] ?? ''));
-    if ($idCurso && $inscripcion->existeDuplicada($participanteDocumento, $idCurso, $anio, $tipoId)) {
-        jsonResponse(['success' => false, 'error' => 'Este participante ya está inscrito en Copa Vegas.', 'traceId' => $traceId], 400);
+    $disciplinaDup = trim((string) ($detalle['Modalidad'] ?? $input['cv_disciplina'] ?? ''));
+    if ($idCurso && $inscripcion->existeDuplicadaCopaVegas($participanteDocumento, $idCurso, $disciplinaDup, $anio, $tipoId)) {
+        jsonResponse([
+            'success' => false,
+            'error' => $disciplinaDup !== ''
+                ? 'Este participante ya está inscrito en ' . $disciplinaDup . ' de Copa Vegas.'
+                : 'Este participante ya está inscrito en Copa Vegas.',
+            'traceId' => $traceId,
+        ], 400);
     }
 } elseif ($tipoId !== 3) {
     $idCurso = $input['IDCurso'] ?? $input['curso_id'] ?? $input['campamento_id'] ?? $input['salida_id'] ?? null;
@@ -985,6 +999,7 @@ try {
                 $obsCv = json_decode((string) $detalle['OBSERVACION'], true) ?: [];
             }
             $valorCv = (int) ($obsCv['valor'] ?? 0);
+            $gratuitoCv = !empty($obsCv['gratuito']) || $valorCv <= 0;
             $partes = array_filter([
                 !empty($detalle['Modalidad']) ? 'Disciplina: ' . $detalle['Modalidad'] : '',
                 !empty($detalle['categoria']) ? 'Categoría: ' . $detalle['categoria'] : '',
@@ -993,7 +1008,7 @@ try {
                 !empty($detalle['organizacion']) ? 'Colegio/club: ' . $detalle['organizacion'] : '',
                 !empty($detalle['Asignatura']) ? 'EPS: ' . $detalle['Asignatura'] : '',
                 !empty($detalle['Sesión']) ? 'Deportistas: ' . $detalle['Sesión'] : '',
-                $valorCv > 0 ? 'Valor: $' . number_format($valorCv, 0, ',', '.') : '',
+                $gratuitoCv ? 'Valor: Gratuito' : ('Valor: $' . number_format($valorCv, 0, ',', '.')),
                 !empty($detalle['club']) ? 'Entrenador: ' . $detalle['club'] : '',
                 !empty($obsCv['entrenador_contacto']) ? 'Contacto entrenador: ' . $obsCv['entrenador_contacto'] : '',
             ]);

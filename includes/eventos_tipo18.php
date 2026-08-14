@@ -20,7 +20,7 @@ function eventosTipo18FestivegasIds(): array
 function eventosTipo18PrincipalIds(): array
 {
     $cfg = eventosTipo18Config();
-    $ids = $cfg['principal_curso_ids'] ?? ['1802', '1803', '1804', '1805', '1806', '1807', '1808'];
+    $ids = $cfg['principal_curso_ids'] ?? ['1802', '1803', '1804', '1805', '1806', '1807', '1808', '1809', '1810'];
     return array_map('strval', $ids);
 }
 
@@ -73,6 +73,20 @@ function eventosTipo18BigShowId(): string
     return $id !== '' ? $id : '1808';
 }
 
+function eventosTipo18HiglandId(): string
+{
+    $cfg = eventosTipo18Config();
+    $id = trim((string) ($cfg['higland_curso_id'] ?? '1809'));
+    return $id !== '' ? $id : '1809';
+}
+
+function eventosTipo18MiniBaloncestoId(): string
+{
+    $cfg = eventosTipo18Config();
+    $id = trim((string) ($cfg['mini_baloncesto_curso_id'] ?? '1810'));
+    return $id !== '' ? $id : '1810';
+}
+
 function eventosTipo18EsFestivegas(string $idCurso): bool
 {
     return in_array((string) $idCurso, eventosTipo18FestivegasIds(), true);
@@ -119,6 +133,16 @@ function eventosTipo18EsBigShow(string $idCurso): bool
     return (string) $idCurso === eventosTipo18BigShowId();
 }
 
+function eventosTipo18EsHigland(string $idCurso): bool
+{
+    return (string) $idCurso === eventosTipo18HiglandId();
+}
+
+function eventosTipo18EsMiniBaloncesto(string $idCurso): bool
+{
+    return (string) $idCurso === eventosTipo18MiniBaloncestoId();
+}
+
 function eventosTipo18MedCheerConfig(): array
 {
     return eventosTipo18Config()['med_cheer'] ?? [];
@@ -149,6 +173,16 @@ function eventosTipo18BigShowConfig(): array
     return eventosTipo18Config()['big_show'] ?? [];
 }
 
+function eventosTipo18HiglandConfig(): array
+{
+    return eventosTipo18Config()['higland'] ?? [];
+}
+
+function eventosTipo18MiniBaloncestoConfig(): array
+{
+    return eventosTipo18Config()['mini_baloncesto'] ?? [];
+}
+
 /**
  * Eventos tipo 18 que solo piden categoría (como Med Cheer).
  * @return array{nombre:string,categorias:array,valor:int}|null
@@ -169,6 +203,12 @@ function eventosTipo18ConfigSoloCategoria(string $idCurso): ?array
     }
     if (eventosTipo18EsBigShow($idCurso)) {
         return eventosTipo18BigShowConfig();
+    }
+    if (eventosTipo18EsHigland($idCurso)) {
+        return eventosTipo18HiglandConfig();
+    }
+    if (eventosTipo18EsMiniBaloncesto($idCurso)) {
+        return eventosTipo18MiniBaloncestoConfig();
     }
     return null;
 }

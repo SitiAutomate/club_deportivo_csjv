@@ -1043,6 +1043,8 @@
         '1806': 'Volleyball Fest',
         '1807': 'Baby Voleibol',
         '1808': 'The Big Show',
+        '1809': 'HIGLAND',
+        '1810': 'Festival de Mini Baloncesto',
     };
 
     const TIPO18_CATEGORIAS = {
@@ -1051,10 +1053,14 @@
         '1806': ['Sub 14 (Premenores e Infantil)'],
         '1807': ['Mini', 'Infantil'],
         '1808': ['Tiny gold', 'Mini gold', 'Youth gold', 'Junior', 'Youth emerald retiro'],
+        '1809': ['Tiny Diamonds', 'Mini Diamonds', 'Youth Diamonds', 'Youth Gold', 'Junior', 'Senior'],
+        '1810': ['Mini'],
     };
 
     const TIPO18_CATEGORIA_LABELS = {
         '1808': 'Seleccione la categoría de participación de la deportista',
+        '1809': 'Seleccione la categoría de participación de la deportista',
+        '1810': 'Categoría',
     };
 
     const TKD_MODALIDADES = [
@@ -1374,17 +1380,49 @@
         return '$' + n.toLocaleString('es-CO');
     }
 
+    function esInternoCopaVegas() {
+        const procedencia = $('#cvInternoExterno')?.value || '';
+        return procedencia === 'San José de Las Vegas' || procedencia === 'Interno';
+    }
+
+    function actualizarPrecioCopaVegas() {
+        const card = $('#cvPrecioCard');
+        const valorEl = $('#cvPrecioValor');
+        const notaEl = $('#cvPrecioNota');
+        if (!card || !valorEl) return;
+
+        const disc = $('#cvDisciplina')?.value || '';
+        const procedencia = $('#cvInternoExterno')?.value || '';
+        const info = (copaVegasConfigCache?.disciplinas || []).find((d) => d.nombre === disc);
+
+        if (!procedencia || !disc || !info || esDisciplinaEquipoCopaVegas(disc)) {
+            card.style.display = 'none';
+            return;
+        }
+
+        card.style.display = 'block';
+        card.classList.toggle('cv-precio-card--gratis', esInternoCopaVegas());
+        card.classList.toggle('cv-precio-card--pago', !esInternoCopaVegas());
+
+        if (esInternoCopaVegas()) {
+            valorEl.textContent = 'Gratuito';
+            if (notaEl) notaEl.textContent = 'Inscripción sin costo para deportistas de San José de Las Vegas.';
+        } else {
+            valorEl.textContent = info.precio_display || formatearPrecioCopaVegas(info.precio);
+            if (notaEl) notaEl.textContent = 'Valor por deportista — ' + disc + '.';
+        }
+    }
+
     function actualizarCategoriasCopaVegas() {
         const disc = $('#cvDisciplina')?.value || '';
         const selCat = $('#cvCategoria');
-        const badge = $('#cvPrecioBadge');
         if (!selCat) return;
 
         const prev = selCat.value;
         selCat.innerHTML = '<option value="">-- Seleccione --</option>';
         const info = (copaVegasConfigCache?.disciplinas || []).find((d) => d.nombre === disc);
         if (!info) {
-            if (badge) badge.style.display = 'none';
+            actualizarPrecioCopaVegas();
             return;
         }
         (info.categorias || []).forEach((c) => {
@@ -1396,10 +1434,7 @@
         if (prev && Array.from(selCat.options).some((o) => o.value === prev)) {
             selCat.value = prev;
         }
-        if (badge) {
-            badge.innerHTML = 'Inversión: <span class="precio-destacado">' + (info.precio_display || formatearPrecioCopaVegas(info.precio)) + '</span>';
-            badge.style.display = 'block';
-        }
+        actualizarPrecioCopaVegas();
     }
 
     function actualizarColegioCopaVegas() {
@@ -1413,6 +1448,7 @@
             if (!esExterno) inp.value = '';
         }
         actualizarCantidadPorrismoCopaVegas();
+        actualizarPrecioCopaVegas();
         refreshRequiredAsterisks(document);
     }
 
@@ -1489,6 +1525,20 @@
             html += '<div class="detalle-template-contenedor mb-3" id="cvTemplateContenedor"></div>';
 
             html += '<div class="mb-3">';
+            html += '<label class="form-label fw-bold" for="cvInternoExterno">¿El deportista es de San José de Las Vegas o externo?</label>';
+            html += '<select class="form-select" id="cvInternoExterno" name="cv_interno_externo" required>';
+            html += '<option value="">-- Seleccione --</option>';
+            procedenciaOpts.forEach((v) => {
+                html += `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`;
+            });
+            html += '</select></div>';
+
+            html += '<div class="mb-3" id="wrapCvColegio" style="display:none;">';
+            html += '<label class="form-label fw-bold" for="cvColegioClub">Nombre del colegio o club</label>';
+            html += '<input type="text" class="form-control" id="cvColegioClub" name="cv_colegio_club" maxlength="150" placeholder="Colegio o club al que pertenece">';
+            html += '</div>';
+
+            html += '<div class="mb-3">';
             html += '<label class="form-label fw-bold" for="cvDisciplina">Disciplina</label>';
             html += '<select class="form-select" id="cvDisciplina" name="cv_disciplina" required>';
             html += '<option value="">-- Seleccione --</option>';
@@ -1498,8 +1548,13 @@
                 html += `<option value="${escapeHtml(d.nombre)}" data-precio="${escapeHtml(String(d.precio || 0))}" data-equipo="${esEquipo ? '1' : '0'}">${escapeHtml(d.nombre)}${hint}</option>`;
             });
             html += '</select>';
-            html += '<p class="cv-precio" id="cvPrecioBadge" style="display:none;"></p>';
             html += '<p class="small text-muted mb-0 mt-1">Fútbol, baloncesto y voleibol se inscriben por equipos.</p>';
+            html += '</div>';
+
+            html += '<div class="cv-precio-card mb-3" id="cvPrecioCard" style="display:none;">';
+            html += '<span class="cv-precio-card__label">Inversión</span>';
+            html += '<strong class="cv-precio-card__valor" id="cvPrecioValor"></strong>';
+            html += '<span class="cv-precio-card__nota" id="cvPrecioNota"></span>';
             html += '</div>';
 
             html += '<div id="cvCamposIndividuales">';
@@ -1517,20 +1572,6 @@
                 html += `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`;
             });
             html += '</select></div>';
-
-            html += '<div class="mb-3">';
-            html += '<label class="form-label fw-bold" for="cvInternoExterno">¿El deportista es de San José de Las Vegas o externo?</label>';
-            html += '<select class="form-select" id="cvInternoExterno" name="cv_interno_externo" required>';
-            html += '<option value="">-- Seleccione --</option>';
-            procedenciaOpts.forEach((v) => {
-                html += `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`;
-            });
-            html += '</select></div>';
-
-            html += '<div class="mb-3" id="wrapCvColegio" style="display:none;">';
-            html += '<label class="form-label fw-bold" for="cvColegioClub">Nombre del colegio o club</label>';
-            html += '<input type="text" class="form-control" id="cvColegioClub" name="cv_colegio_club" maxlength="150" placeholder="Colegio o club al que pertenece">';
-            html += '</div>';
 
             html += '<div class="mb-3" id="wrapCvCantidadDeportistas" style="display:none;">';
             html += '<label class="form-label fw-bold" for="cvCantidadDeportistas">¿Cuántos deportistas participarán?</label>';
@@ -1960,8 +2001,11 @@
             if (data.Asignatura || data.cv_eps) {
                 detalleHtml += '<p class="mb-1 small text-muted">EPS: ' + escapeHtml(data.Asignatura || data.cv_eps) + '</p>';
             }
-            if (res.valor_total) {
-                detalleHtml += '<p class="mb-0 small text-muted">Valor: $' + Number(res.valor_total).toLocaleString('es-CO') + '</p>';
+            if (res.valor_total != null) {
+                const valorTxt = Number(res.valor_total) > 0
+                    ? ('$' + Number(res.valor_total).toLocaleString('es-CO'))
+                    : 'Gratuito';
+                detalleHtml += '<p class="mb-0 small text-muted">Valor: ' + valorTxt + '</p>';
             }
         } else if (data.nombreCurso) {
             detalleHtml = escapeHtml(data.nombreCurso);

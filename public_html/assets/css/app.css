@@ -206,17 +206,46 @@
     }
 }
 
-.copa-vegas-form .cv-precio {
-    display: block;
-    margin-top: 0.5rem;
-    font-size: 0.95rem;
-    color: #3C3C3B;
+.copa-vegas-form .cv-precio-card {
+    display: none;
+    padding: 1rem 1.15rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(32, 37, 74, 0.15);
+    background: rgba(32, 37, 74, 0.04);
 }
-.copa-vegas-form .cv-precio .precio-destacado {
-    font-size: 1.1rem;
+.copa-vegas-form .cv-precio-card__label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #6b7280;
+    margin-bottom: 0.25rem;
+}
+.copa-vegas-form .cv-precio-card__valor {
+    display: block;
+    font-size: 1.45rem;
+    line-height: 1.2;
+    color: var(--bs-warning, #FF6D00);
+    margin-bottom: 0.2rem;
+}
+.copa-vegas-form .cv-precio-card__nota {
+    display: block;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+.copa-vegas-form .cv-precio-card--gratis {
+    border-color: rgba(24, 166, 224, 0.35);
+    background: rgba(24, 166, 224, 0.08);
+}
+.copa-vegas-form .cv-precio-card--gratis .cv-precio-card__valor {
+    color: #0f766e;
+}
+.copa-vegas-form .cv-precio-card--pago {
+    border-color: rgba(255, 109, 0, 0.28);
+    background: rgba(255, 109, 0, 0.06);
 }
 
-/* Copa Vegas — sobrio, alineado a la paleta de la app */
 .copa-vegas {
     border-color: #20254A;
 }

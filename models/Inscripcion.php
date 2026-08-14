@@ -30,6 +30,29 @@ class Inscripcion
     }
 
     /**
+     * Copa Vegas (tipo 20): misma disciplina no puede repetirse para el mismo participante, curso y año.
+     */
+    public function existeDuplicadaCopaVegas(
+        string $participanteDoc,
+        string $idCurso,
+        string $disciplina,
+        int $anio,
+        int $tipoId = 20
+    ): bool {
+        $disciplina = trim($disciplina);
+        if ($disciplina === '') {
+            return $this->existeDuplicada($participanteDoc, $idCurso, $anio, $tipoId);
+        }
+        return $this->db->count('inscripciones_1', [
+            'validador_participante' => $participanteDoc,
+            'IDCurso' => $idCurso,
+            'año' => $anio,
+            'Tipo' => $tipoId,
+            'Modalidad' => $disciplina,
+        ]) > 0;
+    }
+
+    /**
      * Level Up (tipo 4): misma asignatura no puede repetirse para el mismo participante, curso y año.
      */
     public function existeDuplicadaConAsignatura(
