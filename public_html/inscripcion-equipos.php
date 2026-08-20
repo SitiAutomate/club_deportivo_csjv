@@ -1,6 +1,10 @@
 <?php
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_once __DIR__ . '/../includes/csrf.php';
+
+// Temporalmente desactivado: inscripción de equipos vuelve al formulario principal (Copa Vegas).
+header('Location: index.php');
+exit;
 ?>
 <!DOCTYPE html>
 <html lang="es">

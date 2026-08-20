@@ -1395,7 +1395,7 @@
         const procedencia = $('#cvInternoExterno')?.value || '';
         const info = (copaVegasConfigCache?.disciplinas || []).find((d) => d.nombre === disc);
 
-        if (!procedencia || !disc || !info || esDisciplinaEquipoCopaVegas(disc)) {
+        if (!procedencia || !disc || !info) {
             card.style.display = 'none';
             return;
         }
@@ -1471,30 +1471,70 @@
         return list.includes(nombre);
     }
 
-    function redirigirCopaVegasEquipos(disciplina) {
-        if (!responsableActual) {
-            alert('Primero valide el documento del responsable para continuar con la inscripción por equipos.');
-            docResponsable?.focus();
+    function setCamposContinuarCopaVegasRequired(enabled) {
+        const wrap = $('#cvCamposContinuar');
+        if (!wrap) return;
+        wrap.querySelectorAll('[required], [data-cv-required="1"]').forEach((el) => {
+            if (enabled) {
+                if (el.getAttribute('data-cv-required') === '1' || el.hasAttribute('required')) {
+                    el.setAttribute('data-cv-required', '1');
+                    el.required = true;
+                }
+            } else {
+                if (el.required) el.setAttribute('data-cv-required', '1');
+                el.required = false;
+            }
+        });
+    }
+
+    function actualizarFlujoEntrenadorCopaVegas(fromSelect) {
+        const disc = $('#cvDisciplina')?.value || '';
+        const wrapEntrenador = $('#wrapCvEsEntrenador');
+        const selEntrenador = $('#cvEsEntrenador');
+        const wrapContinuar = $('#cvCamposContinuar');
+        const esEquipo = esDisciplinaEquipoCopaVegas(disc);
+
+        if (wrapEntrenador) wrapEntrenador.style.display = esEquipo && disc ? 'block' : 'none';
+
+        if (!esEquipo) {
+            if (selEntrenador) selEntrenador.value = '';
+            if (wrapContinuar) wrapContinuar.style.display = disc ? 'block' : 'none';
+            setCamposContinuarCopaVegasRequired(!!disc);
+            actualizarCategoriasCopaVegas();
+            actualizarCantidadPorrismoCopaVegas();
+            actualizarPrecioCopaVegas();
+            refreshRequiredAsterisks(document);
             return;
         }
-        const cursoId = $('#cvCursoId')?.value || copaVegasConfigCache?.curso_id || '2001';
-        const params = new URLSearchParams({
-            responsable: String(responsableActual.documento || responsableActual.id || ''),
-            curso_id: String(cursoId),
-            tipo: '20',
-            disciplina: disciplina || '',
-        });
-        window.location.href = basePath + 'inscripcion-equipos.php?' + params.toString();
+
+        const respuesta = selEntrenador?.value || '';
+        if (fromSelect && respuesta === 'No') {
+            alert('Solo los entrenadores pueden inscribir equipos, consulta con tu entrenador tu inscripción');
+        }
+
+        const puedeContinuar = respuesta === 'Sí';
+        if (wrapContinuar) wrapContinuar.style.display = puedeContinuar ? 'block' : 'none';
+        setCamposContinuarCopaVegasRequired(puedeContinuar);
+
+        if (puedeContinuar) {
+            actualizarCategoriasCopaVegas();
+            actualizarCantidadPorrismoCopaVegas();
+            actualizarPrecioCopaVegas();
+        } else {
+            const card = $('#cvPrecioCard');
+            if (card) card.style.display = 'none';
+        }
+        refreshRequiredAsterisks(document);
     }
 
     function onDisciplinaCopaVegasChange() {
-        const disc = $('#cvDisciplina')?.value || '';
-        if (esDisciplinaEquipoCopaVegas(disc)) {
-            redirigirCopaVegasEquipos(disc);
-            return;
-        }
-        actualizarCategoriasCopaVegas();
-        actualizarCantidadPorrismoCopaVegas();
+        const selEntrenador = $('#cvEsEntrenador');
+        if (selEntrenador) selEntrenador.value = '';
+        actualizarFlujoEntrenadorCopaVegas(false);
+    }
+
+    function onEsEntrenadorCopaVegasChange() {
+        actualizarFlujoEntrenadorCopaVegas(true);
     }
 
     function cargarCopaVegas() {
@@ -1544,20 +1584,25 @@
             html += '<option value="">-- Seleccione --</option>';
             resCfg.disciplinas.forEach((d) => {
                 const esEquipo = disciplinasEquipo.includes(d.nombre);
-                const hint = esEquipo ? ' (inscripción por equipos)' : '';
-                html += `<option value="${escapeHtml(d.nombre)}" data-precio="${escapeHtml(String(d.precio || 0))}" data-equipo="${esEquipo ? '1' : '0'}">${escapeHtml(d.nombre)}${hint}</option>`;
+                html += `<option value="${escapeHtml(d.nombre)}" data-precio="${escapeHtml(String(d.precio || 0))}" data-equipo="${esEquipo ? '1' : '0'}">${escapeHtml(d.nombre)}</option>`;
             });
-            html += '</select>';
-            html += '<p class="small text-muted mb-0 mt-1">Fútbol, baloncesto y voleibol se inscriben por equipos.</p>';
-            html += '</div>';
+            html += '</select></div>';
 
+            html += '<div class="mb-3" id="wrapCvEsEntrenador" style="display:none;">';
+            html += '<label class="form-label fw-bold" for="cvEsEntrenador">¿Eres entrenador?</label>';
+            html += '<select class="form-select" id="cvEsEntrenador" name="cv_es_entrenador">';
+            html += '<option value="">-- Seleccione --</option>';
+            html += '<option value="Sí">Sí</option>';
+            html += '<option value="No">No</option>';
+            html += '</select></div>';
+
+            html += '<div id="cvCamposContinuar" style="display:none;">';
             html += '<div class="cv-precio-card mb-3" id="cvPrecioCard" style="display:none;">';
             html += '<span class="cv-precio-card__label">Inversión</span>';
             html += '<strong class="cv-precio-card__valor" id="cvPrecioValor"></strong>';
             html += '<span class="cv-precio-card__nota" id="cvPrecioNota"></span>';
             html += '</div>';
 
-            html += '<div id="cvCamposIndividuales">';
             html += '<div class="mb-3">';
             html += '<label class="form-label fw-bold" for="cvCategoria">Categoría</label>';
             html += '<select class="form-select" id="cvCategoria" name="cv_categoria" required>';
@@ -1593,7 +1638,9 @@
             camposDinamicos.innerHTML = html;
             cargarDetalleTemplate(20, item.id, $('#cvTemplateContenedor'));
             $('#cvDisciplina')?.addEventListener('change', onDisciplinaCopaVegasChange);
+            $('#cvEsEntrenador')?.addEventListener('change', onEsEntrenadorCopaVegasChange);
             $('#cvInternoExterno')?.addEventListener('change', actualizarColegioCopaVegas);
+            actualizarFlujoEntrenadorCopaVegas(false);
             actualizarVisibilidadCamposAdicionales(20, item.id);
             refreshRequiredAsterisks(document);
             btnEnviar.disabled = false;
@@ -2310,10 +2357,7 @@
             data.Periodo = mesActual + String(anio % 100).padStart(2, '0');
         } else if (tipo === 20) {
             const disciplina = $('#cvDisciplina')?.value || '';
-            if (esDisciplinaEquipoCopaVegas(disciplina)) {
-                redirigirCopaVegasEquipos(disciplina);
-                return;
-            }
+            const esEntrenador = $('#cvEsEntrenador')?.value || '';
             const categoria = $('#cvCategoria')?.value || '';
             const sede = $('#cvSede')?.value || '';
             const internoExterno = $('#cvInternoExterno')?.value || '';
@@ -2326,6 +2370,13 @@
                 alert('Seleccione la disciplina.');
                 $('#cvDisciplina')?.focus();
                 return;
+            }
+            if (esDisciplinaEquipoCopaVegas(disciplina)) {
+                if (esEntrenador !== 'Sí') {
+                    alert('Solo los entrenadores pueden inscribir equipos, consulta con tu entrenador tu inscripción');
+                    $('#cvEsEntrenador')?.focus();
+                    return;
+                }
             }
             if (!categoria) {
                 alert('Seleccione la categoría.');
@@ -2374,6 +2425,7 @@
             data.IDCurso = data.curso_id;
             data.nombreCurso = $('#cvNombreCurso')?.value || 'Copa Vegas';
             data.cv_disciplina = disciplina;
+            data.cv_es_entrenador = esDisciplinaEquipoCopaVegas(disciplina) ? esEntrenador : '';
             data.cv_categoria = categoria;
             data.cv_sede = sede;
             data.cv_interno_externo = internoExterno;

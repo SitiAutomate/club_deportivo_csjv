@@ -425,8 +425,13 @@ if ($tipoId === 1) {
     if (!in_array($internoExterno, $opcionesIe, true)) {
         jsonResponse(['success' => false, 'error' => 'Indique si el deportista es de San José de Las Vegas o externo.', 'traceId' => $traceId], 400);
     }
-    if (copaVegasEsDisciplinaEquipo($disciplina)) {
-        jsonResponse(['success' => false, 'error' => 'Fútbol, baloncesto y voleibol se inscriben por equipos.', 'traceId' => $traceId], 400);
+    $esEntrenador = trim((string) ($input['cv_es_entrenador'] ?? ''));
+    if (copaVegasEsDisciplinaEquipo($disciplina) && $esEntrenador !== 'Sí') {
+        jsonResponse([
+            'success' => false,
+            'error' => 'Solo los entrenadores pueden inscribir equipos, consulta con tu entrenador tu inscripción',
+            'traceId' => $traceId,
+        ], 400);
     }
     if ($internoExterno === 'Externo' && $colegioClub === '') {
         jsonResponse(['success' => false, 'error' => 'Ingrese el nombre del colegio o club.', 'traceId' => $traceId], 400);
@@ -501,6 +506,8 @@ if ($tipoId === 1) {
         'colegio_club' => $colegioClub !== '' ? $colegioClub : null,
         'eps' => $eps,
         'cantidad_deportistas' => $cantidadDeportistas,
+        'es_entrenador' => copaVegasEsDisciplinaEquipo($disciplina) ? $esEntrenador : null,
+        'inscripcion_equipo' => copaVegasEsDisciplinaEquipo($disciplina),
     ], JSON_UNESCAPED_UNICODE);
     $mesActual = str_pad((string) date('n'), 2, '0', STR_PAD_LEFT);
     $detalle['Mes'] = $mesActual;
