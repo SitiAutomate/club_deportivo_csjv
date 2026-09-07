@@ -20,7 +20,7 @@ function eventosTipo18FestivegasIds(): array
 function eventosTipo18PrincipalIds(): array
 {
     $cfg = eventosTipo18Config();
-    $ids = $cfg['principal_curso_ids'] ?? ['1802', '1803', '1804', '1805', '1806', '1807', '1808', '1809', '1810'];
+    $ids = $cfg['principal_curso_ids'] ?? ['1802', '1803', '1804', '1805', '1806', '1807', '1808', '1809', '1810', '1811', '1812'];
     return array_map('strval', $ids);
 }
 
@@ -87,6 +87,20 @@ function eventosTipo18MiniBaloncestoId(): string
     return $id !== '' ? $id : '1810';
 }
 
+function eventosTipo18OktoberfestId(): string
+{
+    $cfg = eventosTipo18Config();
+    $id = trim((string) ($cfg['oktoberfest_curso_id'] ?? '1811'));
+    return $id !== '' ? $id : '1811';
+}
+
+function eventosTipo18ContinentalStarsId(): string
+{
+    $cfg = eventosTipo18Config();
+    $id = trim((string) ($cfg['continental_stars_curso_id'] ?? '1812'));
+    return $id !== '' ? $id : '1812';
+}
+
 function eventosTipo18EsFestivegas(string $idCurso): bool
 {
     return in_array((string) $idCurso, eventosTipo18FestivegasIds(), true);
@@ -143,6 +157,16 @@ function eventosTipo18EsMiniBaloncesto(string $idCurso): bool
     return (string) $idCurso === eventosTipo18MiniBaloncestoId();
 }
 
+function eventosTipo18EsOktoberfest(string $idCurso): bool
+{
+    return (string) $idCurso === eventosTipo18OktoberfestId();
+}
+
+function eventosTipo18EsContinentalStars(string $idCurso): bool
+{
+    return (string) $idCurso === eventosTipo18ContinentalStarsId();
+}
+
 function eventosTipo18MedCheerConfig(): array
 {
     return eventosTipo18Config()['med_cheer'] ?? [];
@@ -183,6 +207,16 @@ function eventosTipo18MiniBaloncestoConfig(): array
     return eventosTipo18Config()['mini_baloncesto'] ?? [];
 }
 
+function eventosTipo18OktoberfestConfig(): array
+{
+    return eventosTipo18Config()['oktoberfest'] ?? [];
+}
+
+function eventosTipo18ContinentalStarsConfig(): array
+{
+    return eventosTipo18Config()['continental_stars'] ?? [];
+}
+
 /**
  * Eventos tipo 18 que solo piden categoría (como Med Cheer).
  * @return array{nombre:string,categorias:array,valor:int}|null
@@ -209,6 +243,12 @@ function eventosTipo18ConfigSoloCategoria(string $idCurso): ?array
     }
     if (eventosTipo18EsMiniBaloncesto($idCurso)) {
         return eventosTipo18MiniBaloncestoConfig();
+    }
+    if (eventosTipo18EsOktoberfest($idCurso)) {
+        return eventosTipo18OktoberfestConfig();
+    }
+    if (eventosTipo18EsContinentalStars($idCurso)) {
+        return eventosTipo18ContinentalStarsConfig();
     }
     return null;
 }

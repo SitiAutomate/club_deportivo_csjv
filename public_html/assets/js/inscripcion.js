@@ -1044,7 +1044,9 @@
         '1807': 'Baby Voleibol',
         '1808': 'The Big Show',
         '1809': 'HIGLAND',
-        '1810': 'Festival de Mini Baloncesto',
+        '1810': 'II Festival Premini',
+        '1811': 'Oktoberfest 2026 – Gimnasia Artística',
+        '1812': 'Continental Stars',
     };
 
     const TIPO18_CATEGORIAS = {
@@ -1054,13 +1056,17 @@
         '1807': ['Mini', 'Infantil'],
         '1808': ['Tiny gold', 'Mini gold', 'Youth gold', 'Junior', 'Youth emerald retiro'],
         '1809': ['Tiny Diamonds', 'Mini Diamonds', 'Youth Diamonds', 'Youth Gold', 'Junior', 'Senior'],
-        '1810': ['Mini'],
+        '1810': ['II FESTIVAL PREMINI (NACIDOS 2018, 2019, 2020)'],
+        '1811': ['Prenivel', 'Test de Habilidades', 'Nivel 1', 'Nivel 2', 'Nivel 3', 'Age Group'],
+        '1812': ['Youth', 'Diamonds', 'Senior'],
     };
 
     const TIPO18_CATEGORIA_LABELS = {
         '1808': 'Seleccione la categoría de participación de la deportista',
         '1809': 'Seleccione la categoría de participación de la deportista',
         '1810': 'Categoría',
+        '1811': 'Seleccione la categoría / nivel',
+        '1812': 'Seleccione la categoría',
     };
 
     const TKD_MODALIDADES = [
@@ -1801,11 +1807,21 @@
                 const cfg = res.config;
                 if (!cfg?.categoria?.options) return;
                 const cat = cfg.categoria;
+                const entries = Object.entries(cat.options);
+                if (!entries.length) return;
+
+                // Una sola categoría: se asigna sola, sin pedirle al usuario que la seleccione.
+                if (entries.length === 1) {
+                    const [val] = entries[0];
+                    wrap.innerHTML = `<input type="hidden" id="salidaCategoria" name="salida_categoria" value="${escapeHtml(val)}">`;
+                    return;
+                }
+
                 let html = '<div class="mb-3">';
                 html += `<label class="form-label fw-bold">${escapeHtml(cat.label || 'Categoría')}</label>`;
                 html += '<select class="form-select" id="salidaCategoria" name="salida_categoria" required>';
                 html += '<option value="">-- Seleccione --</option>';
-                Object.entries(cat.options).forEach(([val, label]) => {
+                entries.forEach(([val, label]) => {
                     html += `<option value="${escapeHtml(val)}">${escapeHtml(label)}</option>`;
                 });
                 html += '</select></div>';

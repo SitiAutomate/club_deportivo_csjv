@@ -554,18 +554,8 @@ if ($tipoId === 1 && !empty($cursoIds)) {
         jsonResponse(['success' => false, 'error' => 'Este participante ya está inscrito en el curso seleccionado.', 'traceId' => $traceId], 400);
     }
 } elseif ($tipoId === 20) {
-    require_once __DIR__ . '/../../includes/copa_vegas.php';
-    $idCurso = trim((string) ($detalle['IDCurso'] ?? $input['curso_id'] ?? $input['IDCurso'] ?? ''));
-    $disciplinaDup = trim((string) ($detalle['Modalidad'] ?? $input['cv_disciplina'] ?? ''));
-    if ($idCurso && $inscripcion->existeDuplicadaCopaVegas($participanteDocumento, $idCurso, $disciplinaDup, $anio, $tipoId)) {
-        jsonResponse([
-            'success' => false,
-            'error' => $disciplinaDup !== ''
-                ? 'Este participante ya está inscrito en ' . $disciplinaDup . ' de Copa Vegas.'
-                : 'Este participante ya está inscrito en Copa Vegas.',
-            'traceId' => $traceId,
-        ], 400);
-    }
+    // Copa Vegas: se permiten varias inscripciones del mismo participante
+    // (misma o distinta disciplina / categoría).
 } elseif ($tipoId !== 3) {
     $idCurso = $input['IDCurso'] ?? $input['curso_id'] ?? $input['campamento_id'] ?? $input['salida_id'] ?? null;
     if ($idCurso && $inscripcion->existeDuplicada($participanteDocumento, (string) $idCurso, $anio, $tipoId)) {

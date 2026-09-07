@@ -7,7 +7,7 @@
  */
 return [
     'festivegas_curso_ids' => ['1801'],
-    'principal_curso_ids' => ['1802', '1803', '1804', '1805', '1806', '1807', '1808', '1809', '1810'],
+    'principal_curso_ids' => ['1802', '1803', '1804', '1805', '1806', '1807', '1808', '1809', '1810', '1811', '1812'],
     'open_kewmgang_curso_id' => '1802',
     'med_cheer_curso_id' => '1803',
     'tkd_nacional_curso_id' => '1804',
@@ -17,6 +17,8 @@ return [
     'big_show_curso_id' => '1808',
     'higland_curso_id' => '1809',
     'mini_baloncesto_curso_id' => '1810',
+    'oktoberfest_curso_id' => '1811',
+    'continental_stars_curso_id' => '1812',
 
     'med_cheer' => [
         'nombre' => 'Med Cheer Championships',
@@ -115,11 +117,34 @@ return [
     ],
 
     'mini_baloncesto' => [
-        'nombre' => 'Festival de Mini Baloncesto',
+        'nombre' => 'II Festival Premini',
         'categorias' => [
-            'Mini',
+            'II FESTIVAL PREMINI (NACIDOS 2018, 2019, 2020)',
         ],
         'valor' => 110000,
         'valor_label' => 'por equipo',
+    ],
+
+    'oktoberfest' => [
+        'nombre' => 'Oktoberfest 2026 – Gimnasia Artística',
+        'categorias' => [
+            'Prenivel',
+            'Test de Habilidades',
+            'Nivel 1',
+            'Nivel 2',
+            'Nivel 3',
+            'Age Group',
+        ],
+        'valor' => 280000,
+    ],
+
+    'continental_stars' => [
+        'nombre' => 'Continental Stars',
+        'categorias' => [
+            'Youth',
+            'Diamonds',
+            'Senior',
+        ],
+        'valor' => 220000,
     ],
 ];

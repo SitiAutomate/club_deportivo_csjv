@@ -61,8 +61,8 @@ return [
             'curso_ids' => ['2262'],
         ],
         'options' => [
-            'Pago completo' => 'Pago completo',
-            'Plan de pagos (30 abril: $1.146.000 | 30 mayo: $1.146.000 | 10 junio: $1.148.000)' => 'Plan de pagos (30 abril: $1.146.000 | 30 mayo: $1.146.000 | 10 junio: $1.148.000)',
+            'Pronto pago ($1.650.000 — hasta 31 de octubre de 2026)' => 'Pronto pago ($1.650.000 — hasta 31 de octubre de 2026)',
+            'Precio estándar ($1.720.000)' => 'Precio estándar ($1.720.000)',
         ],
     ],
     // Ejemplo de campo personalizado (deshabilitado por defecto):

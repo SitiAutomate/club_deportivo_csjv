@@ -32,7 +32,14 @@ function salidasCamposAplicarDesdeInput(string $idCurso, array $input, array &$d
     if (empty($campos['categoria'])) {
         return null;
     }
+    $options = $campos['categoria']['options'] ?? [];
     $categoria = trim((string) ($input['salida_categoria'] ?? $input['Modalidad'] ?? ''));
+
+    // Si solo hay una categoría, se asigna automáticamente.
+    if ($categoria === '' && count($options) === 1) {
+        $categoria = (string) array_key_first($options);
+    }
+
     if ($categoria === '' || !salidasCamposCategoriaValida($idCurso, $categoria)) {
         return 'Seleccione una categoría válida.';
     }

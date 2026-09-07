@@ -102,27 +102,18 @@ class Curso
         }
 
         $estadosValidos = ['ACTIVO', 'Confirmado', 'confirmado', 'Incapacitado', 'incapacitado'];
-        $resultado = [];
+        $idsConCupo = [];
+        foreach ($cursos as $c) {
+            if ((int) ($c['Cupos_maximos'] ?? 0) > 0) {
+                $idsConCupo[] = (string) ($c['ID_Curso'] ?? '');
+            }
+        }
+        $inscritosPorCurso = $this->contarInscritosPorCurso($idsConCupo, $anio, $estadosValidos, $meses, true);
 
+        $resultado = [];
         foreach ($cursos as $c) {
             $cupoMax = (int) ($c['Cupos_maximos'] ?? 0);
-            $inscritos = 0;
-
-            if ($cupoMax > 0 && !empty($meses)) {
-                // Contar participantes únicos (traslados Feb→Mar duplican filas; mismo participante = 1 cupo)
-                $mesesEsc = array_map(function ($m) {
-                    return $this->db->quote($m);
-                }, $meses);
-                $mesList = implode(',', $mesesEsc);
-                $estadosList = implode(',', array_map(function ($e) {
-                    return $this->db->quote($e);
-                }, $estadosValidos));
-                $idCurso = $this->db->quote($c['ID_Curso']);
-                $anioInt = (int) $anio;
-                $row = $this->db->query("SELECT COUNT(DISTINCT validador_participante) AS cnt FROM inscripciones_1 WHERE IDCurso = $idCurso AND Mes IN ($mesList) AND Estado IN ($estadosList) AND año = $anioInt")->fetch();
-                $inscritos = (int) ($row['cnt'] ?? 0);
-            }
-
+            $inscritos = $cupoMax > 0 ? (int) ($inscritosPorCurso[(string) ($c['ID_Curso'] ?? '')] ?? 0) : 0;
             $disponibles = $cupoMax > 0 ? ($cupoMax - $inscritos) : 999;
             if ($disponibles <= 0) {
                 continue;
@@ -136,6 +127,48 @@ class Curso
         }
 
         return $resultado;
+    }
+
+    /**
+     * Una sola consulta agrupada en lugar de un COUNT por cada curso.
+     *
+     * @param string[] $idsCurso
+     * @param string[] $estadosValidos
+     * @param string[]|null $meses
+     * @return array<string,int> IDCurso => inscritos
+     */
+    public function contarInscritosPorCurso(
+        array $idsCurso,
+        int $anio,
+        array $estadosValidos,
+        ?array $meses = null,
+        bool $participantesUnicos = false
+    ): array {
+        $idsCurso = array_values(array_unique(array_filter(array_map('strval', $idsCurso), fn($id) => $id !== '')));
+        if ($idsCurso === [] || $estadosValidos === []) {
+            return [];
+        }
+
+        $idsList = implode(',', array_map(fn($id) => $this->db->quote($id), $idsCurso));
+        $estadosList = implode(',', array_map(fn($e) => $this->db->quote($e), $estadosValidos));
+        $anioInt = (int) $anio;
+        $cntExpr = $participantesUnicos
+            ? 'COUNT(DISTINCT validador_participante)'
+            : 'COUNT(*)';
+        $sql = "SELECT IDCurso, $cntExpr AS cnt FROM inscripciones_1"
+            . " WHERE IDCurso IN ($idsList) AND año = $anioInt AND Estado IN ($estadosList)";
+        if ($meses !== null && $meses !== []) {
+            $mesList = implode(',', array_map(fn($m) => $this->db->quote((string) $m), $meses));
+            $sql .= " AND Mes IN ($mesList)";
+        }
+        $sql .= ' GROUP BY IDCurso';
+
+        $rows = $this->db->query($sql)->fetchAll();
+        $out = [];
+        foreach ($rows ?: [] as $row) {
+            $out[(string) ($row['IDCurso'] ?? '')] = (int) ($row['cnt'] ?? 0);
+        }
+        return $out;
     }
 
     /**

@@ -42,4 +42,44 @@ return [
             ],
         ],
     ],
+    '5124' => [
+        'categoria' => [
+            'column' => 'Modalidad',
+            'label' => 'Categoría',
+            'options' => [
+                'Sub 10 Escobero' => 'Sub 10 Escobero',
+            ],
+        ],
+    ],
+    '5125' => [
+        'categoria' => [
+            'column' => 'Modalidad',
+            'label' => 'Categoría',
+            'options' => [
+                'Sub 12' => 'Sub 12',
+                'Sub 16' => 'Sub 16',
+            ],
+        ],
+    ],
+    '5126' => [
+        'categoria' => [
+            'column' => 'Modalidad',
+            'label' => 'Categoría',
+            'options' => [
+                'Mini Seleccionado' => 'Mini Seleccionado',
+                'Infantil' => 'Infantil',
+            ],
+        ],
+    ],
+    '5127' => [
+        'categoria' => [
+            'column' => 'Modalidad',
+            'label' => 'Categoría',
+            'options' => [
+                'Mini' => 'Mini',
+                'Infantil' => 'Infantil',
+                'Junior' => 'Junior',
+            ],
+        ],
+    ],
 ];

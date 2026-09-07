@@ -59,17 +59,19 @@ $filterByCupos = !empty($cfg['filterByCupos']);
 if ($filterByCupos && !empty($rows)) {
     $anioCupos = (int) date('Y');
     $estadosValidos = ['ACTIVO', 'Confirmado', 'confirmado', 'Incapacitado', 'incapacitado'];
-    $rows = array_values(array_filter($rows, function ($c) use ($database, $anioCupos, $estadosValidos) {
+    $idsConCupo = [];
+    foreach ($rows as $c) {
+        if ((int) ($c['Cupos_maximos'] ?? 0) > 0) {
+            $idsConCupo[] = (string) ($c['ID_Curso'] ?? '');
+        }
+    }
+    $inscritosPorCurso = $curso->contarInscritosPorCurso($idsConCupo, $anioCupos, $estadosValidos, null, false);
+    $rows = array_values(array_filter($rows, function ($c) use ($inscritosPorCurso) {
         $max = (int) ($c['Cupos_maximos'] ?? 0);
         if ($max <= 0) {
             return true;
         }
-        $idCurso = $database->quote((string) ($c['ID_Curso'] ?? ''));
-        $estadosList = implode(',', array_map(fn($e) => $database->quote($e), $estadosValidos));
-        $row = $database->query(
-            "SELECT COUNT(*) AS cnt FROM inscripciones_1 WHERE IDCurso = $idCurso AND año = $anioCupos AND Estado IN ($estadosList)"
-        )->fetch();
-        $inscritos = (int) ($row['cnt'] ?? 0);
+        $inscritos = (int) ($inscritosPorCurso[(string) ($c['ID_Curso'] ?? '')] ?? 0);
         return $inscritos < $max;
     }));
 }
