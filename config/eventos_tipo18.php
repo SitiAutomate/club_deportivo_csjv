@@ -7,7 +7,7 @@
  */
 return [
     'festivegas_curso_ids' => ['1801'],
-    'principal_curso_ids' => ['1802', '1803', '1804', '1805', '1806', '1807', '1808', '1809', '1810', '1811', '1812'],
+    'principal_curso_ids' => ['1802', '1803', '1804', '1805', '1806', '1807', '1808', '1809', '1810', '1811', '1812', '1813', '1814'],
     'open_kewmgang_curso_id' => '1802',
     'med_cheer_curso_id' => '1803',
     'tkd_nacional_curso_id' => '1804',
@@ -19,6 +19,8 @@ return [
     'mini_baloncesto_curso_id' => '1810',
     'oktoberfest_curso_id' => '1811',
     'continental_stars_curso_id' => '1812',
+    'tkd_fraternidad_curso_id' => '1813',
+    'volleyball_columbus_curso_id' => '1814',
 
     'med_cheer' => [
         'nombre' => 'Med Cheer Championships',
@@ -146,5 +148,31 @@ return [
             'Senior',
         ],
         'valor' => 220000,
+    ],
+
+    'tkd_fraternidad' => [
+        'nombre' => 'Open de taekwondo por la fraternidad',
+        'valor' => 100000,
+        'cinturones' => [
+            'Blanco',
+            'Blanco franja amarilla',
+            'Amarillo',
+            'Amarillo franja verde',
+            'Verde',
+            'Verde franja azul',
+            'Azul',
+            'Azul franja roja',
+            'Rojo',
+            'Rojo franja negra',
+        ],
+    ],
+
+    'volleyball_columbus' => [
+        'nombre' => 'Volleyball Competition – The Columbus School',
+        'categorias' => [
+            'Infantil',
+        ],
+        'valor' => 500000,
+        'valor_label' => 'por equipo',
     ],
 ];

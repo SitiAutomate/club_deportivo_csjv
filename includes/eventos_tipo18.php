@@ -20,7 +20,7 @@ function eventosTipo18FestivegasIds(): array
 function eventosTipo18PrincipalIds(): array
 {
     $cfg = eventosTipo18Config();
-    $ids = $cfg['principal_curso_ids'] ?? ['1802', '1803', '1804', '1805', '1806', '1807', '1808', '1809', '1810', '1811', '1812'];
+    $ids = $cfg['principal_curso_ids'] ?? ['1802', '1803', '1804', '1805', '1806', '1807', '1808', '1809', '1810', '1811', '1812', '1813', '1814'];
     return array_map('strval', $ids);
 }
 
@@ -101,6 +101,20 @@ function eventosTipo18ContinentalStarsId(): string
     return $id !== '' ? $id : '1812';
 }
 
+function eventosTipo18TkdFraternidadId(): string
+{
+    $cfg = eventosTipo18Config();
+    $id = trim((string) ($cfg['tkd_fraternidad_curso_id'] ?? '1813'));
+    return $id !== '' ? $id : '1813';
+}
+
+function eventosTipo18VolleyballColumbusId(): string
+{
+    $cfg = eventosTipo18Config();
+    $id = trim((string) ($cfg['volleyball_columbus_curso_id'] ?? '1814'));
+    return $id !== '' ? $id : '1814';
+}
+
 function eventosTipo18EsFestivegas(string $idCurso): bool
 {
     return in_array((string) $idCurso, eventosTipo18FestivegasIds(), true);
@@ -167,6 +181,16 @@ function eventosTipo18EsContinentalStars(string $idCurso): bool
     return (string) $idCurso === eventosTipo18ContinentalStarsId();
 }
 
+function eventosTipo18EsTkdFraternidad(string $idCurso): bool
+{
+    return (string) $idCurso === eventosTipo18TkdFraternidadId();
+}
+
+function eventosTipo18EsVolleyballColumbus(string $idCurso): bool
+{
+    return (string) $idCurso === eventosTipo18VolleyballColumbusId();
+}
+
 function eventosTipo18MedCheerConfig(): array
 {
     return eventosTipo18Config()['med_cheer'] ?? [];
@@ -217,6 +241,16 @@ function eventosTipo18ContinentalStarsConfig(): array
     return eventosTipo18Config()['continental_stars'] ?? [];
 }
 
+function eventosTipo18TkdFraternidadConfig(): array
+{
+    return eventosTipo18Config()['tkd_fraternidad'] ?? [];
+}
+
+function eventosTipo18VolleyballColumbusConfig(): array
+{
+    return eventosTipo18Config()['volleyball_columbus'] ?? [];
+}
+
 /**
  * Eventos tipo 18 que solo piden categoría (como Med Cheer).
  * @return array{nombre:string,categorias:array,valor:int}|null
@@ -249,6 +283,9 @@ function eventosTipo18ConfigSoloCategoria(string $idCurso): ?array
     }
     if (eventosTipo18EsContinentalStars($idCurso)) {
         return eventosTipo18ContinentalStarsConfig();
+    }
+    if (eventosTipo18EsVolleyballColumbus($idCurso)) {
+        return eventosTipo18VolleyballColumbusConfig();
     }
     return null;
 }

@@ -102,6 +102,21 @@ if ($tipoId === 1) {
     $mesActual = str_pad((string) date('n'), 2, '0', STR_PAD_LEFT);
     $detalle['Mes'] = $detalle['Mes'] ?? $mesActual;
     $detalle['Periodo'] = $detalle['Periodo'] ?? ($mesActual . str_pad((string) ($anio % 100), 2, '0', STR_PAD_LEFT));
+
+    $idCamp = (string) ($detalle['IDCurso'] ?? '');
+    if ($idCamp === '2262') {
+        $fechaInteres = trim((string) ($input['fecha_interes_english_camp'] ?? $detalle['categoria'] ?? ''));
+        $fechasOk = ['25 al 27 de noviembre de 2026', '3 al 5 de diciembre de 2026'];
+        if ($fechaInteres === '' || !in_array($fechaInteres, $fechasOk, true)) {
+            jsonResponse(['success' => false, 'error' => 'Seleccione la fecha del English Camp en la que está interesado.', 'traceId' => $traceId], 400);
+        }
+        $detalle['categoria'] = $fechaInteres;
+        $modalidadPago = trim((string) ($input['modalidad_pago_english_camp'] ?? $detalle['Sesión'] ?? ''));
+        if ($modalidadPago === '') {
+            jsonResponse(['success' => false, 'error' => 'Seleccione la modalidad de pago del English Camp.', 'traceId' => $traceId], 400);
+        }
+        $detalle['Sesión'] = $modalidadPago;
+    }
 } elseif ($tipoId === 5 || $tipoId === 3) {
     $detalle['IDCurso'] = $input['salida_id'] ?? $input['IDCurso'] ?? null;
     $detalle['nombreCurso'] = $input['nombreCurso'] ?? null;
@@ -320,6 +335,113 @@ if ($tipoId === 1) {
             'peso_kg' => (float) $peso,
             'estatura_cm' => (float) $estatura,
         ], JSON_UNESCAPED_UNICODE);
+    } elseif (eventosTipo18EsTkdFraternidad($idCursoReq)) {
+        $cfgFrat = eventosTipo18TkdFraternidadConfig();
+        if ($detalle['nombreCurso'] === '') {
+            $detalle['nombreCurso'] = (string) ($cfgFrat['nombre'] ?? 'Open de taekwondo por la fraternidad');
+        }
+        $valor = (int) ($cfgFrat['valor'] ?? 100000);
+        $cinturonesOk = $cfgFrat['cinturones'] ?? [];
+
+        $esClub = trim((string) ($input['tkd_frat_es_club'] ?? ''));
+        if (!in_array($esClub, ['Sí', 'No'], true)) {
+            jsonResponse(['success' => false, 'error' => 'Indique si es deportista del Club San José de las Vegas.', 'traceId' => $traceId], 400);
+        }
+
+        $tipoPart = trim((string) ($input['tkd_frat_tipo'] ?? ''));
+        if ($esClub === 'Sí') {
+            $tipoPart = 'Individual';
+        }
+        if (!in_array($tipoPart, ['Individual', 'Equipo'], true)) {
+            jsonResponse(['success' => false, 'error' => 'Seleccione si la inscripción es individual o por equipo.', 'traceId' => $traceId], 400);
+        }
+
+        $detalle['IDAsign'] = $esClub === 'Sí' ? 'Club SJV' : 'Externo';
+        $detalle['Modalidad'] = $tipoPart;
+        $obs = [
+            'es_club_sjv' => $esClub,
+            'tipo_participacion' => $tipoPart,
+            'valor_total' => $valor,
+        ];
+
+        if ($tipoPart === 'Individual') {
+            $peso = trim((string) ($input['tkd_frat_peso'] ?? ''));
+            $estatura = trim((string) ($input['tkd_frat_estatura'] ?? ''));
+            $cinturon = trim((string) ($input['tkd_frat_cinturon'] ?? ''));
+            if ($peso === '' || !is_numeric($peso) || (float) $peso <= 0) {
+                jsonResponse(['success' => false, 'error' => 'Ingrese el peso en kg.', 'traceId' => $traceId], 400);
+            }
+            if ($estatura === '' || !is_numeric($estatura) || (float) $estatura <= 0) {
+                jsonResponse(['success' => false, 'error' => 'Ingrese la estatura en cm.', 'traceId' => $traceId], 400);
+            }
+            if ($cinturon === '' || !in_array($cinturon, $cinturonesOk, true)) {
+                jsonResponse(['success' => false, 'error' => 'Seleccione un cinturón válido.', 'traceId' => $traceId], 400);
+            }
+            $detalle['categoria'] = $cinturon;
+            $detalle['Asignatura'] = (string) $estatura;
+            $obs['peso_kg'] = (float) $peso;
+            $obs['estatura_cm'] = (float) $estatura;
+            $obs['cinturon'] = $cinturon;
+
+            if ($esClub === 'No') {
+                $equipo = trim((string) ($input['tkd_frat_equipo'] ?? ''));
+                $entrenador = trim((string) ($input['tkd_frat_entrenador'] ?? ''));
+                if ($equipo === '' || $entrenador === '') {
+                    jsonResponse(['success' => false, 'error' => 'Ingrese el equipo/club/colegio y el nombre del entrenador.', 'traceId' => $traceId], 400);
+                }
+                $detalle['organizacion'] = $equipo;
+                $detalle['club'] = $entrenador;
+                $obs['equipo'] = $equipo;
+                $obs['entrenador'] = $entrenador;
+            }
+        } else {
+            $cantidadRaw = trim((string) ($input['tkd_frat_cantidad'] ?? ''));
+            if ($cantidadRaw === '' || !ctype_digit($cantidadRaw) || (int) $cantidadRaw < 1) {
+                jsonResponse(['success' => false, 'error' => 'Indique la cantidad de deportistas.', 'traceId' => $traceId], 400);
+            }
+            $cantidad = (int) $cantidadRaw;
+            $detalle['Sesión'] = (string) $cantidad;
+            $obs['cantidad_deportistas'] = $cantidad;
+
+            $planillaNombre = trim((string) ($input['tkd_frat_planilla_nombre'] ?? ''));
+            $planillaMime = trim((string) ($input['tkd_frat_planilla_mime'] ?? ''));
+            $planillaB64 = trim((string) ($input['tkd_frat_planilla_base64'] ?? ''));
+            if ($planillaB64 === '' || $planillaNombre === '') {
+                jsonResponse(['success' => false, 'error' => 'Suba la planilla de deportistas.', 'traceId' => $traceId], 400);
+            }
+
+            $bin = base64_decode($planillaB64, true);
+            if ($bin === false || strlen($bin) === 0) {
+                jsonResponse(['success' => false, 'error' => 'La planilla no es válida.', 'traceId' => $traceId], 400);
+            }
+            if (strlen($bin) > 5 * 1024 * 1024) {
+                jsonResponse(['success' => false, 'error' => 'La planilla no puede superar 5 MB.', 'traceId' => $traceId], 400);
+            }
+
+            $ext = strtolower(pathinfo($planillaNombre, PATHINFO_EXTENSION));
+            $extOk = ['csv', 'xlsx', 'xls', 'pdf', 'doc', 'docx'];
+            if (!in_array($ext, $extOk, true)) {
+                jsonResponse(['success' => false, 'error' => 'Formato de planilla no permitido.', 'traceId' => $traceId], 400);
+            }
+
+            $dir = dirname(__DIR__, 2) . '/storage/planillas';
+            if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
+                jsonResponse(['success' => false, 'error' => 'No fue posible guardar la planilla.', 'traceId' => $traceId], 500);
+            }
+            $safeBase = preg_replace('/[^a-zA-Z0-9._-]/', '_', pathinfo($planillaNombre, PATHINFO_FILENAME)) ?: 'planilla';
+            $fileName = date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '_' . $safeBase . '.' . $ext;
+            $fullPath = $dir . '/' . $fileName;
+            if (file_put_contents($fullPath, $bin) === false) {
+                jsonResponse(['success' => false, 'error' => 'No fue posible guardar la planilla.', 'traceId' => $traceId], 500);
+            }
+            $obs['planilla'] = [
+                'nombre_original' => $planillaNombre,
+                'mime' => $planillaMime,
+                'archivo' => 'storage/planillas/' . $fileName,
+            ];
+        }
+
+        $detalle['OBSERVACION'] = json_encode($obs, JSON_UNESCAPED_UNICODE);
     } else {
         jsonResponse(['success' => false, 'error' => 'Evento no configurado.', 'traceId' => $traceId], 400);
     }
@@ -1023,8 +1145,12 @@ try {
         );
         if ($esEnglishCamp) {
             $metodoPagoInput = trim((string) ($input['modalidad_pago_english_camp'] ?? ''));
-            $metodoPagoSesion = trim((string) ($detalle['Sesion'] ?? ''));
+            $metodoPagoSesion = trim((string) ($detalle['Sesión'] ?? $detalle['Sesion'] ?? ''));
             $metodoPago = $metodoPagoInput !== '' ? $metodoPagoInput : ($metodoPagoSesion !== '' ? $metodoPagoSesion : null);
+            $fechaInteres = trim((string) ($input['fecha_interes_english_camp'] ?? $detalle['categoria'] ?? ''));
+            if ($fechaInteres !== '') {
+                $detalleTexto .= ' — Fecha de interés: ' . $fechaInteres;
+            }
         }
         if ($responsableEmail) {
             $emailService = new EmailService();

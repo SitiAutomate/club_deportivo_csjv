@@ -553,8 +553,20 @@
             const matchCurso = !cursos.length || cursos.includes(curso);
             const visible = matchTipo && matchCurso;
             item.style.display = visible ? '' : 'none';
+            item.querySelectorAll('input, select, textarea').forEach((el) => {
+                if (el.hasAttribute('required') || el.getAttribute('data-was-required') === '1') {
+                    if (visible) {
+                        el.setAttribute('data-was-required', '1');
+                        el.required = true;
+                    } else {
+                        el.setAttribute('data-was-required', '1');
+                        el.required = false;
+                    }
+                }
+            });
             if (!visible) resetCampoDatoAdicional(item);
         });
+        refreshRequiredAsterisks(card);
     }
 
     function cargarTipoDirecto(tipo) {
@@ -1047,6 +1059,8 @@
         '1810': 'II Festival Premini',
         '1811': 'Oktoberfest 2026 – Gimnasia Artística',
         '1812': 'Continental Stars',
+        '1813': 'Open de taekwondo por la fraternidad',
+        '1814': 'Volleyball Competition – The Columbus School',
     };
 
     const TIPO18_CATEGORIAS = {
@@ -1059,6 +1073,7 @@
         '1810': ['II FESTIVAL PREMINI (NACIDOS 2018, 2019, 2020)'],
         '1811': ['Prenivel', 'Test de Habilidades', 'Nivel 1', 'Nivel 2', 'Nivel 3', 'Age Group'],
         '1812': ['Youth', 'Diamonds', 'Senior'],
+        '1814': ['Infantil'],
     };
 
     const TIPO18_CATEGORIA_LABELS = {
@@ -1067,7 +1082,21 @@
         '1810': 'Categoría',
         '1811': 'Seleccione la categoría / nivel',
         '1812': 'Seleccione la categoría',
+        '1814': 'Categoría',
     };
+
+    const TKD_FRAT_CINTURONES = [
+        'Blanco',
+        'Blanco franja amarilla',
+        'Amarillo',
+        'Amarillo franja verde',
+        'Verde',
+        'Verde franja azul',
+        'Azul',
+        'Azul franja roja',
+        'Rojo',
+        'Rojo franja negra',
+    ];
 
     const TKD_MODALIDADES = [
         { value: 'Festival infantil', label: 'Festival infantil ($120.000)' },
@@ -1192,6 +1221,106 @@
         return html;
     }
 
+    function renderFormTkdFraternidad(cursoId, nombreCurso) {
+        let html = '<div class="tkd-fraternidad-form" id="formEventoTipo18">';
+        html += '<input type="hidden" id="t18CursoId" name="curso_id" value="' + escapeHtml(cursoId) + '">';
+        html += '<input type="hidden" name="nombreCurso" value="' + escapeHtml(nombreCurso) + '">';
+
+        html += '<div class="mb-3"><label class="form-label fw-bold" for="tkdFratEsClub">¿Es deportista del Club San José de las Vegas?</label>';
+        html += '<select class="form-select" id="tkdFratEsClub" name="tkd_frat_es_club" required>';
+        html += '<option value="">-- Seleccione --</option>';
+        html += '<option value="Sí">Sí</option>';
+        html += '<option value="No">No</option>';
+        html += '</select></div>';
+
+        html += '<div id="wrapTkdFratTipoExterno" style="display:none;" class="mb-3">';
+        html += '<label class="form-label fw-bold" for="tkdFratTipo">Tipo de inscripción</label>';
+        html += '<select class="form-select" id="tkdFratTipo" name="tkd_frat_tipo">';
+        html += '<option value="">-- Seleccione --</option>';
+        html += '<option value="Individual">Individual</option>';
+        html += '<option value="Equipo">Equipo (lo inscribe el entrenador)</option>';
+        html += '</select></div>';
+
+        html += '<div id="wrapTkdFratIndividual" style="display:none;">';
+        html += '<div class="row g-3 mb-3">';
+        html += '<div class="col-md-4"><label class="form-label fw-bold" for="tkdFratPeso">Peso (kg)</label>';
+        html += '<input type="number" class="form-control" id="tkdFratPeso" name="tkd_frat_peso" min="1" step="0.1" placeholder="Ej: 35"></div>';
+        html += '<div class="col-md-4"><label class="form-label fw-bold" for="tkdFratEstatura">Estatura (cm)</label>';
+        html += '<input type="number" class="form-control" id="tkdFratEstatura" name="tkd_frat_estatura" min="1" step="0.1" placeholder="Ej: 140"></div>';
+        html += '<div class="col-md-4"><label class="form-label fw-bold" for="tkdFratCinturon">Cinturón</label>';
+        html += '<select class="form-select" id="tkdFratCinturon" name="tkd_frat_cinturon"><option value="">-- Seleccione --</option>';
+        TKD_FRAT_CINTURONES.forEach((c) => {
+            html += `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`;
+        });
+        html += '</select></div></div>';
+        html += '<div id="wrapTkdFratDatosExterno" style="display:none;" class="row g-3 mb-3">';
+        html += '<div class="col-md-6"><label class="form-label fw-bold" for="tkdFratEquipo">Equipo / club / colegio</label>';
+        html += '<input type="text" class="form-control" id="tkdFratEquipo" name="tkd_frat_equipo" maxlength="150" placeholder="Nombre del equipo, club o colegio"></div>';
+        html += '<div class="col-md-6"><label class="form-label fw-bold" for="tkdFratEntrenador">Nombre del entrenador</label>';
+        html += '<input type="text" class="form-control" id="tkdFratEntrenador" name="tkd_frat_entrenador" maxlength="120" placeholder="Nombre completo del entrenador"></div>';
+        html += '</div></div>';
+
+        html += '<div id="wrapTkdFratEquipo" style="display:none;">';
+        html += '<div class="alert alert-info small">La inscripción por equipo debe realizarla el entrenador. Indique la cantidad de deportistas y cargue la planilla.</div>';
+        html += '<div class="mb-3"><label class="form-label fw-bold" for="tkdFratCantidad">Cantidad de deportistas</label>';
+        html += '<input type="number" class="form-control" id="tkdFratCantidad" name="tkd_frat_cantidad" min="1" max="99" step="1" placeholder="Ej: 10"></div>';
+        html += '<div class="mb-3"><label class="form-label fw-bold" for="tkdFratPlanilla">Planilla de deportistas</label>';
+        html += '<input type="file" class="form-control" id="tkdFratPlanilla" name="tkd_frat_planilla" accept=".csv,.xlsx,.xls,.pdf,.doc,.docx">';
+        html += '<div class="form-text">Descargue la <a href="' + escapeHtml(basePath) + 'assets/docs/PLANILLA-OPEN-POR-LA-FRATERNIDAD.xlsx" download="PLANILLA OPEN POR LA FRATERNIDAD.xlsx">planilla oficial (Excel)</a>, diligénciela y súbala aquí.</div>';
+        html += '</div></div></div>';
+        return html;
+    }
+
+    function actualizarTkdFraternidadFlujo() {
+        const esClub = $('#tkdFratEsClub')?.value || '';
+        const tipo = $('#tkdFratTipo')?.value || '';
+        const wrapTipo = $('#wrapTkdFratTipoExterno');
+        const wrapInd = $('#wrapTkdFratIndividual');
+        const wrapExt = $('#wrapTkdFratDatosExterno');
+        const wrapEq = $('#wrapTkdFratEquipo');
+        const selTipo = $('#tkdFratTipo');
+
+        const esExterno = esClub === 'No';
+        const mostrarIndividual = esClub === 'Sí' || (esExterno && tipo === 'Individual');
+        const mostrarEquipo = esExterno && tipo === 'Equipo';
+
+        if (wrapTipo) wrapTipo.style.display = esExterno ? 'block' : 'none';
+        if (selTipo) {
+            selTipo.required = esExterno;
+            if (!esExterno) selTipo.value = '';
+        }
+
+        if (wrapInd) wrapInd.style.display = mostrarIndividual ? 'block' : 'none';
+        if (wrapExt) wrapExt.style.display = (esExterno && tipo === 'Individual') ? 'block' : 'none';
+        if (wrapEq) wrapEq.style.display = mostrarEquipo ? 'block' : 'none';
+
+        const peso = $('#tkdFratPeso');
+        const est = $('#tkdFratEstatura');
+        const cin = $('#tkdFratCinturon');
+        const equipo = $('#tkdFratEquipo');
+        const entrenador = $('#tkdFratEntrenador');
+        const cant = $('#tkdFratCantidad');
+        const planilla = $('#tkdFratPlanilla');
+
+        if (peso) { peso.required = mostrarIndividual; if (!mostrarIndividual) peso.value = ''; }
+        if (est) { est.required = mostrarIndividual; if (!mostrarIndividual) est.value = ''; }
+        if (cin) { cin.required = mostrarIndividual; if (!mostrarIndividual) cin.value = ''; }
+        if (equipo) {
+            equipo.required = esExterno && tipo === 'Individual';
+            if (!(esExterno && tipo === 'Individual')) equipo.value = '';
+        }
+        if (entrenador) {
+            entrenador.required = esExterno && tipo === 'Individual';
+            if (!(esExterno && tipo === 'Individual')) entrenador.value = '';
+        }
+        if (cant) { cant.required = mostrarEquipo; if (!mostrarEquipo) cant.value = ''; }
+        if (planilla) {
+            planilla.required = mostrarEquipo;
+            if (!mostrarEquipo) planilla.value = '';
+        }
+        refreshRequiredAsterisks(camposDinamicos);
+    }
+
     function onEventoTipo18Change() {
         const sel = $('#t18EventoSelect');
         const wrapForm = $('#t18FormContenedor');
@@ -1213,6 +1342,11 @@
             $('#openkDivision')?.addEventListener('change', actualizarOpenKewmgangMedicion);
         } else if (cursoId === '1804') {
             wrapForm.innerHTML = renderFormTkdNacional(cursoId, nombre);
+        } else if (cursoId === '1813') {
+            wrapForm.innerHTML = renderFormTkdFraternidad(cursoId, nombre);
+            $('#tkdFratEsClub')?.addEventListener('change', actualizarTkdFraternidadFlujo);
+            $('#tkdFratTipo')?.addEventListener('change', actualizarTkdFraternidadFlujo);
+            actualizarTkdFraternidadFlujo();
         } else if (TIPO18_CATEGORIAS[cursoId]) {
             wrapForm.innerHTML = renderFormCategoriaOnly(cursoId, nombre);
         } else {
@@ -2317,6 +2451,74 @@
                 data.tkd_genero = genero;
                 data.tkd_peso = peso;
                 data.tkd_estatura = estatura;
+            } else if (cursoId === '1813') {
+                const esClub = $('#tkdFratEsClub')?.value || '';
+                if (!esClub) {
+                    alert('Indique si es deportista del Club San José de las Vegas.');
+                    $('#tkdFratEsClub')?.focus();
+                    return;
+                }
+                data.tkd_frat_es_club = esClub;
+                if (esClub === 'No') {
+                    const tipoPart = $('#tkdFratTipo')?.value || '';
+                    if (!tipoPart) {
+                        alert('Seleccione si la inscripción es individual o por equipo.');
+                        $('#tkdFratTipo')?.focus();
+                        return;
+                    }
+                    data.tkd_frat_tipo = tipoPart;
+                    if (tipoPart === 'Individual') {
+                        const peso = $('#tkdFratPeso')?.value || '';
+                        const estatura = $('#tkdFratEstatura')?.value || '';
+                        const cinturon = $('#tkdFratCinturon')?.value || '';
+                        const equipo = ($('#tkdFratEquipo')?.value || '').trim();
+                        const entrenador = ($('#tkdFratEntrenador')?.value || '').trim();
+                        if (!peso || !estatura || !cinturon) {
+                            alert('Complete peso, estatura y cinturón.');
+                            return;
+                        }
+                        if (!equipo || !entrenador) {
+                            alert('Ingrese el equipo/club/colegio y el nombre del entrenador.');
+                            return;
+                        }
+                        data.tkd_frat_peso = peso;
+                        data.tkd_frat_estatura = estatura;
+                        data.tkd_frat_cinturon = cinturon;
+                        data.tkd_frat_equipo = equipo;
+                        data.tkd_frat_entrenador = entrenador;
+                    } else if (tipoPart === 'Equipo') {
+                        const cantidad = ($('#tkdFratCantidad')?.value || '').trim();
+                        const file = $('#tkdFratPlanilla')?.files?.[0];
+                        if (!cantidad || parseInt(cantidad, 10) < 1) {
+                            alert('Indique la cantidad de deportistas.');
+                            $('#tkdFratCantidad')?.focus();
+                            return;
+                        }
+                        if (!file) {
+                            alert('Suba la planilla de deportistas.');
+                            $('#tkdFratPlanilla')?.focus();
+                            return;
+                        }
+                        if (file.size > 5 * 1024 * 1024) {
+                            alert('La planilla no puede superar 5 MB.');
+                            return;
+                        }
+                        data.tkd_frat_cantidad = cantidad;
+                        data._tkdFratPlanillaFile = file;
+                    }
+                } else {
+                    data.tkd_frat_tipo = 'Individual';
+                    const peso = $('#tkdFratPeso')?.value || '';
+                    const estatura = $('#tkdFratEstatura')?.value || '';
+                    const cinturon = $('#tkdFratCinturon')?.value || '';
+                    if (!peso || !estatura || !cinturon) {
+                        alert('Complete peso, estatura y cinturón.');
+                        return;
+                    }
+                    data.tkd_frat_peso = peso;
+                    data.tkd_frat_estatura = estatura;
+                    data.tkd_frat_cinturon = cinturon;
+                }
             } else if (TIPO18_CATEGORIAS[cursoId]) {
                 const cat = $('#eventoCategoria')?.value || '';
                 if (!cat) {
@@ -2499,11 +2701,31 @@
         if (btnTxt) btnTxt.classList.add('d-none');
         if (btnSpinner) btnSpinner.classList.remove('d-none');
 
-        fetch(basePath + 'ajax/guardar-inscripcion.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-            body: JSON.stringify(data)
-        })
+        const planillaFile = data._tkdFratPlanillaFile || null;
+        delete data._tkdFratPlanillaFile;
+
+        const leerPlanilla = planillaFile
+            ? new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const result = String(reader.result || '');
+                    const base64 = result.includes(',') ? result.split(',')[1] : result;
+                    data.tkd_frat_planilla_nombre = planillaFile.name || 'planilla';
+                    data.tkd_frat_planilla_mime = planillaFile.type || 'application/octet-stream';
+                    data.tkd_frat_planilla_base64 = base64;
+                    resolve();
+                };
+                reader.onerror = () => reject(new Error('No se pudo leer la planilla.'));
+                reader.readAsDataURL(planillaFile);
+            })
+            : Promise.resolve();
+
+        leerPlanilla
+            .then(() => fetch(basePath + 'ajax/guardar-inscripcion.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                body: JSON.stringify(data)
+            }))
             .then(r => r.json())
             .then(res => {
                 if (res.success) {
@@ -2519,7 +2741,7 @@
                     alert(res.error || 'Error al guardar inscripción.');
                 }
             })
-            .catch(() => alert('Error de conexión'))
+            .catch((err) => alert(err?.message || 'Error de conexión'))
             .finally(() => {
                 btnEnviar.disabled = false;
                 const txt = btnEnviar.querySelector('.btn-text');

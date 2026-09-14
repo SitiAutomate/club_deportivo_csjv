@@ -50,11 +50,26 @@ return [
         'placeholder' => 'Cualquier información adicional que debamos conocer...',
         'rows' => 3,
     ],
+    'fecha_interes_english_camp' => [
+        'label' => '¿En cuál fecha del English Camp está interesado?',
+        'type' => 'select',
+        'column' => 'categoria',
+        'required' => true,
+        'enabled' => true,
+        'show_only_for' => [
+            'tipo_ids' => [2],
+            'curso_ids' => ['2262'],
+        ],
+        'options' => [
+            '25 al 27 de noviembre de 2026' => '25 al 27 de noviembre de 2026',
+            '3 al 5 de diciembre de 2026' => '3 al 5 de diciembre de 2026',
+        ],
+    ],
     'modalidad_pago_english_camp' => [
         'label' => 'Modalidad de pago (English Camp)',
         'type' => 'select',
         'column' => 'Sesión',
-        'required' => false,
+        'required' => true,
         'enabled' => true,
         'show_only_for' => [
             'tipo_ids' => [2],
@@ -65,13 +80,4 @@ return [
             'Precio estándar ($1.720.000)' => 'Precio estándar ($1.720.000)',
         ],
     ],
-    // Ejemplo de campo personalizado (deshabilitado por defecto):
-    // 'telefono_emergencia' => [
-    //     'label' => 'Teléfono de emergencia',
-    //     'type' => 'text',
-    //     'column' => 'Observacion_Facturacion',  // o añadir columna en BD
-    //     'required' => true,
-    //     'enabled' => false,
-    //     'placeholder' => 'Celular de contacto en caso de emergencia',
-    // ],
 ];

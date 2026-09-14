@@ -24,6 +24,35 @@ if ($limitRaw !== null && $limitRaw !== '') {
 try {
     $inscripcion = new Inscripcion($database);
     $rows = $inscripcion->getByAnio($anio, $limit, $offset);
+
+    // Power Automate: string ≠ null, integer ≠ ""/null.
+    $camposEnteros = [
+        'IDInscripcion',
+        'Tipo',
+        'año',
+        'anio',
+    ];
+
+    $rows = array_map(static function ($row) use ($camposEnteros) {
+        if (!is_array($row)) {
+            return $row;
+        }
+        foreach ($row as $key => $value) {
+            if (in_array($key, $camposEnteros, true)) {
+                if ($value === null || $value === '') {
+                    $row[$key] = 0;
+                } else {
+                    $row[$key] = (int) $value;
+                }
+                continue;
+            }
+            if ($value === null) {
+                $row[$key] = '';
+            }
+        }
+        return $row;
+    }, $rows);
+
     jsonResponse([
         'success' => true,
         'anio' => $anio,
