@@ -387,12 +387,12 @@ if ($tipoId === 1) {
                 $equipo = trim((string) ($input['tkd_frat_equipo'] ?? ''));
                 $entrenador = trim((string) ($input['tkd_frat_entrenador'] ?? ''));
                 if ($equipo === '' || $entrenador === '') {
-                    jsonResponse(['success' => false, 'error' => 'Ingrese el equipo/club/colegio y el nombre del entrenador.', 'traceId' => $traceId], 400);
+                    jsonResponse(['success' => false, 'error' => 'Ingrese el equipo/club/colegio y el nombre del delegado del club.', 'traceId' => $traceId], 400);
                 }
                 $detalle['organizacion'] = $equipo;
                 $detalle['club'] = $entrenador;
                 $obs['equipo'] = $equipo;
-                $obs['entrenador'] = $entrenador;
+                $obs['delegado_del_club'] = $entrenador;
             }
         } else {
             $cantidadRaw = trim((string) ($input['tkd_frat_cantidad'] ?? ''));

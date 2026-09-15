@@ -1238,7 +1238,7 @@
         html += '<select class="form-select" id="tkdFratTipo" name="tkd_frat_tipo">';
         html += '<option value="">-- Seleccione --</option>';
         html += '<option value="Individual">Individual</option>';
-        html += '<option value="Equipo">Equipo (lo inscribe el entrenador)</option>';
+        html += '<option value="Equipo">Equipo (lo inscribe el delegado del club)</option>';
         html += '</select></div>';
 
         html += '<div id="wrapTkdFratIndividual" style="display:none;">';
@@ -1256,13 +1256,13 @@
         html += '<div id="wrapTkdFratDatosExterno" style="display:none;" class="row g-3 mb-3">';
         html += '<div class="col-md-6"><label class="form-label fw-bold" for="tkdFratEquipo">Equipo / club / colegio</label>';
         html += '<input type="text" class="form-control" id="tkdFratEquipo" name="tkd_frat_equipo" maxlength="150" placeholder="Nombre del equipo, club o colegio"></div>';
-        html += '<div class="col-md-6"><label class="form-label fw-bold" for="tkdFratEntrenador">Nombre del entrenador</label>';
-        html += '<input type="text" class="form-control" id="tkdFratEntrenador" name="tkd_frat_entrenador" maxlength="120" placeholder="Nombre completo del entrenador"></div>';
+        html += '<div class="col-md-6"><label class="form-label fw-bold" for="tkdFratEntrenador">Delegado del club</label>';
+        html += '<input type="text" class="form-control" id="tkdFratEntrenador" name="tkd_frat_entrenador" maxlength="120" placeholder="Nombre completo del delegado del club"></div>';
         html += '</div></div>';
 
         html += '<div id="wrapTkdFratEquipo" style="display:none;">';
         html += '<div class="alert alert-info small mb-3">';
-        html += '<p class="mb-2">La inscripción por equipo debe realizarla el <strong>entrenador</strong>.</p>';
+        html += '<p class="mb-2">La inscripción por equipo debe realizarla el <strong>delegado del club</strong>.</p>';
         html += '<ol class="mb-2 ps-3">';
         html += '<li class="mb-1">Descargue la <a href="' + escapeHtml(basePath) + 'assets/docs/PLANILLA-OPEN-POR-LA-FRATERNIDAD.xlsx" download="PLANILLA OPEN POR LA FRATERNIDAD.xlsx">planilla oficial (Excel)</a>.</li>';
         html += '<li class="mb-1">Diligénciela con los datos de los deportistas.</li>';
@@ -2486,7 +2486,7 @@
                             return;
                         }
                         if (!equipo || !entrenador) {
-                            alert('Ingrese el equipo/club/colegio y el nombre del entrenador.');
+                            alert('Ingrese el equipo/club/colegio y el nombre del delegado del club.');
                             return;
                         }
                         data.tkd_frat_peso = peso;
