@@ -399,46 +399,21 @@ if ($tipoId === 1) {
             if ($cantidadRaw === '' || !ctype_digit($cantidadRaw) || (int) $cantidadRaw < 1) {
                 jsonResponse(['success' => false, 'error' => 'Indique la cantidad de deportistas.', 'traceId' => $traceId], 400);
             }
+            $confirmaPlanilla = trim((string) ($input['tkd_frat_confirma_planilla'] ?? ''));
+            if ($confirmaPlanilla !== 'Sí') {
+                jsonResponse([
+                    'success' => false,
+                    'error' => 'Debe confirmar que enviará la planilla a clubdeportivo@sanjosevegas.edu.co.',
+                    'traceId' => $traceId,
+                ], 400);
+            }
             $cantidad = (int) $cantidadRaw;
             $detalle['Sesión'] = (string) $cantidad;
             $obs['cantidad_deportistas'] = $cantidad;
-
-            $planillaNombre = trim((string) ($input['tkd_frat_planilla_nombre'] ?? ''));
-            $planillaMime = trim((string) ($input['tkd_frat_planilla_mime'] ?? ''));
-            $planillaB64 = trim((string) ($input['tkd_frat_planilla_base64'] ?? ''));
-            if ($planillaB64 === '' || $planillaNombre === '') {
-                jsonResponse(['success' => false, 'error' => 'Suba la planilla de deportistas.', 'traceId' => $traceId], 400);
-            }
-
-            $bin = base64_decode($planillaB64, true);
-            if ($bin === false || strlen($bin) === 0) {
-                jsonResponse(['success' => false, 'error' => 'La planilla no es válida.', 'traceId' => $traceId], 400);
-            }
-            if (strlen($bin) > 5 * 1024 * 1024) {
-                jsonResponse(['success' => false, 'error' => 'La planilla no puede superar 5 MB.', 'traceId' => $traceId], 400);
-            }
-
-            $ext = strtolower(pathinfo($planillaNombre, PATHINFO_EXTENSION));
-            $extOk = ['csv', 'xlsx', 'xls', 'pdf', 'doc', 'docx'];
-            if (!in_array($ext, $extOk, true)) {
-                jsonResponse(['success' => false, 'error' => 'Formato de planilla no permitido.', 'traceId' => $traceId], 400);
-            }
-
-            $dir = dirname(__DIR__, 2) . '/storage/planillas';
-            if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
-                jsonResponse(['success' => false, 'error' => 'No fue posible guardar la planilla.', 'traceId' => $traceId], 500);
-            }
-            $safeBase = preg_replace('/[^a-zA-Z0-9._-]/', '_', pathinfo($planillaNombre, PATHINFO_FILENAME)) ?: 'planilla';
-            $fileName = date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '_' . $safeBase . '.' . $ext;
-            $fullPath = $dir . '/' . $fileName;
-            if (file_put_contents($fullPath, $bin) === false) {
-                jsonResponse(['success' => false, 'error' => 'No fue posible guardar la planilla.', 'traceId' => $traceId], 500);
-            }
-            $obs['planilla'] = [
-                'nombre_original' => $planillaNombre,
-                'mime' => $planillaMime,
-                'archivo' => 'storage/planillas/' . $fileName,
-            ];
+            $obs['planilla_por_correo'] = true;
+            $obs['planilla_correo'] = 'clubdeportivo@sanjosevegas.edu.co';
+            $obs['planilla_confirma_inscripcion'] = 'El envío de la planilla al correo confirma la inscripción.';
+            $obs['confirma_envio_planilla'] = 'Sí';
         }
 
         $detalle['OBSERVACION'] = json_encode($obs, JSON_UNESCAPED_UNICODE);

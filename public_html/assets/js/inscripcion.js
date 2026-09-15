@@ -1261,12 +1261,20 @@
         html += '</div></div>';
 
         html += '<div id="wrapTkdFratEquipo" style="display:none;">';
-        html += '<div class="alert alert-info small">La inscripción por equipo debe realizarla el entrenador. Indique la cantidad de deportistas y cargue la planilla.</div>';
+        html += '<div class="alert alert-info small mb-3">';
+        html += '<p class="mb-2">La inscripción por equipo debe realizarla el <strong>entrenador</strong>.</p>';
+        html += '<ol class="mb-2 ps-3">';
+        html += '<li class="mb-1">Descargue la <a href="' + escapeHtml(basePath) + 'assets/docs/PLANILLA-OPEN-POR-LA-FRATERNIDAD.xlsx" download="PLANILLA OPEN POR LA FRATERNIDAD.xlsx">planilla oficial (Excel)</a>.</li>';
+        html += '<li class="mb-1">Diligénciela con los datos de los deportistas.</li>';
+        html += '<li class="mb-0">Envíela a <a href="mailto:clubdeportivo@sanjosevegas.edu.co">clubdeportivo@sanjosevegas.edu.co</a>.</li>';
+        html += '</ol>';
+        html += '<p class="mb-0 fw-semibold">El envío de la planilla al correo confirma la inscripción del equipo.</p>';
+        html += '</div>';
         html += '<div class="mb-3"><label class="form-label fw-bold" for="tkdFratCantidad">Cantidad de deportistas</label>';
         html += '<input type="number" class="form-control" id="tkdFratCantidad" name="tkd_frat_cantidad" min="1" max="99" step="1" placeholder="Ej: 10"></div>';
-        html += '<div class="mb-3"><label class="form-label fw-bold" for="tkdFratPlanilla">Planilla de deportistas</label>';
-        html += '<input type="file" class="form-control" id="tkdFratPlanilla" name="tkd_frat_planilla" accept=".csv,.xlsx,.xls,.pdf,.doc,.docx">';
-        html += '<div class="form-text">Descargue la <a href="' + escapeHtml(basePath) + 'assets/docs/PLANILLA-OPEN-POR-LA-FRATERNIDAD.xlsx" download="PLANILLA OPEN POR LA FRATERNIDAD.xlsx">planilla oficial (Excel)</a>, diligénciela y súbala aquí.</div>';
+        html += '<div class="form-check mb-3">';
+        html += '<input class="form-check-input" type="checkbox" id="tkdFratConfirmaPlanilla" name="tkd_frat_confirma_planilla" value="Sí">';
+        html += '<label class="form-check-label" for="tkdFratConfirmaPlanilla">Confirmo que enviaré la planilla diligenciada a <strong>clubdeportivo@sanjosevegas.edu.co</strong> y entiendo que ese envío confirma la inscripción.</label>';
         html += '</div></div></div>';
         return html;
     }
@@ -1300,7 +1308,7 @@
         const equipo = $('#tkdFratEquipo');
         const entrenador = $('#tkdFratEntrenador');
         const cant = $('#tkdFratCantidad');
-        const planilla = $('#tkdFratPlanilla');
+        const confirma = $('#tkdFratConfirmaPlanilla');
 
         if (peso) { peso.required = mostrarIndividual; if (!mostrarIndividual) peso.value = ''; }
         if (est) { est.required = mostrarIndividual; if (!mostrarIndividual) est.value = ''; }
@@ -1314,9 +1322,9 @@
             if (!(esExterno && tipo === 'Individual')) entrenador.value = '';
         }
         if (cant) { cant.required = mostrarEquipo; if (!mostrarEquipo) cant.value = ''; }
-        if (planilla) {
-            planilla.required = mostrarEquipo;
-            if (!mostrarEquipo) planilla.value = '';
+        if (confirma) {
+            confirma.required = mostrarEquipo;
+            if (!mostrarEquipo) confirma.checked = false;
         }
         refreshRequiredAsterisks(camposDinamicos);
     }
@@ -2488,23 +2496,19 @@
                         data.tkd_frat_entrenador = entrenador;
                     } else if (tipoPart === 'Equipo') {
                         const cantidad = ($('#tkdFratCantidad')?.value || '').trim();
-                        const file = $('#tkdFratPlanilla')?.files?.[0];
+                        const confirma = $('#tkdFratConfirmaPlanilla')?.checked;
                         if (!cantidad || parseInt(cantidad, 10) < 1) {
                             alert('Indique la cantidad de deportistas.');
                             $('#tkdFratCantidad')?.focus();
                             return;
                         }
-                        if (!file) {
-                            alert('Suba la planilla de deportistas.');
-                            $('#tkdFratPlanilla')?.focus();
-                            return;
-                        }
-                        if (file.size > 5 * 1024 * 1024) {
-                            alert('La planilla no puede superar 5 MB.');
+                        if (!confirma) {
+                            alert('Debe confirmar que enviará la planilla a clubdeportivo@sanjosevegas.edu.co.');
+                            $('#tkdFratConfirmaPlanilla')?.focus();
                             return;
                         }
                         data.tkd_frat_cantidad = cantidad;
-                        data._tkdFratPlanillaFile = file;
+                        data.tkd_frat_confirma_planilla = 'Sí';
                     }
                 } else {
                     data.tkd_frat_tipo = 'Individual';
@@ -2701,31 +2705,11 @@
         if (btnTxt) btnTxt.classList.add('d-none');
         if (btnSpinner) btnSpinner.classList.remove('d-none');
 
-        const planillaFile = data._tkdFratPlanillaFile || null;
-        delete data._tkdFratPlanillaFile;
-
-        const leerPlanilla = planillaFile
-            ? new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => {
-                    const result = String(reader.result || '');
-                    const base64 = result.includes(',') ? result.split(',')[1] : result;
-                    data.tkd_frat_planilla_nombre = planillaFile.name || 'planilla';
-                    data.tkd_frat_planilla_mime = planillaFile.type || 'application/octet-stream';
-                    data.tkd_frat_planilla_base64 = base64;
-                    resolve();
-                };
-                reader.onerror = () => reject(new Error('No se pudo leer la planilla.'));
-                reader.readAsDataURL(planillaFile);
-            })
-            : Promise.resolve();
-
-        leerPlanilla
-            .then(() => fetch(basePath + 'ajax/guardar-inscripcion.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-                body: JSON.stringify(data)
-            }))
+        fetch(basePath + 'ajax/guardar-inscripcion.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+            body: JSON.stringify(data)
+        })
             .then(r => r.json())
             .then(res => {
                 if (res.success) {
