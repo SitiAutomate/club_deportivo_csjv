@@ -505,6 +505,11 @@
     });
 
     document.getElementById('cardDatosAdicionales')?.addEventListener('change', function (e) {
+        if (e.target && e.target.id === 'campo_procedencia_english_camp') {
+            actualizarFechasEnglishCampPorProcedencia();
+            refreshRequiredAsterisks(document);
+            return;
+        }
         const sel = e.target.closest('.select-si-no-text');
         if (!sel) return;
         const tfName = sel.getAttribute('data-textfield');
@@ -567,6 +572,55 @@
             if (!visible) resetCampoDatoAdicional(item);
         });
         refreshRequiredAsterisks(card);
+        actualizarFechasEnglishCampPorProcedencia();
+    }
+
+    function actualizarFechasEnglishCampPorProcedencia() {
+        const procedenciaItem = document.querySelector('.campo-dato-adicional[data-key="procedencia_english_camp"]');
+        const fechaItem = document.querySelector('.campo-dato-adicional[data-key="fecha_interes_english_camp"]');
+        const procedenciaSel = document.getElementById('campo_procedencia_english_camp');
+        const fechaSel = document.getElementById('campo_fecha_interes_english_camp');
+        if (!procedenciaSel || !fechaSel || !fechaItem) return;
+
+        const procedenciaVisible = !procedenciaItem || procedenciaItem.style.display !== 'none';
+        const procedencia = procedenciaVisible ? (procedenciaSel.value || '').trim() : '';
+        let visibleCount = 0;
+        let unicaOpcion = '';
+
+        Array.from(fechaSel.options).forEach((opt) => {
+            if (!opt.value) {
+                opt.hidden = false;
+                opt.disabled = false;
+                return;
+            }
+            const forProc = (opt.getAttribute('data-for-procedencia') || '').trim();
+            const match = procedencia !== '' && forProc === procedencia;
+            opt.hidden = !match;
+            opt.disabled = !match;
+            if (match) {
+                visibleCount += 1;
+                unicaOpcion = opt.value;
+            }
+        });
+
+        const mostrarFecha = procedenciaVisible && procedencia !== '';
+        fechaItem.style.display = mostrarFecha ? '' : 'none';
+        if (fechaSel.hasAttribute('required') || fechaSel.getAttribute('data-was-required') === '1') {
+            fechaSel.setAttribute('data-was-required', '1');
+            fechaSel.required = mostrarFecha;
+        }
+
+        if (!mostrarFecha) {
+            fechaSel.value = '';
+            return;
+        }
+
+        const valorActual = fechaSel.value || '';
+        if (valorActual) {
+            const selected = Array.from(fechaSel.options).find((o) => o.value === valorActual);
+            if (selected && !selected.disabled) return;
+        }
+        fechaSel.value = visibleCount === 1 ? unicaOpcion : '';
     }
 
     function cargarTipoDirecto(tipo) {

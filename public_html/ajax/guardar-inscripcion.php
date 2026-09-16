@@ -105,10 +105,25 @@ if ($tipoId === 1) {
 
     $idCamp = (string) ($detalle['IDCurso'] ?? '');
     if ($idCamp === '2262') {
+        $procedencia = trim((string) ($input['procedencia_english_camp'] ?? $detalle['club'] ?? ''));
+        $procedenciasOk = ['Comunidad San José de las Vegas', 'Externo'];
+        if ($procedencia === '' || !in_array($procedencia, $procedenciasOk, true)) {
+            jsonResponse(['success' => false, 'error' => 'Indique si el participante es de la Comunidad San José de las Vegas o externo.', 'traceId' => $traceId], 400);
+        }
+        $detalle['club'] = $procedencia;
+
         $fechaInteres = trim((string) ($input['fecha_interes_english_camp'] ?? $detalle['categoria'] ?? ''));
-        $fechasOk = ['25 al 27 de noviembre de 2026', '3 al 5 de diciembre de 2026'];
-        if ($fechaInteres === '' || !in_array($fechaInteres, $fechasOk, true)) {
-            jsonResponse(['success' => false, 'error' => 'Seleccione la fecha del English Camp en la que está interesado.', 'traceId' => $traceId], 400);
+        $fechasPorProcedencia = [
+            'Comunidad San José de las Vegas' => '24, 25 y 26 de noviembre de 2026',
+            'Externo' => '2, 3 y 4 de diciembre de 2026',
+        ];
+        $fechaEsperada = $fechasPorProcedencia[$procedencia];
+        if ($fechaInteres === '' || $fechaInteres !== $fechaEsperada) {
+            jsonResponse([
+                'success' => false,
+                'error' => 'Seleccione la fecha del English Camp correspondiente a su procedencia.',
+                'traceId' => $traceId,
+            ], 400);
         }
         $detalle['categoria'] = $fechaInteres;
         $modalidadPago = trim((string) ($input['modalidad_pago_english_camp'] ?? $detalle['Sesión'] ?? ''));
@@ -1122,6 +1137,10 @@ try {
             $metodoPagoInput = trim((string) ($input['modalidad_pago_english_camp'] ?? ''));
             $metodoPagoSesion = trim((string) ($detalle['Sesión'] ?? $detalle['Sesion'] ?? ''));
             $metodoPago = $metodoPagoInput !== '' ? $metodoPagoInput : ($metodoPagoSesion !== '' ? $metodoPagoSesion : null);
+            $procedencia = trim((string) ($input['procedencia_english_camp'] ?? $detalle['club'] ?? ''));
+            if ($procedencia !== '') {
+                $detalleTexto .= ' — Procedencia: ' . $procedencia;
+            }
             $fechaInteres = trim((string) ($input['fecha_interes_english_camp'] ?? $detalle['categoria'] ?? ''));
             if ($fechaInteres !== '') {
                 $detalleTexto .= ' — Fecha de interés: ' . $fechaInteres;

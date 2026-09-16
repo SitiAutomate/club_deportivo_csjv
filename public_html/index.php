@@ -201,7 +201,11 @@ $camposDatosAdicionales = array_filter($camposDatosAdicionales, fn($c) => !empty
                             <select class="form-select" name="<?= htmlspecialchars($key) ?>" id="campo_<?= htmlspecialchars($key) ?>" <?= !empty($cfg['required']) ? 'required' : '' ?>>
                                 <option value="">-- Seleccione --</option>
                                 <?php foreach (($cfg['options'] ?? []) as $v => $l): ?>
-                                <option value="<?= htmlspecialchars($v) ?>"><?= htmlspecialchars($l) ?></option>
+                                <?php
+                                    $optMeta = $cfg['options_meta'][$v] ?? [];
+                                    $dataFor = trim((string) ($optMeta['for_procedencia'] ?? ''));
+                                ?>
+                                <option value="<?= htmlspecialchars($v) ?>"<?= $dataFor !== '' ? ' data-for-procedencia="' . htmlspecialchars($dataFor) . '"' : '' ?>><?= htmlspecialchars($l) ?></option>
                                 <?php endforeach; ?>
                             </select>
                             <?php endif; ?>

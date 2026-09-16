@@ -50,6 +50,21 @@ return [
         'placeholder' => 'Cualquier información adicional que debamos conocer...',
         'rows' => 3,
     ],
+    'procedencia_english_camp' => [
+        'label' => '¿El participante es de la Comunidad San José de las Vegas o externo?',
+        'type' => 'select',
+        'column' => 'club',
+        'required' => true,
+        'enabled' => true,
+        'show_only_for' => [
+            'tipo_ids' => [2],
+            'curso_ids' => ['2262'],
+        ],
+        'options' => [
+            'Comunidad San José de las Vegas' => 'Comunidad San José de las Vegas (interno)',
+            'Externo' => 'Externo',
+        ],
+    ],
     'fecha_interes_english_camp' => [
         'label' => '¿En cuál fecha del English Camp está interesado?',
         'type' => 'select',
@@ -61,8 +76,12 @@ return [
             'curso_ids' => ['2262'],
         ],
         'options' => [
-            '25 al 27 de noviembre de 2026' => '25 al 27 de noviembre de 2026',
-            '3 al 5 de diciembre de 2026' => '3 al 5 de diciembre de 2026',
+            '24, 25 y 26 de noviembre de 2026' => '24, 25 y 26 de noviembre de 2026 (Comunidad San José de las Vegas)',
+            '2, 3 y 4 de diciembre de 2026' => '2, 3 y 4 de diciembre de 2026 (Externos)',
+        ],
+        'options_meta' => [
+            '24, 25 y 26 de noviembre de 2026' => ['for_procedencia' => 'Comunidad San José de las Vegas'],
+            '2, 3 y 4 de diciembre de 2026' => ['for_procedencia' => 'Externo'],
         ],
     ],
     'modalidad_pago_english_camp' => [
