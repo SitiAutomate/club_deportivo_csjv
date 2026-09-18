@@ -82,4 +82,33 @@ return [
             ],
         ],
     ],
+    '5128' => [
+        'categoria' => [
+            'column' => 'Modalidad',
+            'label' => 'Categoría',
+            'options' => [
+                'Mini Intermedio' => 'Mini Intermedio',
+                'Mini Seleccionado' => 'Mini Seleccionado',
+                'Infantil' => 'Infantil',
+            ],
+        ],
+    ],
+    '5129' => [
+        'categoria' => [
+            'column' => 'Modalidad',
+            'label' => 'Categoría',
+            'options' => [
+                'Infantil' => 'Infantil',
+            ],
+        ],
+    ],
+    '5130' => [
+        'categoria' => [
+            'column' => 'Modalidad',
+            'label' => 'Categoría',
+            'options' => [
+                'Mini – El Retiro' => 'Mini – El Retiro',
+            ],
+        ],
+    ],
 ];

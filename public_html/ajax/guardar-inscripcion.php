@@ -394,6 +394,7 @@ if ($tipoId === 1) {
             }
             $detalle['categoria'] = $cinturon;
             $detalle['Asignatura'] = (string) $estatura;
+            $detalle['Sesión'] = (string) $peso;
             $obs['peso_kg'] = (float) $peso;
             $obs['estatura_cm'] = (float) $estatura;
             $obs['cinturon'] = $cinturon;
@@ -987,7 +988,9 @@ try {
         if (!empty($detalle['categoria'])) {
             $detalleTexto .= '. Categoría/Grado: ' . $detalle['categoria'];
         }
-        if (!empty($detalle['Sesión'])) {
+        $esFratIndividual = eventosTipo18EsTkdFraternidad((string) ($detalle['IDCurso'] ?? ''))
+            && (($detalle['Modalidad'] ?? '') === 'Individual');
+        if (!empty($detalle['Sesión']) && !$esFratIndividual) {
             $detalleTexto .= ', División/Categoría: ' . $detalle['Sesión'];
         }
         if (!empty($detalle['Caso'])) {
@@ -999,7 +1002,9 @@ try {
         if (!empty($detalle['Asignatura'])) {
             $detalleTexto .= ', Estatura: ' . $detalle['Asignatura'] . ' cm';
         }
-        if (!empty($obs['peso_kg'])) {
+        if ($esFratIndividual && !empty($detalle['Sesión'])) {
+            $detalleTexto .= ', Peso: ' . $detalle['Sesión'] . ' kg';
+        } elseif (!empty($obs['peso_kg'])) {
             $detalleTexto .= ', Peso: ' . $obs['peso_kg'] . ' kg';
         }
 
