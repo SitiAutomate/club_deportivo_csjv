@@ -85,6 +85,7 @@ return [
         'filterByDate' => true,
         'defaultSede' => 'MEDELLÍN',
         'defaultMes' => null,
+        'defaultItemId' => '9001',
         'hasTransporte' => false,
         'selectorName' => 'curso_id',
         'muestraDatosAdicionales' => true,

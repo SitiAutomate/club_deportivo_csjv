@@ -637,11 +637,19 @@
                 let html = '<input type="hidden" name="' + escapeHtml(selectorName) + '" value="' + escapeHtml(item.id) + '">';
                 html += '<input type="hidden" name="nombreCurso" value="' + escapeHtml(item.nombre_curso || item.nombre || item.nombre_display || '') + '">';
                 if (cfg.tieneTemplate) html += '<div class="detalle-template-contenedor"></div>';
+                if (tipo === 9 && String(item.id) === '9001') {
+                    html += renderFormFestivalPatinaje(String(item.id), item.nombre_curso || item.nombre || 'Festival de Patinaje 2');
+                }
                 html += '<div id="participantesAdicionalesContenedor"></div>';
                 camposDinamicos.innerHTML = html;
                 if (cfg.tieneTemplate) {
                     const cont = camposDinamicos.querySelector('.detalle-template-contenedor');
                     if (cont) cargarDetalleTemplate(tipo, item.id, cont);
+                }
+                if (tipo === 9 && String(item.id) === '9001') {
+                    $('#patEsClub')?.addEventListener('change', actualizarFestivalPatinajeFlujo);
+                    $('#patTipo')?.addEventListener('change', actualizarFestivalPatinajeFlujo);
+                    actualizarFestivalPatinajeFlujo();
                 }
                 cargarParticipantesAdicionales(tipo, item.id, camposDinamicos);
                 actualizarVisibilidadCamposAdicionales(tipo, item.id);
@@ -651,6 +659,110 @@
             .catch(() => {
                 camposDinamicos.innerHTML = '<p class="text-danger">Error al cargar la actividad.</p>';
             });
+    }
+
+    function renderFormFestivalPatinaje(cursoId, nombreCurso) {
+        let html = '<div class="festival-patinaje-form mt-3" id="formFestivalPatinaje">';
+        html += '<input type="hidden" id="patCursoId" value="' + escapeHtml(cursoId) + '">';
+        html += '<input type="hidden" id="patNombreCurso" value="' + escapeHtml(nombreCurso) + '">';
+
+        html += '<div class="mb-3"><label class="form-label fw-bold" for="patEsClub">¿Es deportista del Club San José de las Vegas?</label>';
+        html += '<select class="form-select" id="patEsClub" name="pat_es_club" required>';
+        html += '<option value="">-- Seleccione --</option>';
+        html += '<option value="Sí">Sí</option>';
+        html += '<option value="No">No</option>';
+        html += '</select></div>';
+
+        html += '<div id="wrapPatTipoExterno" style="display:none;" class="mb-3">';
+        html += '<label class="form-label fw-bold" for="patTipo">Tipo de inscripción</label>';
+        html += '<select class="form-select" id="patTipo" name="pat_tipo">';
+        html += '<option value="">-- Seleccione --</option>';
+        html += '<option value="Individual">Individual</option>';
+        html += '<option value="Equipo">Equipo (lo inscribe el entrenador)</option>';
+        html += '</select></div>';
+
+        html += '<div id="wrapPatIndividual" style="display:none;">';
+        html += '<div class="row g-3 mb-3">';
+        html += '<div class="col-md-4"><label class="form-label fw-bold" for="patCategoria">Categoría</label>';
+        html += '<input type="text" class="form-control" id="patCategoria" name="pat_categoria" maxlength="120" placeholder="Ej: Premini"></div>';
+        html += '<div class="col-md-4"><label class="form-label fw-bold" for="patEficiencia">Eficiencia</label>';
+        html += '<input type="text" class="form-control" id="patEficiencia" name="pat_eficiencia" maxlength="120" placeholder="Ej: Básica"></div>';
+        html += '<div class="col-md-4"><label class="form-label fw-bold" for="patModalidad">Modalidad</label>';
+        html += '<input type="text" class="form-control" id="patModalidad" name="pat_modalidad" maxlength="120" placeholder="Ej: Libre"></div>';
+        html += '</div>';
+        html += '<div id="wrapPatDatosExterno" style="display:none;" class="row g-3 mb-3">';
+        html += '<div class="col-md-6"><label class="form-label fw-bold" for="patEquipo">Equipo / club / colegio</label>';
+        html += '<input type="text" class="form-control" id="patEquipo" name="pat_equipo" maxlength="150" placeholder="Nombre del equipo, club o colegio"></div>';
+        html += '<div class="col-md-6"><label class="form-label fw-bold" for="patEntrenador">Nombre del entrenador</label>';
+        html += '<input type="text" class="form-control" id="patEntrenador" name="pat_entrenador" maxlength="120" placeholder="Nombre completo del entrenador"></div>';
+        html += '</div></div>';
+
+        html += '<div id="wrapPatEquipo" style="display:none;">';
+        html += '<div class="alert alert-info small mb-3">';
+        html += '<p class="mb-2">La inscripción por equipo debe realizarla el <strong>entrenador</strong>.</p>';
+        html += '<ol class="mb-2 ps-3">';
+        html += '<li class="mb-1">Descargue la <a href="' + escapeHtml(basePath) + 'assets/docs/PLANILLA-FESTIVAL-PATINAJE.xlsx" download="PLANILLA FESTIVAL PATINAJE.xlsx">planilla oficial (Excel)</a>.</li>';
+        html += '<li class="mb-1">Diligénciela con los datos de los deportistas.</li>';
+        html += '<li class="mb-0">Envíela a <a href="mailto:clubdeportivo@sanjosevegas.edu.co">clubdeportivo@sanjosevegas.edu.co</a>.</li>';
+        html += '</ol>';
+        html += '<p class="mb-0 fw-semibold">El envío de la planilla al correo confirma la inscripción del equipo.</p>';
+        html += '</div>';
+        html += '<div class="mb-3"><label class="form-label fw-bold" for="patCantidad">Cantidad de deportistas</label>';
+        html += '<input type="number" class="form-control" id="patCantidad" name="pat_cantidad" min="1" max="99" step="1" placeholder="Ej: 10"></div>';
+        html += '<div class="form-check mb-3">';
+        html += '<input class="form-check-input" type="checkbox" id="patConfirmaPlanilla" name="pat_confirma_planilla" value="Sí">';
+        html += '<label class="form-check-label" for="patConfirmaPlanilla">Confirmo que enviaré la planilla diligenciada a <strong>clubdeportivo@sanjosevegas.edu.co</strong> y entiendo que ese envío confirma la inscripción.</label>';
+        html += '</div></div></div>';
+        return html;
+    }
+
+    function actualizarFestivalPatinajeFlujo() {
+        const esClub = $('#patEsClub')?.value || '';
+        const tipo = $('#patTipo')?.value || '';
+        const wrapTipo = $('#wrapPatTipoExterno');
+        const wrapInd = $('#wrapPatIndividual');
+        const wrapExt = $('#wrapPatDatosExterno');
+        const wrapEq = $('#wrapPatEquipo');
+        const selTipo = $('#patTipo');
+
+        const esExterno = esClub === 'No';
+        const mostrarIndividual = esClub === 'Sí' || (esExterno && tipo === 'Individual');
+        const mostrarEquipo = esExterno && tipo === 'Equipo';
+
+        if (wrapTipo) wrapTipo.style.display = esExterno ? 'block' : 'none';
+        if (selTipo) {
+            selTipo.required = esExterno;
+            if (!esExterno) selTipo.value = '';
+        }
+        if (wrapInd) wrapInd.style.display = mostrarIndividual ? 'block' : 'none';
+        if (wrapExt) wrapExt.style.display = (esExterno && tipo === 'Individual') ? 'block' : 'none';
+        if (wrapEq) wrapEq.style.display = mostrarEquipo ? 'block' : 'none';
+
+        const cat = $('#patCategoria');
+        const efi = $('#patEficiencia');
+        const mod = $('#patModalidad');
+        const equipo = $('#patEquipo');
+        const entrenador = $('#patEntrenador');
+        const cant = $('#patCantidad');
+        const confirma = $('#patConfirmaPlanilla');
+
+        if (cat) { cat.required = mostrarIndividual; if (!mostrarIndividual) cat.value = ''; }
+        if (efi) { efi.required = mostrarIndividual; if (!mostrarIndividual) efi.value = ''; }
+        if (mod) { mod.required = mostrarIndividual; if (!mostrarIndividual) mod.value = ''; }
+        if (equipo) {
+            equipo.required = esExterno && tipo === 'Individual';
+            if (!(esExterno && tipo === 'Individual')) equipo.value = '';
+        }
+        if (entrenador) {
+            entrenador.required = esExterno && tipo === 'Individual';
+            if (!(esExterno && tipo === 'Individual')) entrenador.value = '';
+        }
+        if (cant) { cant.required = mostrarEquipo; if (!mostrarEquipo) cant.value = ''; }
+        if (confirma) {
+            confirma.required = mostrarEquipo;
+            if (!mostrarEquipo) confirma.checked = false;
+        }
+        refreshRequiredAsterisks(camposDinamicos);
     }
 
     function cargarCamposPorTipo(tipo) {
@@ -2749,6 +2861,71 @@
                 if (catInp?.value) {
                     data.salida_categoria = catInp.value;
                     data.Modalidad = catInp.value;
+                }
+            }
+            if (tipo === 9 && String(data.IDCurso) === '9001') {
+                const esClub = $('#patEsClub')?.value || '';
+                if (!esClub) {
+                    alert('Indique si es deportista del Club San José de las Vegas.');
+                    $('#patEsClub')?.focus();
+                    return;
+                }
+                data.pat_es_club = esClub;
+                if (esClub === 'No') {
+                    const tipoPart = $('#patTipo')?.value || '';
+                    if (!tipoPart) {
+                        alert('Seleccione si la inscripción es individual o por equipo.');
+                        $('#patTipo')?.focus();
+                        return;
+                    }
+                    data.pat_tipo = tipoPart;
+                    if (tipoPart === 'Individual') {
+                        const categoria = ($('#patCategoria')?.value || '').trim();
+                        const eficiencia = ($('#patEficiencia')?.value || '').trim();
+                        const modalidad = ($('#patModalidad')?.value || '').trim();
+                        const equipo = ($('#patEquipo')?.value || '').trim();
+                        const entrenador = ($('#patEntrenador')?.value || '').trim();
+                        if (!categoria || !eficiencia || !modalidad) {
+                            alert('Complete categoría, eficiencia y modalidad.');
+                            return;
+                        }
+                        if (!equipo || !entrenador) {
+                            alert('Ingrese el equipo/club/colegio y el nombre del entrenador.');
+                            return;
+                        }
+                        data.pat_categoria = categoria;
+                        data.pat_eficiencia = eficiencia;
+                        data.pat_modalidad = modalidad;
+                        data.pat_equipo = equipo;
+                        data.pat_entrenador = entrenador;
+                    } else if (tipoPart === 'Equipo') {
+                        const cantidad = ($('#patCantidad')?.value || '').trim();
+                        const confirma = $('#patConfirmaPlanilla')?.checked;
+                        if (!cantidad || parseInt(cantidad, 10) < 1) {
+                            alert('Indique la cantidad de deportistas.');
+                            $('#patCantidad')?.focus();
+                            return;
+                        }
+                        if (!confirma) {
+                            alert('Debe confirmar que enviará la planilla a clubdeportivo@sanjosevegas.edu.co.');
+                            $('#patConfirmaPlanilla')?.focus();
+                            return;
+                        }
+                        data.pat_cantidad = cantidad;
+                        data.pat_confirma_planilla = 'Sí';
+                    }
+                } else {
+                    data.pat_tipo = 'Individual';
+                    const categoria = ($('#patCategoria')?.value || '').trim();
+                    const eficiencia = ($('#patEficiencia')?.value || '').trim();
+                    const modalidad = ($('#patModalidad')?.value || '').trim();
+                    if (!categoria || !eficiencia || !modalidad) {
+                        alert('Complete categoría, eficiencia y modalidad.');
+                        return;
+                    }
+                    data.pat_categoria = categoria;
+                    data.pat_eficiencia = eficiencia;
+                    data.pat_modalidad = modalidad;
                 }
             }
         }

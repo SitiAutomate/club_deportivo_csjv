@@ -625,6 +625,95 @@ if ($tipoId === 1) {
     $mesActual = str_pad((string) date('n'), 2, '0', STR_PAD_LEFT);
     $detalle['Mes'] = $mesActual;
     $detalle['Periodo'] = $mesActual . str_pad((string) ($anio % 100), 2, '0', STR_PAD_LEFT);
+} elseif ($tipoId === 9) {
+    $configPath = __DIR__ . '/../../config/tipos_inscripcion.php';
+    $config = file_exists($configPath) ? require $configPath : [];
+    $cfg = $config[9] ?? null;
+    if (!$cfg) {
+        jsonResponse(['success' => false, 'error' => 'Tipo de inscripción no configurado'], 400);
+    }
+    $selectorName = $cfg['selectorName'] ?? 'curso_id';
+    $idCurso = trim((string) ($input[$selectorName] ?? $input['IDCurso'] ?? $input['curso_id'] ?? ''));
+    $detalle['IDCurso'] = $idCurso !== '' ? $idCurso : null;
+    $detalle['nombreCurso'] = $input['nombreCurso'] ?? 'Festival de Patinaje 2';
+    $detalle['Sede'] = $detalle['Sede'] ?? $cfg['defaultSede'] ?? 'MEDELLÍN';
+    if (empty($detalle['Mes'])) {
+        $mesActual = str_pad((string) date('n'), 2, '0', STR_PAD_LEFT);
+        $detalle['Mes'] = $mesActual;
+        $detalle['Periodo'] = $mesActual . str_pad((string) ($anio % 100), 2, '0', STR_PAD_LEFT);
+    }
+
+    if ($idCurso === '9001') {
+        $esClub = trim((string) ($input['pat_es_club'] ?? ''));
+        if (!in_array($esClub, ['Sí', 'No'], true)) {
+            jsonResponse(['success' => false, 'error' => 'Indique si es deportista del Club San José de las Vegas.', 'traceId' => $traceId], 400);
+        }
+
+        $tipoPart = trim((string) ($input['pat_tipo'] ?? ''));
+        if ($esClub === 'Sí') {
+            $tipoPart = 'Individual';
+        }
+        if (!in_array($tipoPart, ['Individual', 'Equipo'], true)) {
+            jsonResponse(['success' => false, 'error' => 'Seleccione si la inscripción es individual o por equipo.', 'traceId' => $traceId], 400);
+        }
+
+        $detalle['IDAsign'] = $esClub === 'Sí' ? 'Club SJV' : 'Externo';
+        $detalle['Modalidad'] = $tipoPart;
+        $obs = [
+            'es_club_sjv' => $esClub,
+            'tipo_participacion' => $tipoPart,
+            'valor_total' => 100000,
+        ];
+
+        if ($tipoPart === 'Individual') {
+            $categoria = trim((string) ($input['pat_categoria'] ?? ''));
+            $eficiencia = trim((string) ($input['pat_eficiencia'] ?? ''));
+            $modalidad = trim((string) ($input['pat_modalidad'] ?? ''));
+            if ($categoria === '' || $eficiencia === '' || $modalidad === '') {
+                jsonResponse(['success' => false, 'error' => 'Complete categoría, eficiencia y modalidad.', 'traceId' => $traceId], 400);
+            }
+            $detalle['categoria'] = $categoria;
+            $detalle['Asignatura'] = $eficiencia;
+            $detalle['Sesión'] = $modalidad;
+            $obs['categoria'] = $categoria;
+            $obs['eficiencia'] = $eficiencia;
+            $obs['modalidad'] = $modalidad;
+
+            if ($esClub === 'No') {
+                $equipo = trim((string) ($input['pat_equipo'] ?? ''));
+                $entrenador = trim((string) ($input['pat_entrenador'] ?? ''));
+                if ($equipo === '' || $entrenador === '') {
+                    jsonResponse(['success' => false, 'error' => 'Ingrese el equipo/club/colegio y el nombre del entrenador.', 'traceId' => $traceId], 400);
+                }
+                $detalle['organizacion'] = $equipo;
+                $detalle['club'] = $entrenador;
+                $obs['equipo'] = $equipo;
+                $obs['entrenador'] = $entrenador;
+            }
+        } else {
+            $cantidadRaw = trim((string) ($input['pat_cantidad'] ?? ''));
+            if ($cantidadRaw === '' || !ctype_digit($cantidadRaw) || (int) $cantidadRaw < 1) {
+                jsonResponse(['success' => false, 'error' => 'Indique la cantidad de deportistas.', 'traceId' => $traceId], 400);
+            }
+            $confirmaPlanilla = trim((string) ($input['pat_confirma_planilla'] ?? ''));
+            if ($confirmaPlanilla !== 'Sí') {
+                jsonResponse([
+                    'success' => false,
+                    'error' => 'Debe confirmar que enviará la planilla a clubdeportivo@sanjosevegas.edu.co.',
+                    'traceId' => $traceId,
+                ], 400);
+            }
+            $cantidad = (int) $cantidadRaw;
+            $detalle['Sesión'] = (string) $cantidad;
+            $obs['cantidad_deportistas'] = $cantidad;
+            $obs['planilla_por_correo'] = true;
+            $obs['planilla_correo'] = 'clubdeportivo@sanjosevegas.edu.co';
+            $obs['planilla_confirma_inscripcion'] = 'El envío de la planilla al correo confirma la inscripción.';
+            $obs['confirma_envio_planilla'] = 'Sí';
+        }
+
+        $detalle['OBSERVACION'] = json_encode($obs, JSON_UNESCAPED_UNICODE);
+    }
 } else {
     $configPath = __DIR__ . '/../../config/tipos_inscripcion.php';
     $config = file_exists($configPath) ? require $configPath : [];
