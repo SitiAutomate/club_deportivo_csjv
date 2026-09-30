@@ -400,6 +400,7 @@
             email: fd.get('email') || null,
             tipo_persona: fd.get('tipo_persona') || null,
             ciudad: fd.get('ciudad') || null,
+            departamento: fd.get('departamento') || null,
             direccion: fd.get('direccion') || null
         };
         fetch(basePath + 'ajax/guardar-responsable.php', {

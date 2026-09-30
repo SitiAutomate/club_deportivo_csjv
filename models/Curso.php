@@ -201,13 +201,14 @@ class Curso
     }
 
     /**
-     * Obtener Codigo_Facturacion y Tarifa_Curso por ID de curso (para API inscripción)
+     * Obtener Codigo_Facturacion, Tarifa_Curso y Linea por ID de curso (para API inscripción)
      */
     public function getFacturacionPorId(string $idCurso): ?array
     {
         $row = $this->db->get('cursos_2025', [
             'Codigo_Facturacion',
-            'Tarifa_Curso'
+            'Tarifa_Curso',
+            'Linea',
         ], [
             'ID_Curso' => $idCurso
         ]);

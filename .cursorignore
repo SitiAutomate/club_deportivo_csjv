@@ -1,0 +1,13 @@
+# Secretos y entorno — el agente no debe leer ni indexar estos archivos
+.env
+.env.*
+!.env.example
+
+# Credenciales y claves
+**/credentials.json
+**/secrets.*
+**/*secret*
+**/*.pem
+**/*.key
+**/id_rsa
+**/id_ed25519

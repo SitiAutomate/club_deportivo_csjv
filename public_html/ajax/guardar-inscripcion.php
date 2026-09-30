@@ -788,33 +788,18 @@ try {
         $configPath = __DIR__ . '/../../config/tipos_inscripcion.php';
         $tiposConfig = file_exists($configPath) ? require $configPath : [];
         $usaApiInscripcion = !empty($tiposConfig[$tipoId]['usaApiInscripcion'] ?? false);
-        $periodo = trim((string) ($detalle['Periodo'] ?? ''));
-        if ($periodo === '' && $detalle['Mes']) {
-            $periodo = $detalle['Mes'] . str_pad((string) ($anio % 100), 2, '0', STR_PAD_LEFT);
+        $mesApi = trim((string) ($detalle['Mes'] ?? ''));
+        if ($mesApi === '') {
+            $mesApi = str_pad((string) date('n'), 2, '0', STR_PAD_LEFT);
+        } else {
+            $mesApi = str_pad(preg_replace('/\D/', '', $mesApi) ?: (string) date('n'), 2, '0', STR_PAD_LEFT);
+            if (strlen($mesApi) > 2) {
+                $mesApi = substr($mesApi, -2);
+            }
         }
-        if ($periodo === '') {
-            $mesActual = str_pad((string) date('n'), 2, '0', STR_PAD_LEFT);
-            $periodo = $mesActual . str_pad((string) (date('Y') % 100), 2, '0', STR_PAD_LEFT);
-        }
+        $anioApi = (string) $anio;
         $cursoModel = new Curso($database);
         $apiExt = new ExternalApiService();
-        if ($usaApiInscripcion && $apiExt->isConfigured() && $rowPart) {
-            if ($rowResp) {
-                $apiExt->crearResponsable([
-                    'documento' => $rowResp['IDResponsable'] ?? $responsableDocumento,
-                    'nombres' => $rowResp['Nombres'] ?? '',
-                    'apellidos' => $rowResp['Apellidos'] ?? '',
-                    'email' => $rowResp['Correo_Responsable'] ?? '',
-                    'celular' => $rowResp['Celular_Responsable'] ?? '',
-                    'tipo_persona' => $rowResp['Tipo_Persona'] ?? '',
-                    'ciudad' => $rowResp['Ciudad'] ?? '',
-                    'departamento' => '',
-                    'direccion' => $rowResp['direccion'] ?? '',
-                    'tipo_identificacion' => $rowResp['tipo_identificacion'] ?? '',
-                ]);
-            }
-            $apiExt->crearParticipante($rowPart, $responsableDocumento);
-        }
         foreach ($cursoIds as $i => $cid) {
             $detalle['IDCurso'] = $cid;
             $detalle['nombreCurso'] = $nombresCurso[$i] ?? $cid;
@@ -833,13 +818,43 @@ try {
             if ($usaApiInscripcion && $apiExt->isConfigured()) {
                 $info = $cursoModel->getFacturacionPorId((string) $cid);
                 if ($info && !empty(trim($info['Codigo_Facturacion'] ?? ''))) {
-                    $valor = (float) preg_replace('/[^0-9.]/', '', (string) ($info['Tarifa_Curso'] ?? '0'));
-                    $apiExt->crearInscripcionApi(
-                        trim($info['Codigo_Facturacion']),
-                        $participanteDocumento,
-                        $periodo,
-                        $valor
+                    $empresa = ExternalApiService::empresaDesdeLinea(
+                        isset($info['Linea']) ? (int) $info['Linea'] : null
                     );
+                    if ($empresa === null) {
+                        AppLogger::error('guardar-inscripcion: curso sin línea/empresa API válida', [
+                            'traceId' => $traceId,
+                            'idCurso' => $cid,
+                            'linea' => $info['Linea'] ?? null,
+                        ]);
+                    } else {
+                        if ($rowResp) {
+                            $apiExt->crearResponsable([
+                                'documento' => $rowResp['IDResponsable'] ?? $responsableDocumento,
+                                'nombres' => $rowResp['Nombres'] ?? '',
+                                'apellidos' => $rowResp['Apellidos'] ?? '',
+                                'email' => $rowResp['Correo_Responsable'] ?? '',
+                                'celular' => $rowResp['Celular_Responsable'] ?? '',
+                                'tipo_persona' => $rowResp['Tipo_Persona'] ?? '',
+                                'ciudad' => $rowResp['Ciudad'] ?? '',
+                                'departamento' => '',
+                                'direccion' => $rowResp['direccion'] ?? '',
+                                'tipo_identificacion' => $rowResp['tipo_identificacion'] ?? '',
+                            ], $empresa);
+                        }
+                        if ($rowPart) {
+                            $apiExt->crearParticipante($rowPart, $responsableDocumento, $empresa);
+                        }
+                        $valor = (float) preg_replace('/[^0-9.]/', '', (string) ($info['Tarifa_Curso'] ?? '0'));
+                        $apiExt->crearInscripcionApi(
+                            trim($info['Codigo_Facturacion']),
+                            $participanteDocumento,
+                            $anioApi,
+                            $mesApi,
+                            $valor,
+                            $empresa
+                        );
+                    }
                 }
             }
         }
