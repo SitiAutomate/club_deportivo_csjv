@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/bootstrap.php';
 require_once __DIR__ . '/../../includes/csrf.php';
+require_once __DIR__ . '/../../includes/tipo1_gate.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     jsonResponse(['success' => false, 'error' => 'Método no permitido'], 405);
@@ -85,7 +86,9 @@ try {
             'apellido' => $nuevo['Primer_Apellido'] ?? '',
             'fecha_nacimiento' => $nuevo['Fecha_Nacimiento'] ?? null,
             'responsable_id' => $responsableDoc,
-            'responsable_documento' => $responsableDoc
+            'responsable_documento' => $responsableDoc,
+            'puede_tipo1' => tipo1GatePuedeVerTipo1($database, $nuevo['IDParticipante']),
+            'es_antiguo_tipo1' => tipo1GateEsAntiguo($database, $nuevo['IDParticipante']),
         ]
     ]);
 } catch (Exception $e) {

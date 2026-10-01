@@ -142,6 +142,88 @@ class EmailService
     }
 
     /**
+     * Confirmación de respuestas del formulario de reserva de cupo.
+     * $decisiones = [ ['nombre' => ..., 'accion' => continuar|no_continuar, 'categoria' => ?string ], ... ]
+     */
+    public function enviarConfirmacionReservaCupo(
+        string $destinatario,
+        string $participanteNombre,
+        string $responsableNombre,
+        int $anioDestino,
+        array $decisiones
+    ): bool {
+        $this->lastError = null;
+        if (!$this->isConfigured() || $destinatario === '') {
+            $this->lastError = 'Servicio de correo no configurado o destinatario vacío';
+            return false;
+        }
+
+        $logoHtml = $this->getLogoEmbedHtml();
+        $participanteHtml = $this->esc($participanteNombre);
+        $responsableHtml = $this->esc($responsableNombre);
+        $anioHtml = $this->esc((string) $anioDestino);
+
+        $rows = '';
+        foreach ($decisiones as $d) {
+            $nombre = trim((string) ($d['nombre'] ?? $d['nombreCurso'] ?? $d['curso'] ?? ''));
+            if ($nombre === '') {
+                continue;
+            }
+            $accion = (string) ($d['accion'] ?? '');
+            if ($accion === 'continuar') {
+                $decision = 'Continúa — cupo reservado';
+            } else {
+                $cat = trim((string) ($d['categoria'] ?? $d['causal'] ?? ''));
+                $decision = 'No continúa'
+                    . ($cat !== '' ? ' — Categoría: ' . $cat : '');
+            }
+            $rows .= '<tr>'
+                . '<td style="padding:8px;border:1px solid #e2e8f0;">' . $this->esc($nombre) . '</td>'
+                . '<td style="padding:8px;border:1px solid #e2e8f0;">' . $this->esc($decision) . '</td>'
+                . '</tr>';
+        }
+
+        $listaHtml = $rows === ''
+            ? ''
+            : '<table style="width:100%;border-collapse:collapse;margin-bottom:16px;">'
+                . '<thead><tr>'
+                . '<th style="padding:8px;border:1px solid #e2e8f0;text-align:left;background:#f8fafc;">Curso</th>'
+                . '<th style="padding:8px;border:1px solid #e2e8f0;text-align:left;background:#f8fafc;">Decisión</th>'
+                . '</tr></thead><tbody>' . $rows . '</tbody></table>';
+
+        $tieneReserva = false;
+        foreach ($decisiones as $d) {
+            if (($d['accion'] ?? '') === 'continuar') {
+                $tieneReserva = true;
+                break;
+            }
+        }
+
+        $recordatorioHtml = $tieneReserva
+            ? '<p style="margin:16px 0 0;color:#334155;line-height:1.6;">Recuerda que para comenzar los entrenamientos, es necesario firmar el contrato que recibirá el responsable en su correo electrónico.</p>'
+            : '';
+
+        $innerHtml = '<tr><td style="padding:24px;">'
+            . '<h2 style="margin:0 0 20px;font-size:1.25rem;color:#20254A;">✓ Reserva de cupo ' . $anioHtml . '</h2>'
+            . '<p style="margin:0 0 20px;color:#334155;line-height:1.6;">Hemos recibido las respuestas de continuidad para iniciar desde enero de <strong>' . $anioHtml . '</strong>. A continuación el detalle:</p>'
+            . '<table style="width:100%;border-collapse:collapse;margin-bottom:20px;">'
+            . '<tr><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;"><strong>Participante:</strong></td><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;">' . $participanteHtml . '</td></tr>'
+            . '<tr><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;"><strong>Responsable:</strong></td><td style="padding:10px 0;border-bottom:1px solid #e2e8f0;">' . $responsableHtml . '</td></tr>'
+            . '</table>'
+            . $listaHtml
+            . $recordatorioHtml
+            . '<p style="margin:20px 0 0;font-size:0.9rem;color:#64748b;">Si tiene alguna duda, contáctenos a <a href="mailto:clubdeportivo@sanjosevegas.edu.co">clubdeportivo@sanjosevegas.edu.co</a></p>'
+            . '</td></tr>';
+
+        $html = $this->buildEmailHtml($logoHtml, $innerHtml);
+        return $this->enviar(
+            $destinatario,
+            'Confirmación reserva de cupo ' . $anioDestino . ' - Club Deportivo y Fundación Maex',
+            $html
+        );
+    }
+
+    /**
      * Confirmación de inscripción por equipos (eventos tipo 18, Festivegas, etc.).
      * $equiposNuevos        = equipos registrados en la inscripción actual
      * $equiposExistentes    = equipos previamente inscritos por el mismo responsable para este evento

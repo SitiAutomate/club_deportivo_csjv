@@ -80,6 +80,14 @@ foreach ($camposDatos as $key => $cfg) {
 
 // Tipo 1 = Cursos: puede ser múltiple (curso_ids[]), con filtros mes/sede
 if ($tipoId === 1) {
+    require_once __DIR__ . '/../../includes/tipo1_gate.php';
+    if (!tipo1GatePuedeVerTipo1($database, $participanteDocumento)) {
+        jsonResponse([
+            'success' => false,
+            'error' => 'En este momento la inscripción a cursos (tipo 1) está disponible solo para familias con continuidad del mes de noviembre. Los nuevos ingresos se habilitan a partir de la fecha configurada.',
+            'traceId' => $traceId,
+        ], 403);
+    }
     $cursoIds = $input['curso_ids'] ?? [];
     if (!is_array($cursoIds)) {
         $cursoIds = $cursoIds ? [strval($cursoIds)] : [];

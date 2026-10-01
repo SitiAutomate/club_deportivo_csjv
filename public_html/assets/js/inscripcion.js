@@ -445,8 +445,27 @@
             .catch(() => alert('Error de conexión'));
     });
 
+    function aplicarGateTipo1(puedeTipo1) {
+        const sel = tipoInscripcion;
+        if (!sel) return;
+        const opt = Array.from(sel.options).find((o) => String(o.value) === '1');
+        if (!opt) return;
+        const permitir = puedeTipo1 !== false;
+        opt.hidden = !permitir;
+        opt.disabled = !permitir;
+        if (!permitir && String(sel.value) === '1') {
+            sel.value = '';
+            camposDinamicos.innerHTML = '';
+            btnEnviar.disabled = true;
+            const cardDatosAdicionales = $('#cardDatosAdicionales');
+            if (cardDatosAdicionales) cardDatosAdicionales.style.display = 'none';
+        }
+    }
+
     function habilitarTipoInscripcion() {
         tipoInscripcion.disabled = false;
+        const puede = participanteActual?.puede_tipo1;
+        aplicarGateTipo1(puede === undefined ? true : !!puede);
     }
 
     // --- Tipo inscripción dinámico ---

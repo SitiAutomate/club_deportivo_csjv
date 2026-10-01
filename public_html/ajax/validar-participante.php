@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/bootstrap.php';
 require_once __DIR__ . '/../../includes/csrf.php';
+require_once __DIR__ . '/../../includes/tipo1_gate.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -36,12 +37,15 @@ if ($row) {
             'fecha_nacimiento' => $row['Fecha_Nacimiento'] ?? null,
             'responsable_id' => $responsableDoc,
             'responsable_documento' => $responsableDoc,
-            'responsable_nombre' => $responsableNombre
+            'responsable_nombre' => $responsableNombre,
+            'puede_tipo1' => tipo1GatePuedeVerTipo1($database, $row['IDParticipante']),
+            'es_antiguo_tipo1' => tipo1GateEsAntiguo($database, $row['IDParticipante']),
         ]
     ]);
 } else {
     jsonResponse([
         'success' => true,
-        'exists' => false
+        'exists' => false,
+        'puede_tipo1' => !tipo1GateSoloAntiguosActivo(),
     ]);
 }

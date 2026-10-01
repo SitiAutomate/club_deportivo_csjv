@@ -155,6 +155,15 @@ class Inscripcion
             'Sesión' => $detalle['Sesión'] ?? $detalle['Sesion'] ?? null,
         ];
 
+        // Medoo no acepta nombres de columna con espacios; se actualiza aparte.
+        $causalRetiro = $detalle['CAUSAL DE RETIRO'] ?? $detalle['causal_retiro'] ?? null;
+        if ($causalRetiro !== null) {
+            $causalRetiro = mb_substr(trim((string) $causalRetiro), 0, 50, 'UTF-8');
+            if ($causalRetiro === '') {
+                $causalRetiro = null;
+            }
+        }
+
         $this->db->insert('inscripciones_1', $data);
         $id = (int) $this->db->id();
         if ($id <= 0 && class_exists('AppLogger')) {
@@ -166,6 +175,14 @@ class Inscripcion
                 'idCurso' => $data['IDCurso'],
             ]);
         }
+
+        if ($id > 0 && $causalRetiro !== null) {
+            $stmt = $this->db->pdo->prepare(
+                'UPDATE `inscripciones_1` SET `CAUSAL DE RETIRO` = ? WHERE `IDInscripcion` = ?'
+            );
+            $stmt->execute([$causalRetiro, $id]);
+        }
+
         return $id;
     }
 
