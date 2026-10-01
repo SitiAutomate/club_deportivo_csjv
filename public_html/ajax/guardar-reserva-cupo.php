@@ -102,7 +102,7 @@ foreach ($decisiones as $idx => $d) {
     } else {
         $catKey = trim((string) ($d['categoria'] ?? ''));
         if ($catKey === '' || !isset($categorias[$catKey])) {
-            $errores[] = 'Seleccione una categoría de no continuidad para: ' . $nombreCurso;
+            $errores[] = 'Seleccione un motivo de no continuidad para: ' . $nombreCurso;
             continue;
         }
         $estado = 'RETIRADO';

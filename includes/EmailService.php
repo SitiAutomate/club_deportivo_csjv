@@ -175,7 +175,7 @@ class EmailService
             } else {
                 $cat = trim((string) ($d['categoria'] ?? $d['causal'] ?? ''));
                 $decision = 'No continúa'
-                    . ($cat !== '' ? ' — Categoría: ' . $cat : '');
+                    . ($cat !== '' ? ' — Motivo: ' . $cat : '');
             }
             $rows .= '<tr>'
                 . '<td style="padding:8px;border:1px solid #e2e8f0;">' . $this->esc($nombre) . '</td>'

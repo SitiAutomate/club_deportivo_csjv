@@ -50,7 +50,7 @@ $anioDestino = reservaCupoAnioDestino();
                     Este formulario confirma la continuidad del participante para iniciar desde <strong>el 25 enero de <?= (int) $anioDestino ?></strong>.
                 </p>
                 <p class="mb-2 header-descripcion" style="font-size: 1rem;">
-                    Selecciona si continuará en la actividad recomendada o indica que no continuará y selecciona la categoría.
+                    Selecciona si continuará en la actividad recomendada o indica que no continuará y selecciona el motivo.
                 </p>
                 <p class="mb-2 header-descripcion" style="font-size: 1rem;">
                     Al seleccionar <strong>Continuó</strong> el cupo quedará reservado para 2027 en la actividad indicada.
@@ -90,7 +90,7 @@ $anioDestino = reservaCupoAnioDestino();
             <div class="card mb-4" id="cardCursos" style="display:none;">
                 <div class="card-header"><h5 class="mb-0">2. Cursos activos y recomendación <?= (int) $anioDestino ?></h5></div>
                 <div class="card-body">
-                    <p class="text-muted small">Para cada curso indica si continúas o no. Si no continúas, selecciona la categoría.</p>
+                    <p class="text-muted small">Para cada curso indica si continúas o no. Si no continúas, selecciona el motivo.</p>
                     <div id="listaCursos"></div>
                     <div class="d-flex justify-content-end mt-3">
                         <button type="submit" class="btn btn-primary" id="btnEnviar" disabled>

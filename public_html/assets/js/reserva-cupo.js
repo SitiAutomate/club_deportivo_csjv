@@ -125,7 +125,7 @@
     }
 
     function optionsCategorias() {
-        let html = '<option value="">-- Seleccione la categoría --</option>';
+        let html = '<option value="">-- Seleccione el motivo --</option>';
         Object.keys(categorias).forEach((k) => {
             html += '<option value="' + escapeHtml(k) + '">' + escapeHtml(categorias[k]) + '</option>';
         });
@@ -161,7 +161,7 @@
             if (!yaRespondido) {
                 html += '<div class="wrap-no-continua mt-3" id="wrapNo_' + i + '">';
                 html += '<div class="row g-3">';
-                html += '<div class="col-md-6"><label class="form-label fw-bold">Categoría</label>';
+                html += '<div class="col-md-6"><label class="form-label fw-bold">Motivo</label>';
                 html += '<select class="form-select form-select-sm" id="cat_' + i + '">' + optionsCategorias() + '</select></div>';
                 html += '</div></div>';
             }
@@ -205,7 +205,7 @@
             if (accion === 'no_continuar') {
                 item.categoria = document.getElementById('cat_' + i)?.value || '';
                 if (!item.categoria) {
-                    alert('Seleccione la categoría para: ' + c.curso_actual_nombre);
+                    alert('Seleccione el motivo para: ' + c.curso_actual_nombre);
                     return null;
                 }
             }

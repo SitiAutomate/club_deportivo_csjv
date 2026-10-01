@@ -98,6 +98,6 @@ function reservaCupoObservacionContinua(): string
 
 function reservaCupoObservacionNoContinua(string $categoriaLabel): string
 {
-    return 'Retiro — Categoría: ' . $categoriaLabel
+    return 'Retiro — Motivo: ' . $categoriaLabel
         . '. Formulario reserva de cupo ' . reservaCupoAnioDestino() . '.';
 }
