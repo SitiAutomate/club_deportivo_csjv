@@ -283,11 +283,17 @@ if ($tipoId === 1) {
         if ($categoria === '' || !in_array($categoria, $categoriasOk, true)) {
             jsonResponse(['success' => false, 'error' => 'Seleccione una categoría válida.', 'traceId' => $traceId], 400);
         }
+        $valoresMap = $cfgSoloCat['valores'] ?? [];
+        if (is_array($valoresMap) && array_key_exists($categoria, $valoresMap)) {
+            $valorTotal = (int) $valoresMap[$categoria];
+        } else {
+            $valorTotal = (int) ($cfgSoloCat['valor'] ?? 0);
+        }
         // Alineado a 1802: categoria = clasificación; valor en OBSERVACION
         $detalle['categoria'] = $categoria;
         $detalle['OBSERVACION'] = json_encode([
             'categoria' => $categoria,
-            'valor_total' => (int) ($cfgSoloCat['valor'] ?? 0),
+            'valor_total' => $valorTotal,
         ], JSON_UNESCAPED_UNICODE);
     } elseif (eventosTipo18EsTkdNacional($idCursoReq)) {
         if ($detalle['nombreCurso'] === '') {

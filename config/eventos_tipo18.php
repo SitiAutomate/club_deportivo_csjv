@@ -7,7 +7,7 @@
  */
 return [
     'festivegas_curso_ids' => ['1801'],
-    'principal_curso_ids' => ['1802', '1803', '1804', '1805', '1806', '1807', '1808', '1809', '1810', '1811', '1812', '1813', '1814'],
+    'principal_curso_ids' => ['1802', '1803', '1804', '1805', '1806', '1807', '1808', '1809', '1810', '1811', '1812', '1813', '1814', '1815'],
     'open_kewmgang_curso_id' => '1802',
     'med_cheer_curso_id' => '1803',
     'tkd_nacional_curso_id' => '1804',
@@ -21,6 +21,7 @@ return [
     'continental_stars_curso_id' => '1812',
     'tkd_fraternidad_curso_id' => '1813',
     'volleyball_columbus_curso_id' => '1814',
+    'suramericano_usag_curso_id' => '1815',
 
     'med_cheer' => [
         'nombre' => 'Med Cheer Championships',
@@ -174,5 +175,32 @@ return [
         ],
         'valor' => 500000,
         'valor_label' => 'por equipo',
+    ],
+
+    'suramericano_usag' => [
+        'nombre' => 'Campeonato Suramericano de Niveles USAG',
+        'categorias' => [
+            'Prenivel',
+            'Nivel 1',
+            'Nivel 2',
+            'Nivel 3',
+            'Nivel 4',
+            'Nivel 5',
+            'Nivel 6',
+            'Nivel 7',
+            'Nivel 8',
+        ],
+        'valores' => [
+            'Prenivel' => 241000,
+            'Nivel 1' => 341000,
+            'Nivel 2' => 341000,
+            'Nivel 3' => 341000,
+            'Nivel 4' => 341000,
+            'Nivel 5' => 341000,
+            'Nivel 6' => 341000,
+            'Nivel 7' => 341000,
+            'Nivel 8' => 341000,
+        ],
+        'valor' => 341000,
     ],
 ];

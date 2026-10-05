@@ -1247,6 +1247,7 @@
         '1812': 'Continental Stars',
         '1813': 'Open de taekwondo por la fraternidad',
         '1814': 'Volleyball Competition – The Columbus School',
+        '1815': 'Campeonato Suramericano de Niveles USAG',
     };
 
     const TIPO18_CATEGORIAS = {
@@ -1260,6 +1261,7 @@
         '1811': ['Prenivel', 'Test de Habilidades', 'Nivel 1', 'Nivel 2', 'Nivel 3', 'Age Group'],
         '1812': ['Youth', 'Diamonds', 'Senior'],
         '1814': ['Infantil'],
+        '1815': ['Prenivel', 'Nivel 1', 'Nivel 2', 'Nivel 3', 'Nivel 4', 'Nivel 5', 'Nivel 6', 'Nivel 7', 'Nivel 8'],
     };
 
     const TIPO18_CATEGORIA_LABELS = {
@@ -1269,6 +1271,21 @@
         '1811': 'Seleccione la categoría / nivel',
         '1812': 'Seleccione la categoría',
         '1814': 'Categoría',
+        '1815': 'Seleccione la categoría',
+    };
+
+    const TIPO18_CATEGORIA_PRECIOS = {
+        '1815': {
+            'Prenivel': 241000,
+            'Nivel 1': 341000,
+            'Nivel 2': 341000,
+            'Nivel 3': 341000,
+            'Nivel 4': 341000,
+            'Nivel 5': 341000,
+            'Nivel 6': 341000,
+            'Nivel 7': 341000,
+            'Nivel 8': 341000,
+        },
     };
 
     const TKD_FRAT_CINTURONES = [
@@ -1351,6 +1368,7 @@
     function renderFormCategoriaOnly(cursoId, nombreCurso) {
         const cats = TIPO18_CATEGORIAS[cursoId] || [];
         const labelCat = TIPO18_CATEGORIA_LABELS[cursoId] || 'Categoría';
+        const precios = TIPO18_CATEGORIA_PRECIOS[cursoId] || {};
         let html = '<div class="evento-categoria-form" id="formEventoTipo18">';
         html += '<input type="hidden" id="t18CursoId" name="curso_id" value="' + escapeHtml(cursoId) + '">';
         html += '<input type="hidden" name="nombreCurso" value="' + escapeHtml(nombreCurso) + '">';
@@ -1358,7 +1376,11 @@
         html += '<select class="form-select" id="eventoCategoria" name="evento_categoria" required>';
         html += '<option value="">-- Seleccione --</option>';
         cats.forEach((c) => {
-            html += `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`;
+            const precio = precios[c];
+            const label = precio
+                ? c + ' ($' + Number(precio).toLocaleString('es-CO') + ')'
+                : c;
+            html += `<option value="${escapeHtml(c)}">${escapeHtml(label)}</option>`;
         });
         html += '</select></div></div>';
         return html;
