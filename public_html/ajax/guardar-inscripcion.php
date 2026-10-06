@@ -280,21 +280,26 @@ if ($tipoId === 1) {
         }
         $categoriasOk = $cfgSoloCat['categorias'] ?? [];
         $categoria = trim((string) ($input['evento_categoria'] ?? $input['cheer_categoria'] ?? $input['categoria'] ?? ''));
-        if ($categoria === '' || !in_array($categoria, $categoriasOk, true)) {
-            jsonResponse(['success' => false, 'error' => 'Seleccione una categoría válida.', 'traceId' => $traceId], 400);
+        if (!empty($categoriasOk)) {
+            if ($categoria === '' || !in_array($categoria, $categoriasOk, true)) {
+                jsonResponse(['success' => false, 'error' => 'Seleccione una categoría válida.', 'traceId' => $traceId], 400);
+            }
+        } else {
+            $categoria = $categoria !== '' ? $categoria : null;
         }
         $valoresMap = $cfgSoloCat['valores'] ?? [];
-        if (is_array($valoresMap) && array_key_exists($categoria, $valoresMap)) {
+        if ($categoria !== null && is_array($valoresMap) && array_key_exists($categoria, $valoresMap)) {
             $valorTotal = (int) $valoresMap[$categoria];
         } else {
             $valorTotal = (int) ($cfgSoloCat['valor'] ?? 0);
         }
         // Alineado a 1802: categoria = clasificación; valor en OBSERVACION
         $detalle['categoria'] = $categoria;
-        $detalle['OBSERVACION'] = json_encode([
-            'categoria' => $categoria,
-            'valor_total' => $valorTotal,
-        ], JSON_UNESCAPED_UNICODE);
+        $obs = ['valor_total' => $valorTotal];
+        if ($categoria !== null) {
+            $obs['categoria'] = $categoria;
+        }
+        $detalle['OBSERVACION'] = json_encode($obs, JSON_UNESCAPED_UNICODE);
     } elseif (eventosTipo18EsTkdNacional($idCursoReq)) {
         if ($detalle['nombreCurso'] === '') {
             $detalle['nombreCurso'] = 'Campeonato Nacional Inter clubes de Taekwondo';

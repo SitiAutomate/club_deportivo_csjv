@@ -1263,8 +1263,9 @@
         '1812': ['Youth', 'Diamonds', 'Senior'],
         '1814': ['Infantil'],
         '1815': ['Prenivel', 'Nivel 1', 'Nivel 2', 'Nivel 3', 'Nivel 4', 'Nivel 5', 'Nivel 6', 'Nivel 7', 'Nivel 8'],
-        '1816': ['Inscripción por equipo'],
     };
+
+    const TIPO18_SIN_CAMPOS = ['1816'];
 
     const TIPO18_CATEGORIA_LABELS = {
         '1808': 'Seleccione la categoría de participación de la deportista',
@@ -1274,7 +1275,6 @@
         '1812': 'Seleccione la categoría',
         '1814': 'Categoría',
         '1815': 'Seleccione la categoría',
-        '1816': 'Confirmar inscripción',
     };
 
     const TIPO18_CATEGORIA_PRECIOS = {
@@ -1365,6 +1365,14 @@
         html += '<div class="col-md-4" id="wrapOpenkPeso" style="display:none;"><label class="form-label fw-bold">Peso (kg)</label>';
         html += '<input type="number" class="form-control" id="openkPeso" name="openk_peso" min="1" step="0.1" placeholder="Ej: 52"></div>';
         html += '</div></div></div>';
+        return html;
+    }
+
+    function renderFormEventoSinCampos(cursoId, nombreCurso) {
+        let html = '<div class="evento-confirmacion-form" id="formEventoTipo18">';
+        html += '<input type="hidden" id="t18CursoId" name="curso_id" value="' + escapeHtml(cursoId) + '">';
+        html += '<input type="hidden" name="nombreCurso" value="' + escapeHtml(nombreCurso) + '">';
+        html += '</div>';
         return html;
     }
 
@@ -1566,6 +1574,8 @@
             $('#tkdFratEsClub')?.addEventListener('change', actualizarTkdFraternidadFlujo);
             $('#tkdFratTipo')?.addEventListener('change', actualizarTkdFraternidadFlujo);
             actualizarTkdFraternidadFlujo();
+        } else if (TIPO18_SIN_CAMPOS.includes(cursoId)) {
+            wrapForm.innerHTML = renderFormEventoSinCampos(cursoId, nombre);
         } else if (TIPO18_CATEGORIAS[cursoId]) {
             wrapForm.innerHTML = renderFormCategoriaOnly(cursoId, nombre);
         } else {
@@ -2734,6 +2744,8 @@
                     data.tkd_frat_estatura = estatura;
                     data.tkd_frat_cinturon = cinturon;
                 }
+            } else if (TIPO18_SIN_CAMPOS.includes(cursoId)) {
+                // Solo confirma el evento; no requiere campos adicionales.
             } else if (TIPO18_CATEGORIAS[cursoId]) {
                 const cat = $('#eventoCategoria')?.value || '';
                 if (!cat) {

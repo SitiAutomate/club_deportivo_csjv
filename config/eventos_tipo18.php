@@ -207,9 +207,7 @@ return [
 
     'copa_wolves' => [
         'nombre' => 'Copa Internacional Wolves 2026',
-        'categorias' => [
-            'Inscripción por equipo',
-        ],
+        'categorias' => [],
         'valor' => 1300000,
         'valor_label' => 'por equipo',
     ],
