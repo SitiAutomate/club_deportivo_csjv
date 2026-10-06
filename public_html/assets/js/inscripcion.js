@@ -1248,6 +1248,7 @@
         '1813': 'Open de taekwondo por la fraternidad',
         '1814': 'Volleyball Competition – The Columbus School',
         '1815': 'Campeonato Suramericano de Niveles USAG',
+        '1816': 'Copa Internacional Wolves 2026',
     };
 
     const TIPO18_CATEGORIAS = {
@@ -1262,6 +1263,7 @@
         '1812': ['Youth', 'Diamonds', 'Senior'],
         '1814': ['Infantil'],
         '1815': ['Prenivel', 'Nivel 1', 'Nivel 2', 'Nivel 3', 'Nivel 4', 'Nivel 5', 'Nivel 6', 'Nivel 7', 'Nivel 8'],
+        '1816': ['Inscripción por equipo'],
     };
 
     const TIPO18_CATEGORIA_LABELS = {
@@ -1272,6 +1274,7 @@
         '1812': 'Seleccione la categoría',
         '1814': 'Categoría',
         '1815': 'Seleccione la categoría',
+        '1816': 'Confirmar inscripción',
     };
 
     const TIPO18_CATEGORIA_PRECIOS = {
