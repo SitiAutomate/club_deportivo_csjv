@@ -66,7 +66,7 @@ $camposDatosAdicionales = array_filter($camposDatosAdicionales, fn($c) => !empty
             </div>
         </header>
 
-        <form id="formInscripcion" class="needs-validation">
+        <form id="formInscripcion" class="needs-validation" novalidate>
             <!-- Políticas -->
             <div class="card mb-4">
                 <div class="card-header">

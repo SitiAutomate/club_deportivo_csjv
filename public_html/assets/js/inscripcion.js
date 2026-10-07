@@ -1263,9 +1263,8 @@
         '1812': ['Youth', 'Diamonds', 'Senior'],
         '1814': ['Infantil'],
         '1815': ['Prenivel', 'Nivel 1', 'Nivel 2', 'Nivel 3', 'Nivel 4', 'Nivel 5', 'Nivel 6', 'Nivel 7', 'Nivel 8'],
+        '1816': [],
     };
-
-    const TIPO18_SIN_CAMPOS = ['1816'];
 
     const TIPO18_CATEGORIA_LABELS = {
         '1808': 'Seleccione la categoría de participación de la deportista',
@@ -1498,8 +1497,36 @@
         return html;
     }
 
+    function esRespuestaSi(valor) {
+        const s = String(valor || '')
+            .trim()
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '');
+        return s === 'si' || s === 's' || s === 'yes';
+    }
+
+    function esRespuestaNo(valor) {
+        const s = String(valor || '')
+            .trim()
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '');
+        return s === 'no' || s === 'n';
+    }
+
+    function setCampoActivo(el, activo, { clear = true, isCheckbox = false } = {}) {
+        if (!el) return;
+        el.required = !!activo;
+        el.disabled = !activo;
+        if (!activo && clear) {
+            if (isCheckbox) el.checked = false;
+            else el.value = '';
+        }
+    }
+
     function actualizarTkdFraternidadFlujo() {
-        const esClub = $('#tkdFratEsClub')?.value || '';
+        const esClubRaw = $('#tkdFratEsClub')?.value || '';
         const tipo = $('#tkdFratTipo')?.value || '';
         const wrapTipo = $('#wrapTkdFratTipoExterno');
         const wrapInd = $('#wrapTkdFratIndividual');
@@ -1507,44 +1534,28 @@
         const wrapEq = $('#wrapTkdFratEquipo');
         const selTipo = $('#tkdFratTipo');
 
-        const esExterno = esClub === 'No';
-        const mostrarIndividual = esClub === 'Sí' || (esExterno && tipo === 'Individual');
+        const esClub = esRespuestaSi(esClubRaw);
+        const esExterno = esRespuestaNo(esClubRaw);
+        const mostrarIndividual = esClub || (esExterno && tipo === 'Individual');
+        const mostrarDatosExt = esExterno && tipo === 'Individual';
         const mostrarEquipo = esExterno && tipo === 'Equipo';
 
         if (wrapTipo) wrapTipo.style.display = esExterno ? 'block' : 'none';
         if (selTipo) {
-            selTipo.required = esExterno;
-            if (!esExterno) selTipo.value = '';
+            setCampoActivo(selTipo, esExterno);
         }
 
         if (wrapInd) wrapInd.style.display = mostrarIndividual ? 'block' : 'none';
-        if (wrapExt) wrapExt.style.display = (esExterno && tipo === 'Individual') ? 'block' : 'none';
+        if (wrapExt) wrapExt.style.display = mostrarDatosExt ? 'block' : 'none';
         if (wrapEq) wrapEq.style.display = mostrarEquipo ? 'block' : 'none';
 
-        const peso = $('#tkdFratPeso');
-        const est = $('#tkdFratEstatura');
-        const cin = $('#tkdFratCinturon');
-        const equipo = $('#tkdFratEquipo');
-        const entrenador = $('#tkdFratEntrenador');
-        const cant = $('#tkdFratCantidad');
-        const confirma = $('#tkdFratConfirmaPlanilla');
-
-        if (peso) { peso.required = mostrarIndividual; if (!mostrarIndividual) peso.value = ''; }
-        if (est) { est.required = mostrarIndividual; if (!mostrarIndividual) est.value = ''; }
-        if (cin) { cin.required = mostrarIndividual; if (!mostrarIndividual) cin.value = ''; }
-        if (equipo) {
-            equipo.required = esExterno && tipo === 'Individual';
-            if (!(esExterno && tipo === 'Individual')) equipo.value = '';
-        }
-        if (entrenador) {
-            entrenador.required = esExterno && tipo === 'Individual';
-            if (!(esExterno && tipo === 'Individual')) entrenador.value = '';
-        }
-        if (cant) { cant.required = mostrarEquipo; if (!mostrarEquipo) cant.value = ''; }
-        if (confirma) {
-            confirma.required = mostrarEquipo;
-            if (!mostrarEquipo) confirma.checked = false;
-        }
+        setCampoActivo($('#tkdFratPeso'), mostrarIndividual);
+        setCampoActivo($('#tkdFratEstatura'), mostrarIndividual);
+        setCampoActivo($('#tkdFratCinturon'), mostrarIndividual);
+        setCampoActivo($('#tkdFratEquipo'), mostrarDatosExt);
+        setCampoActivo($('#tkdFratEntrenador'), mostrarDatosExt);
+        setCampoActivo($('#tkdFratCantidad'), mostrarEquipo);
+        setCampoActivo($('#tkdFratConfirmaPlanilla'), mostrarEquipo, { isCheckbox: true });
         refreshRequiredAsterisks(camposDinamicos);
     }
 
@@ -1574,10 +1585,11 @@
             $('#tkdFratEsClub')?.addEventListener('change', actualizarTkdFraternidadFlujo);
             $('#tkdFratTipo')?.addEventListener('change', actualizarTkdFraternidadFlujo);
             actualizarTkdFraternidadFlujo();
-        } else if (TIPO18_SIN_CAMPOS.includes(cursoId)) {
-            wrapForm.innerHTML = renderFormEventoSinCampos(cursoId, nombre);
-        } else if (TIPO18_CATEGORIAS[cursoId]) {
-            wrapForm.innerHTML = renderFormCategoriaOnly(cursoId, nombre);
+        } else if (Object.prototype.hasOwnProperty.call(TIPO18_CATEGORIAS, cursoId)) {
+            const cats = TIPO18_CATEGORIAS[cursoId] || [];
+            wrapForm.innerHTML = cats.length > 1
+                ? renderFormCategoriaOnly(cursoId, nombre)
+                : renderFormEventoSinCampos(cursoId, nombre);
         } else {
             wrapForm.innerHTML = '<p class="text-danger">Evento no configurado en el formulario.</p>';
         }
@@ -2681,14 +2693,15 @@
                 data.tkd_peso = peso;
                 data.tkd_estatura = estatura;
             } else if (cursoId === '1813') {
-                const esClub = $('#tkdFratEsClub')?.value || '';
-                if (!esClub) {
+                const esClubRaw = $('#tkdFratEsClub')?.value || '';
+                if (!esRespuestaSi(esClubRaw) && !esRespuestaNo(esClubRaw)) {
                     alert('Indique si es deportista del Club San José de las Vegas.');
                     $('#tkdFratEsClub')?.focus();
                     return;
                 }
-                data.tkd_frat_es_club = esClub;
-                if (esClub === 'No') {
+                const esClub = esRespuestaSi(esClubRaw);
+                data.tkd_frat_es_club = esClub ? 'Sí' : 'No';
+                if (!esClub) {
                     const tipoPart = $('#tkdFratTipo')?.value || '';
                     if (!tipoPart) {
                         alert('Seleccione si la inscripción es individual o por equipo.');
@@ -2697,17 +2710,19 @@
                     }
                     data.tkd_frat_tipo = tipoPart;
                     if (tipoPart === 'Individual') {
-                        const peso = $('#tkdFratPeso')?.value || '';
-                        const estatura = $('#tkdFratEstatura')?.value || '';
+                        const peso = ($('#tkdFratPeso')?.value || '').trim().replace(',', '.');
+                        const estatura = ($('#tkdFratEstatura')?.value || '').trim().replace(',', '.');
                         const cinturon = $('#tkdFratCinturon')?.value || '';
                         const equipo = ($('#tkdFratEquipo')?.value || '').trim();
                         const entrenador = ($('#tkdFratEntrenador')?.value || '').trim();
                         if (!peso || !estatura || !cinturon) {
                             alert('Complete peso, estatura y cinturón.');
+                            ( !peso ? $('#tkdFratPeso') : (!estatura ? $('#tkdFratEstatura') : $('#tkdFratCinturon')) )?.focus();
                             return;
                         }
                         if (!equipo || !entrenador) {
                             alert('Ingrese el equipo/club/colegio y el nombre del delegado del club.');
+                            (!equipo ? $('#tkdFratEquipo') : $('#tkdFratEntrenador'))?.focus();
                             return;
                         }
                         data.tkd_frat_peso = peso;
@@ -2733,28 +2748,34 @@
                     }
                 } else {
                     data.tkd_frat_tipo = 'Individual';
-                    const peso = $('#tkdFratPeso')?.value || '';
-                    const estatura = $('#tkdFratEstatura')?.value || '';
+                    const peso = ($('#tkdFratPeso')?.value || '').trim().replace(',', '.');
+                    const estatura = ($('#tkdFratEstatura')?.value || '').trim().replace(',', '.');
                     const cinturon = $('#tkdFratCinturon')?.value || '';
                     if (!peso || !estatura || !cinturon) {
-                        alert('Complete peso, estatura y cinturón.');
+                        alert('Complete peso, estatura y cinturón del deportista.');
+                        actualizarTkdFraternidadFlujo();
+                        ( !peso ? $('#tkdFratPeso') : (!estatura ? $('#tkdFratEstatura') : $('#tkdFratCinturon')) )?.focus();
                         return;
                     }
                     data.tkd_frat_peso = peso;
                     data.tkd_frat_estatura = estatura;
                     data.tkd_frat_cinturon = cinturon;
                 }
-            } else if (TIPO18_SIN_CAMPOS.includes(cursoId)) {
-                // Solo confirma el evento; no requiere campos adicionales.
-            } else if (TIPO18_CATEGORIAS[cursoId]) {
-                const cat = $('#eventoCategoria')?.value || '';
-                if (!cat) {
-                    alert('Seleccione la categoría.');
-                    $('#eventoCategoria')?.focus();
-                    return;
+            } else if (Object.prototype.hasOwnProperty.call(TIPO18_CATEGORIAS, cursoId)) {
+                const cats = TIPO18_CATEGORIAS[cursoId] || [];
+                if (cats.length > 1) {
+                    const cat = $('#eventoCategoria')?.value || '';
+                    if (!cat) {
+                        alert('Seleccione la categoría.');
+                        $('#eventoCategoria')?.focus();
+                        return;
+                    }
+                    data.evento_categoria = cat;
+                    data.categoria = cat;
+                } else if (cats.length === 1) {
+                    data.evento_categoria = cats[0];
+                    data.categoria = cats[0];
                 }
-                data.evento_categoria = cat;
-                data.categoria = cat;
             } else {
                 alert('Evento no configurado.');
                 return;

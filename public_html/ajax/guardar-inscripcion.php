@@ -278,11 +278,17 @@ if ($tipoId === 1) {
         if ($detalle['nombreCurso'] === '') {
             $detalle['nombreCurso'] = (string) ($cfgSoloCat['nombre'] ?? 'Evento');
         }
-        $categoriasOk = $cfgSoloCat['categorias'] ?? [];
+        $categoriasOk = array_values(array_filter(array_map('strval', $cfgSoloCat['categorias'] ?? [])));
         $categoria = trim((string) ($input['evento_categoria'] ?? $input['cheer_categoria'] ?? $input['categoria'] ?? ''));
-        if (!empty($categoriasOk)) {
+        if (count($categoriasOk) > 1) {
             if ($categoria === '' || !in_array($categoria, $categoriasOk, true)) {
                 jsonResponse(['success' => false, 'error' => 'Seleccione una categoría válida.', 'traceId' => $traceId], 400);
+            }
+        } elseif (count($categoriasOk) === 1) {
+            if ($categoria === '') {
+                $categoria = $categoriasOk[0];
+            } elseif (!in_array($categoria, $categoriasOk, true)) {
+                jsonResponse(['success' => false, 'error' => 'Categoría no válida.', 'traceId' => $traceId], 400);
             }
         } else {
             $categoria = $categoria !== '' ? $categoria : null;
@@ -377,8 +383,12 @@ if ($tipoId === 1) {
         $valor = (int) ($cfgFrat['valor'] ?? 100000);
         $cinturonesOk = $cfgFrat['cinturones'] ?? [];
 
-        $esClub = trim((string) ($input['tkd_frat_es_club'] ?? ''));
-        if (!in_array($esClub, ['Sí', 'No'], true)) {
+        $esClubRaw = trim((string) ($input['tkd_frat_es_club'] ?? ''));
+        if (preg_match('/^s[ií]$/iu', $esClubRaw) || strcasecmp($esClubRaw, 'yes') === 0) {
+            $esClub = 'Sí';
+        } elseif (preg_match('/^no?$/iu', $esClubRaw)) {
+            $esClub = 'No';
+        } else {
             jsonResponse(['success' => false, 'error' => 'Indique si es deportista del Club San José de las Vegas.', 'traceId' => $traceId], 400);
         }
 
@@ -399,8 +409,8 @@ if ($tipoId === 1) {
         ];
 
         if ($tipoPart === 'Individual') {
-            $peso = trim((string) ($input['tkd_frat_peso'] ?? ''));
-            $estatura = trim((string) ($input['tkd_frat_estatura'] ?? ''));
+            $peso = str_replace(',', '.', trim((string) ($input['tkd_frat_peso'] ?? '')));
+            $estatura = str_replace(',', '.', trim((string) ($input['tkd_frat_estatura'] ?? '')));
             $cinturon = trim((string) ($input['tkd_frat_cinturon'] ?? ''));
             if ($peso === '' || !is_numeric($peso) || (float) $peso <= 0) {
                 jsonResponse(['success' => false, 'error' => 'Ingrese el peso en kg.', 'traceId' => $traceId], 400);
