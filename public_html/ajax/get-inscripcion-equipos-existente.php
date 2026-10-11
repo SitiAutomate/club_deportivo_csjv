@@ -34,8 +34,10 @@ $equiposPayload = array_map(function ($eq) use ($deportistaModel) {
     return [
         'id_equipo' => (int) ($eq['IDEquipo'] ?? 0),
         'nombre_equipo' => $eq['nombre_equipo'] ?? '',
+        'disciplina' => $eq['disciplina'] ?? '',
         'rama' => $eq['rama'] ?? '',
         'categoria' => $eq['categoria'] ?? '',
+        'club' => $eq['asistente_nombre'] ?? '',
         'entrenador_nombre' => $eq['entrenador_nombre'] ?? '',
         'entrenador_documento' => $eq['entrenador_documento'] ?? '',
         'entrenador_contacto' => $eq['entrenador_contacto'] ?? '',
@@ -48,7 +50,7 @@ $equiposPayload = array_map(function ($eq) use ($deportistaModel) {
                 'fecha_nacimiento' => $d['fecha_nacimiento'] ?? '',
                 'documento' => $d['documento'] ?? '',
             ];
-        }, $deportistaModel->getByEquipo((int) ($eq['IDEquipo'] ?? 0)))
+        }, $deportistaModel->getByEquipo((int) ($eq['IDEquipo'] ?? 0))),
     ];
 }, $equipos);
 

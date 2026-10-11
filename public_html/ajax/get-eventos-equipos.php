@@ -1,44 +1,92 @@
 <?php
 require_once __DIR__ . '/../../includes/bootstrap.php';
-require_once __DIR__ . '/../../includes/copa_vegas.php';
+require_once __DIR__ . '/../../includes/eventos_equipos.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
-// Por ahora solo Copa Vegas en el formulario de equipos (Festivegas oculto).
-$tipoId = copaVegasTipoId();
-$cursoId = copaVegasCursoId();
-$curso = new Curso($database);
-$rows = array_values(array_filter(
-    $curso->getPorTipo($tipoId, true),
-    fn($c) => (string) ($c['ID_Curso'] ?? '') === $cursoId
-));
+$cursoModel = new Curso($database);
+$items = [];
+$schemas = [];
 
-$formatearPrecio = function ($valor) {
-    $digits = preg_replace('/[^0-9]/', '', (string) $valor);
-    if ($digits === '') return '';
-    $num = (int) $digits;
-    return $num > 0 ? '$' . number_format($num, 0, ',', '.') : '';
-};
+foreach (eventosEquiposActivos() as $id => $evento) {
+    $row = $database->get('cursos_2025', [
+        'ID_Curso',
+        'Nombre_del_curso',
+        'Nombre_Corto_Curso',
+        'Tarifa_Curso',
+        'Fecha_Inicio',
+        'Fecha_Final',
+        'Tipo',
+        'Estado_del_curso',
+    ], ['ID_Curso' => $id]);
 
-$items = array_map(function ($c) use ($formatearPrecio) {
-    $nombre = $c['Nombre_del_curso'] ?? $c['Nombre_Corto_Curso'] ?? 'Copa Vegas';
-    $precio = $formatearPrecio($c['Tarifa_Curso'] ?? '');
-    return [
-        'id' => $c['ID_Curso'],
+    // Si el curso aún no está en BD, igual se expone desde config (útil en staging).
+    $nombreCfg = (string) ($evento['nombre'] ?? $id);
+    $nombre = $nombreCfg;
+    $tarifa = '';
+    $fechaInicio = '';
+    $fechaFin = '';
+    $tipoId = (int) ($evento['tipo_id'] ?? 18);
+
+    if ($row) {
+        $nombreDb = trim((string) ($row['Nombre_del_curso'] ?? $row['Nombre_Corto_Curso'] ?? ''));
+        if ($nombreDb !== '') {
+            $nombre = $nombreDb;
+        }
+        $tarifa = (string) ($row['Tarifa_Curso'] ?? '');
+        $fechaInicio = (string) ($row['Fecha_Inicio'] ?? '');
+        $fechaFin = (string) ($row['Fecha_Final'] ?? '');
+        if (!empty($row['Tipo'])) {
+            $tipoId = (int) $row['Tipo'];
+        }
+    }
+
+    $schema = eventosEquiposSchemaPublico($evento);
+    $schema['tipo_id'] = $tipoId;
+    $schemas[$id] = $schema;
+
+    $detalle = $evento['detalle'] ?? null;
+    $info = (string) ($evento['info_corta'] ?? '');
+    if (is_array($detalle)) {
+        $parts = array_filter([
+            $detalle['fecha'] ?? null,
+            isset($detalle['hora']) ? 'Hora: ' . $detalle['hora'] : null,
+            $detalle['lugar'] ?? null,
+        ]);
+        if ($parts) {
+            $info = implode(' · ', $parts);
+        }
+    }
+
+    $items[] = [
+        'id' => (string) $id,
         'nombre' => $nombre,
-        'nombre_display' => $nombre . ($precio ? ' - ' . $precio : ''),
-        'tarifa' => $c['Tarifa_Curso'] ?? '',
-        'fecha_inicio' => $c['Fecha_Inicio'] ?? '',
-        'fecha_fin' => $c['Fecha_Final'] ?? '',
-        'modo' => 'copa_vegas',
-        'tipo_id' => (int) ($c['Tipo'] ?? 20),
+        'nombre_display' => $nombre,
+        'tarifa' => $tarifa,
+        'fecha_inicio' => $fechaInicio,
+        'fecha_fin' => $fechaFin,
+        'modo' => (string) ($evento['modo'] ?? ''),
+        'tipo_id' => $tipoId,
+        'info_corta' => $info,
+        'schema' => $schema,
+        'en_bd' => (bool) $row,
     ];
-}, $rows);
+}
+
+$defaultId = '';
+if (count($items) === 1) {
+    $defaultId = (string) $items[0]['id'];
+} elseif (isset($schemas['1817'])) {
+    $defaultId = '1817';
+} elseif (isset($schemas['2001'])) {
+    $defaultId = '2001';
+} elseif (!empty($items)) {
+    $defaultId = (string) $items[0]['id'];
+}
 
 jsonResponse([
     'success' => true,
-    'tipo_id' => $tipoId,
-    'modo' => 'copa_vegas',
     'items' => $items,
-    'default_id' => $cursoId,
+    'schemas' => $schemas,
+    'default_id' => $defaultId,
 ]);

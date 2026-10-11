@@ -272,11 +272,23 @@ class EmailService
             $badgeHtml = $badge
                 ? ' <span style="display:inline-block;font-size:0.75rem;padding:2px 8px;border-radius:10px;background:#e0e7ff;color:#3730a3;vertical-align:middle;">' . $this->esc($badge) . '</span>'
                 : '';
+            $club = $this->esc((string) ($eq['club'] ?? ''));
+            $clubHtml = $club !== ''
+                ? '<p style="margin:0 0 6px;color:#334155;"><strong>Club:</strong> ' . $club . '</p>'
+                : ($asistente ? '<p style="margin:0 0 6px;color:#334155;"><strong>Club:</strong> ' . $asistente . '</p>' : '');
+            $ramaCat = [];
+            if ($rama !== '') $ramaCat[] = '<strong>Rama:</strong> ' . $rama;
+            if ($categoria !== '') $ramaCat[] = '<strong>Categoría:</strong> ' . $categoria;
+            $ramaCatHtml = $ramaCat
+                ? '<p style="margin:0 0 6px;color:#334155;">' . implode(' &nbsp; ', $ramaCat) . '</p>'
+                : '';
+
             return '<div style="margin:16px 0;padding:14px;border:1px solid #e2e8f0;border-radius:6px;background:#f8fafc;">'
                 . '<h3 style="margin:0 0 8px;color:#20254A;font-size:1rem;">Equipo ' . $idx . ': ' . $nombre . $badgeHtml . '</h3>'
-                . '<p style="margin:0 0 6px;color:#334155;"><strong>Rama:</strong> ' . $rama . ' &nbsp; <strong>Categoría:</strong> ' . $categoria . '</p>'
+                . $clubHtml
+                . $ramaCatHtml
                 . '<p style="margin:0 0 6px;color:#334155;"><strong>Entrenador:</strong> ' . ($entrenador ?: '-') . '</p>'
-                . ($asistente ? '<p style="margin:0 0 10px;color:#334155;"><strong>Asistente:</strong> ' . $asistente . '</p>' : '')
+                . ($asistente && $club === '' ? '<p style="margin:0 0 10px;color:#334155;"><strong>Asistente:</strong> ' . $asistente . '</p>' : '')
                 . '<table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:0.9rem;">'
                 . '<thead><tr>'
                 . '<th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;background:#fff;">#</th>'

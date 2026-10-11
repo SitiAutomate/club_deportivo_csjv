@@ -20,7 +20,7 @@ function eventosTipo18FestivegasIds(): array
 function eventosTipo18PrincipalIds(): array
 {
     $cfg = eventosTipo18Config();
-    $ids = $cfg['principal_curso_ids'] ?? ['1802', '1803', '1804', '1805', '1806', '1807', '1808', '1809', '1810', '1811', '1812', '1813', '1814', '1815', '1816'];
+    $ids = $cfg['principal_curso_ids'] ?? ['1802', '1803', '1804', '1805', '1806', '1807', '1808', '1809', '1810', '1811', '1812', '1813', '1814', '1815', '1816', '1818'];
     return array_map('strval', $ids);
 }
 
@@ -129,6 +129,13 @@ function eventosTipo18CopaWolvesId(): string
     return $id !== '' ? $id : '1816';
 }
 
+function eventosTipo18RegionalCupId(): string
+{
+    $cfg = eventosTipo18Config();
+    $id = trim((string) ($cfg['regional_cup_curso_id'] ?? '1818'));
+    return $id !== '' ? $id : '1818';
+}
+
 function eventosTipo18EsFestivegas(string $idCurso): bool
 {
     return in_array((string) $idCurso, eventosTipo18FestivegasIds(), true);
@@ -215,6 +222,11 @@ function eventosTipo18EsCopaWolves(string $idCurso): bool
     return (string) $idCurso === eventosTipo18CopaWolvesId();
 }
 
+function eventosTipo18EsRegionalCup(string $idCurso): bool
+{
+    return (string) $idCurso === eventosTipo18RegionalCupId();
+}
+
 function eventosTipo18MedCheerConfig(): array
 {
     return eventosTipo18Config()['med_cheer'] ?? [];
@@ -285,6 +297,11 @@ function eventosTipo18CopaWolvesConfig(): array
     return eventosTipo18Config()['copa_wolves'] ?? [];
 }
 
+function eventosTipo18RegionalCupConfig(): array
+{
+    return eventosTipo18Config()['regional_cup'] ?? [];
+}
+
 /**
  * Eventos tipo 18 que solo piden categoría (como Med Cheer).
  * @return array{nombre:string,categorias:array,valor?:int,valores?:array}|null
@@ -326,6 +343,9 @@ function eventosTipo18ConfigSoloCategoria(string $idCurso): ?array
     }
     if (eventosTipo18EsCopaWolves($idCurso)) {
         return eventosTipo18CopaWolvesConfig();
+    }
+    if (eventosTipo18EsRegionalCup($idCurso)) {
+        return eventosTipo18RegionalCupConfig();
     }
     return null;
 }

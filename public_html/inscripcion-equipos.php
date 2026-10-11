@@ -1,10 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_once __DIR__ . '/../includes/csrf.php';
-
-// Temporalmente desactivado: inscripción de equipos vuelve al formulario principal (Copa Vegas).
-header('Location: index.php');
-exit;
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -103,13 +99,13 @@ exit;
         <header class="header-inscripcion d-flex align-items-center gap-4 mb-5 py-4 px-4 rounded-3 shadow-sm">
             <img src="assets/images/logo.png?v=<?= @filemtime(__DIR__ . '/assets/images/logo.png') ?: '1' ?>" alt="Logo" class="header-logo flex-shrink-0" onerror="this.style.display='none'">
             <div class="header-text flex-grow-1">
-                <h1 class="mb-1 display-6 fw-bold">Inscripción de equipos – Copa Vegas</h1>
+                <h1 class="mb-1 display-6 fw-bold" id="pageTitle">Inscripción de equipos</h1>
                 <p class="h5 mb-2 text-muted">Club Deportivo y Fundación Maex</p>
-                <p class="mb-2 header-descripcion" style="font-size: 1rem;">
-                    Formulario para inscribir equipos de fútbol, baloncesto y voleibol en la Copa Vegas 2026.
+                <p class="mb-2 header-descripcion" style="font-size: 1rem;" id="pageLead">
+                    Seleccione el evento, registre el responsable (entrenador cuando aplique) y diligencie los datos del equipo.
                 </p>
-                <p class="mb-0 header-descripcion" style="font-size: 1rem;">
-                    Diligencie los datos del responsable de pago, confirme el evento y registre los equipos a inscribir.
+                <p class="mb-0 header-descripcion" style="font-size: 1rem;" id="pageLead2">
+                    Al enviar recibirá un correo de confirmación con el listado.
                 </p>
             </div>
         </header>
@@ -119,12 +115,11 @@ exit;
                 <h5 class="mb-0">¿Cómo funciona?</h5>
             </div>
             <div class="card-body">
-                <ol class="mb-0 ps-3">
+                <ol class="mb-0 ps-3" id="listaPasos">
                     <li class="mb-2">Acepte la autorización para el tratamiento de datos personales.</li>
-                    <li class="mb-2">Ingrese el documento del responsable de pago y valídelo. Si no está registrado, complete sus datos.</li>
-                    <li class="mb-2">Confirme el evento Copa Vegas y la cantidad de equipos a inscribir (entre 1 y 10).</li>
-                    <li class="mb-2">Diligencie por cada equipo el nombre, disciplina, rama, categoría, entrenador y la planilla de deportistas (mínimo 1).</li>
-                    <li class="mb-0">Al enviar, se confirmará la inscripción y recibirá un correo con el listado de equipos.</li>
+                    <li class="mb-2">Ingrese y valide el documento del responsable / entrenador.</li>
+                    <li class="mb-2">Seleccione el evento y complete los datos del equipo según lo solicitado.</li>
+                    <li class="mb-0">Al enviar, se confirmará la inscripción y recibirá un correo con el listado.</li>
                 </ol>
             </div>
         </div>
@@ -147,13 +142,13 @@ exit;
             <div id="contenidoFormulario" style="display:none;">
                 <div class="card mb-4">
                     <div class="card-header">
-                        <h5 class="mb-0">1. Responsable de pago</h5>
+                        <h5 class="mb-0" id="tituloResponsable">1. Responsable / Entrenador</h5>
                     </div>
                     <div class="card-body">
-                        <p class="small text-muted mb-3">Ingrese el documento del responsable de pago y valídelo. Si no está registrado en el sistema, podrá completar sus datos a continuación.</p>
+                        <p class="small text-muted mb-3" id="notaResponsable">Ingrese el documento y valídelo. Si no está registrado, podrá completar sus datos a continuación.</p>
                         <div class="row">
                             <div class="col-md-6">
-                                <label for="docResponsable" class="form-label fw-bold">Documento del responsable</label>
+                                <label for="docResponsable" class="form-label fw-bold" id="labelDocResponsable">Documento</label>
                                 <div class="input-group">
                                     <input type="text" class="form-control" id="docResponsable" name="docResponsable"
                                            placeholder="Ingrese documento y presione Validar" required autocomplete="on">
@@ -172,7 +167,7 @@ exit;
 
                 <div class="card mb-4" id="cardEvento" style="display:none;">
                     <div class="card-header">
-                        <h5 class="mb-0">2. Evento y cantidad de equipos</h5>
+                        <h5 class="mb-0">2. Evento</h5>
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
@@ -182,13 +177,14 @@ exit;
                                     <option value="">-- Cargando eventos... --</option>
                                 </select>
                                 <div class="form-text" id="eventoInfo"></div>
+                                <div class="detalle-template-contenedor mt-3" id="eventoTemplateContenedor"></div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-4" id="wrapCantidadEquipos">
                                 <label for="cantidadEquipos" class="form-label fw-bold">Cantidad de equipos</label>
                                 <select class="form-select" id="cantidadEquipos">
                                     <option value="">-- Seleccione --</option>
                                 </select>
-                                <div class="form-text">Mínimo 1, máximo 10 por envío (hasta 10 equipos en total por responsable y evento).</div>
+                                <div class="form-text" id="textoCantidadEquipos">Según el evento seleccionado.</div>
                             </div>
                         </div>
                     </div>

@@ -1,7 +1,6 @@
 (function () {
     'use strict';
 
-    const MAX_EQUIPOS = 10;
     const TEL_PATTERN = /^3\d{9}$/;
     const TEL_INPUT_ATTRS = 'type="tel" inputmode="numeric" pattern="3[0-9]{9}" maxlength="10" minlength="10" placeholder="Ej: 3001234567"';
     const URL_PARAMS = new URLSearchParams(window.location.search);
@@ -47,7 +46,6 @@
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
     }[c]));
 
-    // ---- DOM refs ----
     const form = document.getElementById('formInscripcionEquipos');
     const checkPoliticas = document.getElementById('checkPoliticas');
     const contenido = document.getElementById('contenidoFormulario');
@@ -58,7 +56,10 @@
     const cardEvento = document.getElementById('cardEvento');
     const eventoSelect = document.getElementById('eventoSelect');
     const eventoInfo = document.getElementById('eventoInfo');
+    const eventoTemplateContenedor = document.getElementById('eventoTemplateContenedor');
+    const wrapCantidadEquipos = document.getElementById('wrapCantidadEquipos');
     const cantidadEquipos = document.getElementById('cantidadEquipos');
+    const textoCantidadEquipos = document.getElementById('textoCantidadEquipos');
     const contenedorEquipos = document.getElementById('contenedorEquipos');
     const btnEnviar = document.getElementById('btnEnviar');
     const resultadoFinal = document.getElementById('resultadoFinal');
@@ -73,6 +74,11 @@
     const textoEquiposExistentes = document.getElementById('textoEquiposExistentes');
     const btnVerEquiposInscritos = document.getElementById('btnVerEquiposInscritos');
     const modalEquiposInscritosEl = document.getElementById('modalEquiposInscritos');
+    const tituloResponsable = document.getElementById('tituloResponsable');
+    const notaResponsable = document.getElementById('notaResponsable');
+    const labelDocResponsable = document.getElementById('labelDocResponsable');
+    const pageTitle = document.getElementById('pageTitle');
+    const pageLead = document.getElementById('pageLead');
 
     let modalResponsable = null;
     let modalExito = null;
@@ -80,30 +86,69 @@
 
     let responsableActual = null;
     let eventosCache = [];
+    let schemasCache = {};
+    let schemaActual = null;
     let inscripcionExistenteCache = null;
-    let copaVegasConfig = null;
-    let tipoEventoActual = 20;
+    let tipoEventoActual = 18;
 
-    function disciplinasEquipoOptions() {
-        const allowed = copaVegasConfig?.disciplinas_equipo || ['Fútbol', 'Baloncesto', 'Voleibol'];
-        return (copaVegasConfig?.disciplinas || []).filter((d) => allowed.includes(d.nombre));
+    function maxEnvio() {
+        return Math.max(1, parseInt(schemaActual?.max_equipos_por_envio || 1, 10));
+    }
+
+    function maxTotal() {
+        return Math.max(1, parseInt(schemaActual?.max_equipos_total || maxEnvio(), 10));
+    }
+
+    function campoOn(nombre) {
+        return !!(schemaActual?.campos && schemaActual.campos[nombre]);
+    }
+
+    function depCfg() {
+        return schemaActual?.deportistas || {
+            campos: ['nombre_completo', 'documento', 'fecha_nacimiento'],
+            requiere_fecha_nacimiento: true,
+            min: 1,
+            max: 50,
+        };
     }
 
     function categoriasDeDisciplina(nombre) {
-        const d = (copaVegasConfig?.disciplinas || []).find((x) => x.nombre === nombre);
+        if (Array.isArray(schemaActual?.categorias) && schemaActual.categorias.length) {
+            return schemaActual.categorias;
+        }
+        const d = (schemaActual?.disciplinas || []).find((x) => x.nombre === nombre);
         return d?.categorias || [];
     }
 
-    function cargarConfigCopaVegas() {
-        return ajax('get-copa-vegas-config.php', 'GET')
+    function cargarDetalleTemplate(tipoId, itemId, contenedor) {
+        if (!contenedor) return;
+        contenedor.innerHTML = '<p class="text-muted small mb-0">Cargando detalle...</p>';
+        ajax('get-detalle-template.php', 'GET', { tipo_id: tipoId, item_id: itemId })
             .then((res) => {
-                if (res && res.success) copaVegasConfig = res;
-                return res;
+                if (res && res.success && res.html) {
+                    contenedor.innerHTML = res.html;
+                } else {
+                    contenedor.innerHTML = '';
+                }
             })
-            .catch(() => null);
+            .catch(() => {
+                contenedor.innerHTML = '';
+            });
     }
 
-    // ---- Helpers ----
+    function aplicarTextosEvento(item) {
+        const schema = item?.schema || schemaActual;
+        if (!schema) return;
+        if (pageTitle) pageTitle.textContent = 'Inscripción de equipos – ' + (schema.nombre || item?.nombre || '');
+        if (pageLead) pageLead.textContent = schema.info_corta || item?.info_corta || '';
+        if (tituloResponsable) tituloResponsable.textContent = '1. ' + (schema.label_responsable || 'Responsable');
+        if (notaResponsable) notaResponsable.textContent = schema.nota_responsable || 'Valide el documento para continuar.';
+        if (labelDocResponsable) labelDocResponsable.textContent = 'Documento';
+        if (textoCantidadEquipos) {
+            textoCantidadEquipos.textContent = `Máximo ${schema.max_equipos_por_envio} por envío (hasta ${schema.max_equipos_total} en total).`;
+        }
+    }
+
     function spinner(btn, show) {
         if (!btn) return;
         const txt = btn.querySelector('.btn-text');
@@ -131,20 +176,28 @@
         const cant = parseInt(cantidadEquipos.value, 10);
         const eventoOk = !!eventoSelect.value;
         const respOk = !!responsableActual;
-        const cupoLleno = inscripcionExistenteCache && inscripcionExistenteCache.total_equipos >= MAX_EQUIPOS;
+        const cupoLleno = inscripcionExistenteCache && inscripcionExistenteCache.total_equipos >= maxTotal();
         btnEnviar.disabled = !(respOk && eventoOk && cant > 0) || !!cupoLleno;
     }
 
     function actualizarOpcionesCantidad(maxPermitido) {
+        const tope = Math.max(0, Math.min(maxPermitido, maxEnvio()));
         const valorPrev = cantidadEquipos.value;
         cantidadEquipos.innerHTML = '<option value="">-- Seleccione --</option>';
-        for (let i = 1; i <= maxPermitido; i++) {
+        for (let i = 1; i <= tope; i++) {
             const opt = document.createElement('option');
             opt.value = String(i);
             opt.textContent = i === 1 ? '1 equipo' : `${i} equipos`;
             cantidadEquipos.appendChild(opt);
         }
-        if (valorPrev && parseInt(valorPrev, 10) <= maxPermitido) {
+        if (tope === 1) {
+            cantidadEquipos.value = '1';
+            if (wrapCantidadEquipos) wrapCantidadEquipos.style.display = 'none';
+            renderEquipos(1);
+            return;
+        }
+        if (wrapCantidadEquipos) wrapCantidadEquipos.style.display = '';
+        if (valorPrev && parseInt(valorPrev, 10) <= tope) {
             cantidadEquipos.value = valorPrev;
         } else {
             cantidadEquipos.value = '';
@@ -157,7 +210,6 @@
         });
     }
 
-    // ---- Eventos (Copa Vegas) ----
     function cargarEventos() {
         eventoSelect.innerHTML = '<option value="">-- Cargando eventos... --</option>';
         return ajax('get-eventos-equipos.php', 'GET')
@@ -167,7 +219,7 @@
                     return;
                 }
                 eventosCache = res.items;
-                tipoEventoActual = parseInt(res.tipo_id || '20', 10) || 20;
+                schemasCache = res.schemas || {};
                 if (res.items.length === 0) {
                     eventoSelect.innerHTML = '<option value="">-- No hay eventos disponibles --</option>';
                     return;
@@ -194,7 +246,6 @@
             });
     }
 
-    // ---- Render de tarjetas de equipos preservando datos ----
     function renderEquipos(cant) {
         if (!cant || cant < 1) {
             contenedorEquipos.innerHTML = '';
@@ -216,73 +267,114 @@
     }
 
     function buildEquipoCard(idx) {
-        const disciplinas = disciplinasEquipoOptions();
+        const maxDep = parseInt(depCfg().max || 50, 10);
+        const requiereFecha = !!depCfg().requiere_fecha_nacimiento;
+        const disciplinas = schemaActual?.disciplinas || [];
+        const catsFijas = Array.isArray(schemaActual?.categorias) ? schemaActual.categorias : [];
+        const ramas = Array.isArray(schemaActual?.ramas) ? schemaActual.ramas : [];
+
         const optsDisc = disciplinas.map((d) => {
             const selected = PREFILL_DISCIPLINA && d.nombre === PREFILL_DISCIPLINA ? ' selected' : '';
             const precio = d.precio_display ? ` — ${esc(d.precio_display)}` : '';
             return `<option value="${esc(d.nombre)}"${selected}>${esc(d.nombre)}${precio}</option>`;
         }).join('');
 
+        const optsCatFijas = catsFijas.map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+        const optsRama = ramas.map((r) => `<option value="${esc(r)}">${esc(r)}</option>`).join('');
+
         const card = document.createElement('div');
         card.className = 'card mb-4 equipo-card';
         card.dataset.equipo = idx;
+
+        let camposHtml = '<div class="row g-3 mb-3">';
+        if (campoOn('nombre_equipo')) {
+            camposHtml += `
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Nombre del equipo <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" data-field="nombre_equipo" required>
+                </div>`;
+        }
+        if (campoOn('club')) {
+            camposHtml += `
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Club <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" data-field="club" maxlength="150" required>
+                </div>`;
+        }
+        if (campoOn('disciplina')) {
+            camposHtml += `
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Disciplina <span class="text-danger">*</span></label>
+                    <select class="form-select" data-field="disciplina" required>
+                        <option value="">-- Seleccione --</option>
+                        ${optsDisc}
+                    </select>
+                </div>`;
+        }
+        if (campoOn('rama')) {
+            camposHtml += `
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Rama <span class="text-danger">*</span></label>
+                    <select class="form-select" data-field="rama" required>
+                        <option value="">-- Seleccione --</option>
+                        ${optsRama}
+                    </select>
+                </div>`;
+        }
+        if (campoOn('categoria')) {
+            const col = campoOn('rama') ? 'col-md-8' : 'col-md-6';
+            camposHtml += `
+                <div class="${col}">
+                    <label class="form-label fw-bold">Categoría <span class="text-danger">*</span></label>
+                    <select class="form-select" data-field="categoria" required>
+                        <option value="">-- Seleccione --</option>
+                        ${optsCatFijas}
+                    </select>
+                </div>`;
+        }
+        camposHtml += '</div>';
+
+        let entrenadorHtml = '';
+        if (campoOn('entrenador_nombre') || campoOn('entrenador_documento') || campoOn('entrenador_contacto')) {
+            entrenadorHtml += '<h6 class="fw-bold text-uppercase small text-muted mt-3">Entrenador</h6><div class="row g-3 mb-3">';
+            if (campoOn('entrenador_nombre')) {
+                entrenadorHtml += `
+                    <div class="col-md-5">
+                        <label class="form-label">Nombre del entrenador <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" data-field="entrenador_nombre" required>
+                    </div>`;
+            }
+            if (campoOn('entrenador_documento')) {
+                entrenadorHtml += `
+                    <div class="col-md-4">
+                        <label class="form-label">Documento <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" data-field="entrenador_documento" required>
+                    </div>`;
+            }
+            if (campoOn('entrenador_contacto')) {
+                entrenadorHtml += `
+                    <div class="col-md-3">
+                        <label class="form-label">Celular de contacto <span class="text-danger">*</span></label>
+                        <input class="form-control" data-field="entrenador_contacto" ${TEL_INPUT_ATTRS} required>
+                        <div class="invalid-feedback">Ingrese un celular válido de 10 dígitos (debe empezar por 3).</div>
+                    </div>`;
+            }
+            entrenadorHtml += '</div>';
+        }
+
         card.innerHTML = `
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Equipo ${idx}</h5>
                 <span class="badge text-bg-secondary" data-rol="badge-cat">Categoría: -</span>
             </div>
             <div class="card-body">
-                <div class="row g-3 mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Nombre del equipo <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" data-field="nombre_equipo" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Disciplina <span class="text-danger">*</span></label>
-                        <select class="form-select" data-field="disciplina" required>
-                            <option value="">-- Seleccione --</option>
-                            ${optsDisc}
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">Rama <span class="text-danger">*</span></label>
-                        <select class="form-select" data-field="rama" required>
-                            <option value="">-- Seleccione --</option>
-                            <option value="Femenina">Femenina</option>
-                            <option value="Masculina">Masculina</option>
-                            <option value="Mixta">Mixta</option>
-                        </select>
-                    </div>
-                    <div class="col-md-8">
-                        <label class="form-label fw-bold">Categoría <span class="text-danger">*</span></label>
-                        <select class="form-select" data-field="categoria" required>
-                            <option value="">-- Primero seleccione disciplina --</option>
-                        </select>
-                    </div>
-                </div>
-
-                <h6 class="fw-bold text-uppercase small text-muted mt-3">Entrenador</h6>
-                <div class="row g-3 mb-3">
-                    <div class="col-md-5">
-                        <label class="form-label">Nombre del entrenador <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" data-field="entrenador_nombre" required>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Documento <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" data-field="entrenador_documento" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Celular de contacto <span class="text-danger">*</span></label>
-                        <input class="form-control" data-field="entrenador_contacto" ${TEL_INPUT_ATTRS} required>
-                        <div class="invalid-feedback">Ingrese un celular válido de 10 dígitos (debe empezar por 3).</div>
-                    </div>
-                </div>
-
+                ${camposHtml}
+                ${entrenadorHtml}
                 <div class="d-flex justify-content-between align-items-center mt-4 mb-2">
                     <h6 class="fw-bold text-uppercase small text-muted mb-0">Deportistas del equipo</h6>
                     <button type="button" class="btn btn-sm btn-outline-primary" data-action="add-deportista">+ Deportista</button>
                 </div>
-                <div class="alert alert-info py-2 small" data-rol="aviso-categoria">Registre al menos un deportista.</div>
+                <div class="alert alert-info py-2 small" data-rol="aviso-categoria">Máximo ${maxDep} deportistas. Registre al menos ${depCfg().min || 1}.</div>
                 <div data-rol="lista-deportistas" class="vstack gap-2"></div>
             </div>
         `;
@@ -296,7 +388,8 @@
         card.querySelectorAll('input[data-field$="_contacto"]').forEach(soloNumeros);
 
         function refillCategorias() {
-            const disc = selDisc.value;
+            if (!selCat) return;
+            const disc = selDisc?.value || '';
             const cats = categoriasDeDisciplina(disc);
             const prev = selCat.value;
             selCat.innerHTML = '<option value="">-- Seleccione --</option>';
@@ -310,36 +403,50 @@
             badge.textContent = 'Categoría: ' + (selCat.value || '-');
         }
 
-        selDisc.addEventListener('change', refillCategorias);
-        selCat.addEventListener('change', () => {
-            badge.textContent = 'Categoría: ' + (selCat.value || '-');
-        });
-        if (selDisc.value) refillCategorias();
+        if (selDisc) {
+            selDisc.addEventListener('change', refillCategorias);
+            if (selDisc.value) refillCategorias();
+        }
+        if (selCat) {
+            selCat.addEventListener('change', () => {
+                badge.textContent = 'Categoría: ' + (selCat.value || '-');
+            });
+        }
 
         addBtn.addEventListener('click', () => {
-            addDeportistaRow(lista, lista.querySelectorAll('[data-rol="deportista-row"]').length);
+            const total = lista.querySelectorAll('[data-rol="deportista-row"]').length;
+            if (total >= maxDep) {
+                alert(`Máximo ${maxDep} deportistas por equipo.`);
+                return;
+            }
+            addDeportistaRow(lista, total, requiereFecha);
         });
 
-        addDeportistaRow(lista, 0);
+        addDeportistaRow(lista, 0, requiereFecha);
         return card;
     }
 
-    function addDeportistaRow(lista, idx) {
+    function addDeportistaRow(lista, idx, requiereFecha) {
         const row = document.createElement('div');
         row.className = 'border rounded p-2 deportista-row';
         row.dataset.rol = 'deportista-row';
-        row.innerHTML = `
-            <div class="row g-2 align-items-end">
-                <div class="col-12 col-md-5">
-                    <label class="form-label small mb-1">Nombre completo del/la deportista <span data-rol="num">#${idx + 1}</span> <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control form-control-sm" data-field-dep="nombre_completo" required>
-                </div>
-                <div class="col-12 col-md-3">
+        const fechaHtml = requiereFecha
+            ? `<div class="col-12 col-md-3">
                     <label class="form-label small mb-1">Fecha de nacimiento <span class="text-danger">*</span></label>
                     <input type="date" class="form-control form-control-sm" data-field-dep="fecha_nacimiento" required>
+               </div>`
+            : '';
+        const colNombre = requiereFecha ? 'col-12 col-md-5' : 'col-12 col-md-6';
+        const colDoc = requiereFecha ? 'col-12 col-md-3' : 'col-12 col-md-5';
+        row.innerHTML = `
+            <div class="row g-2 align-items-end">
+                <div class="${colNombre}">
+                    <label class="form-label small mb-1">Nombre del deportista <span data-rol="num">#${idx + 1}</span> <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control form-control-sm" data-field-dep="nombre_completo" required>
                 </div>
-                <div class="col-12 col-md-3">
-                    <label class="form-label small mb-1">Número de documento <span class="text-danger">*</span></label>
+                ${fechaHtml}
+                <div class="${colDoc}">
+                    <label class="form-label small mb-1">Documento <span class="text-danger">*</span></label>
                     <input type="text" class="form-control form-control-sm" data-field-dep="documento" required>
                 </div>
                 <div class="col-12 col-md-1 text-end">
@@ -387,25 +494,23 @@
 
     function validarDeportistasEquipo(card, k) {
         const rows = card.querySelectorAll('[data-rol="deportista-row"]');
+        const requiereFecha = !!depCfg().requiere_fecha_nacimiento;
+        const minDep = parseInt(depCfg().min || 1, 10);
+        const maxDep = parseInt(depCfg().max || 50, 10);
         let activos = 0;
         for (let j = 0; j < rows.length; j++) {
             const d = leerDeportistaRow(rows[j]);
             if (!deportistaRowActiva(d)) continue;
             activos++;
             const n = j + 1;
-            if (!d.nombre_completo) {
-                return `Equipo ${k}, deportista #${n}: ingrese el nombre completo.`;
-            }
-            if (!d.fecha_nacimiento) {
+            if (!d.nombre_completo) return `Equipo ${k}, deportista #${n}: ingrese el nombre completo.`;
+            if (!d.documento) return `Equipo ${k}, deportista #${n}: ingrese el número de documento.`;
+            if (requiereFecha && !d.fecha_nacimiento) {
                 return `Equipo ${k}, deportista #${n}: ingrese la fecha de nacimiento.`;
             }
-            if (!d.documento) {
-                return `Equipo ${k}, deportista #${n}: ingrese el número de documento.`;
-            }
         }
-        if (activos === 0) {
-            return `Equipo ${k}: registre al menos un deportista con todos sus datos.`;
-        }
+        if (activos < minDep) return `Equipo ${k}: registre al menos ${minDep} deportista(s).`;
+        if (activos > maxDep) return `Equipo ${k}: máximo ${maxDep} deportistas.`;
         return null;
     }
 
@@ -416,7 +521,8 @@
             const deportistas = recolectarDeportistasActivos(card);
             return {
                 nombre_equipo: get('nombre_equipo'),
-                disciplina: get('disciplina'),
+                club: get('club'),
+                disciplina: get('disciplina') || (schemaActual?.disciplina_fija || ''),
                 rama: get('rama'),
                 categoria: get('categoria'),
                 entrenador_nombre: get('entrenador_nombre'),
@@ -430,7 +536,6 @@
         });
     }
 
-    // ---- Inscripción existente (solo lectura en modal) ----
     function mostrarSpinnerExistente() {
         barEquiposInscritos.classList.remove('d-none');
         badgeEquiposExistentes.textContent = '...';
@@ -452,7 +557,7 @@
         return ajax('get-inscripcion-equipos-existente.php', 'POST', {
             responsable_documento: responsableActual.documento,
             curso_id: eventoSelect.value,
-            tipo_id: tipoEventoActual
+            tipo_id: tipoEventoActual,
         }).then((res) => {
             if (res && res.success && res.exists) {
                 inscripcionExistenteCache = res;
@@ -470,31 +575,36 @@
     }
 
     function buildEquipoVisualHtml(eq, idx) {
+        const requiereFecha = !!depCfg().requiere_fecha_nacimiento;
         const deportistasRows = (eq.deportistas || []).map((d, i) => `
             <tr>
                 <td>${i + 1}</td>
                 <td>${esc(d.nombre_completo)}</td>
                 <td>${esc(d.documento)}</td>
-                <td>${esc(formatFechaDDMMYYYY(d.fecha_nacimiento))}</td>
+                ${requiereFecha ? `<td>${esc(formatFechaDDMMYYYY(d.fecha_nacimiento))}</td>` : ''}
             </tr>
         `).join('');
+        const club = eq.asistente_nombre || eq.club || '';
         return `
             <div class="card mb-3 equipo-card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h6 class="mb-0">Equipo ${idx + 1}: ${esc(eq.nombre_equipo)}</h6>
-                    <span class="badge text-bg-secondary">${eq.disciplina ? esc(eq.disciplina) + ' · ' : ''}${esc(eq.rama)} / ${esc(eq.categoria)}</span>
+                    <span class="badge text-bg-secondary">${eq.disciplina ? esc(eq.disciplina) + ' · ' : ''}${eq.rama ? esc(eq.rama) + ' / ' : ''}${esc(eq.categoria || '')}</span>
                 </div>
                 <div class="card-body">
                     <div class="row g-2 mb-2 small">
-                        <div class="col-md-12"><strong>Entrenador:</strong> ${esc(eq.entrenador_nombre) || '-'}<br>
-                            <span class="text-muted">Doc: ${esc(eq.entrenador_documento) || '-'} · Cel: ${esc(eq.entrenador_contacto) || '-'}</span>
+                        ${club ? `<div class="col-md-12"><strong>Club:</strong> ${esc(club)}</div>` : ''}
+                        <div class="col-md-12"><strong>Entrenador:</strong> ${esc(eq.entrenador_nombre) || '-'}
+                            ${eq.entrenador_documento || eq.entrenador_contacto
+                                ? `<br><span class="text-muted">Doc: ${esc(eq.entrenador_documento) || '-'} · Cel: ${esc(eq.entrenador_contacto) || '-'}</span>`
+                                : ''}
                         </div>
                     </div>
                     <table class="table table-sm table-bordered mb-0">
                         <thead class="table-light">
-                            <tr><th>#</th><th>Deportista</th><th>Documento</th><th>F. nacimiento</th></tr>
+                            <tr><th>#</th><th>Deportista</th><th>Documento</th>${requiereFecha ? '<th>F. nacimiento</th>' : ''}</tr>
                         </thead>
-                        <tbody>${deportistasRows || '<tr><td colspan="4" class="text-muted small">Sin deportistas registrados.</td></tr>'}</tbody>
+                        <tbody>${deportistasRows || `<tr><td colspan="${requiereFecha ? 4 : 3}" class="text-muted small">Sin deportistas registrados.</td></tr>`}</tbody>
                     </table>
                 </div>
             </div>
@@ -503,14 +613,14 @@
 
     function mostrarInscripcionExistente(res) {
         const totalExistentes = parseInt(res.total_equipos || (res.equipos || []).length || 0, 10);
-        const disponibles = Math.max(0, MAX_EQUIPOS - totalExistentes);
+        const disponibles = Math.max(0, maxTotal() - totalExistentes);
 
-        const equiposHtml = (res.equipos || []).map(buildEquipoVisualHtml).join('');
-        listaEquiposExistentes.innerHTML = equiposHtml || '<p class="text-muted small mb-0">Sin equipos registrados.</p>';
-        badgeEquiposExistentes.textContent = totalExistentes + ' / ' + MAX_EQUIPOS;
+        listaEquiposExistentes.innerHTML = (res.equipos || []).map(buildEquipoVisualHtml).join('')
+            || '<p class="text-muted small mb-0">Sin equipos registrados.</p>';
+        badgeEquiposExistentes.textContent = totalExistentes + ' / ' + maxTotal();
         textoEquiposExistentes.textContent = disponibles > 0
-            ? `Ya tiene ${totalExistentes} equipo(s) inscrito(s). Puede agregar hasta ${disponibles} más en este envío.`
-            : `Ya alcanzó el máximo de ${MAX_EQUIPOS} equipos para este evento. No es posible agregar más.`;
+            ? `Ya tiene ${totalExistentes} equipo(s) inscrito(s). Puede agregar hasta ${Math.min(disponibles, maxEnvio())} más en este envío.`
+            : `Ya alcanzó el máximo de ${maxTotal()} equipos para este evento. No es posible agregar más.`;
         barEquiposInscritos.classList.remove('d-none');
         if (btnVerEquiposInscritos) {
             btnVerEquiposInscritos.style.display = totalExistentes > 0 ? '' : 'none';
@@ -532,7 +642,7 @@
             btnVerEquiposInscritos.style.display = 'none';
             btnVerEquiposInscritos.disabled = true;
         }
-        actualizarOpcionesCantidad(MAX_EQUIPOS);
+        actualizarOpcionesCantidad(maxEnvio());
     }
 
     function abrirModalEquiposInscritos() {
@@ -541,7 +651,6 @@
         modalEquiposInscritos.show();
     }
 
-    // ---- Modal responsable ----
     function abrirModalResponsable(doc) {
         if (!modalResponsableEl) return;
         document.getElementById('modalResponsableDocumento').value = doc;
@@ -631,7 +740,7 @@
         fetch(basePath + 'ajax/guardar-responsable.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-            body: JSON.stringify(data)
+            body: JSON.stringify(data),
         }).then((r) => r.json()).then((res) => {
             if (!res.success) {
                 alert(res.error || 'Error al guardar responsable.');
@@ -654,14 +763,15 @@
         });
     });
 
-    // ---- Reset general ----
     function resetFormulario() {
         form.reset();
         responsableActual = null;
+        schemaActual = null;
         limpiarInscripcionExistente();
         cardEvento.style.display = 'none';
         contenedorEquipos.innerHTML = '';
         eventoInfo.textContent = '';
+        if (eventoTemplateContenedor) eventoTemplateContenedor.innerHTML = '';
         hideMsg(responsableError);
         responsableInfo.classList.add('d-none');
         responsableInfo.textContent = '';
@@ -671,7 +781,6 @@
         btnEnviar.disabled = true;
     }
 
-    // ---- Listeners ----
     checkPoliticas.addEventListener('change', () => {
         contenido.style.display = checkPoliticas.checked ? '' : 'none';
         if (!checkPoliticas.checked) {
@@ -713,7 +822,7 @@
         spinner(btnValidarResp, true);
         return ajax('validar-responsable.php', 'POST', {
             documento,
-            participante_id: documento
+            participante_id: documento,
         }).then((res) => {
             if (!res.success) throw new Error(res.error || 'Error al validar responsable.');
             if (!res.exists) {
@@ -759,10 +868,20 @@
     eventoSelect.addEventListener('change', () => {
         const id = eventoSelect.value;
         const item = eventosCache.find((it) => String(it.id) === String(id));
-        eventoInfo.textContent = item ? (item.fecha_inicio || '') + (item.fecha_fin ? ' al ' + item.fecha_fin : '') : '';
+        schemaActual = item?.schema || schemasCache[id] || null;
+        tipoEventoActual = parseInt(schemaActual?.tipo_id || item?.tipo_id || '18', 10) || 18;
+        aplicarTextosEvento(item);
+        eventoInfo.textContent = item?.info_corta || '';
+        if (eventoTemplateContenedor) {
+            if (id && schemaActual) {
+                cargarDetalleTemplate(schemaActual.template_tipo || tipoEventoActual, id, eventoTemplateContenedor);
+            } else {
+                eventoTemplateContenedor.innerHTML = '';
+            }
+        }
         limpiarInscripcionExistente();
         contenedorEquipos.innerHTML = '';
-        cantidadEquipos.value = '';
+        actualizarOpcionesCantidad(maxEnvio());
         actualizarEnvio();
         if (responsableActual && id) verificarInscripcionExistente();
     });
@@ -774,7 +893,6 @@
 
     btnVerEquiposInscritos && btnVerEquiposInscritos.addEventListener('click', abrirModalEquiposInscritos);
 
-    // ---- Submit ----
     form.addEventListener('submit', (e) => {
         e.preventDefault();
         hideMsg(responsableError);
@@ -788,12 +906,12 @@
             showMsg(responsableError, 'Valide o registre el responsable antes de continuar.', true);
             return;
         }
-        if (!eventoSelect.value) {
+        if (!eventoSelect.value || !schemaActual) {
             alert('Seleccione un evento.');
             return;
         }
-        if (inscripcionExistenteCache && inscripcionExistenteCache.total_equipos >= MAX_EQUIPOS) {
-            alert(`Este responsable ya alcanzó el máximo de ${MAX_EQUIPOS} equipos para este evento.`);
+        if (inscripcionExistenteCache && inscripcionExistenteCache.total_equipos >= maxTotal()) {
+            alert(`Este responsable ya alcanzó el máximo de ${maxTotal()} equipos para este evento.`);
             return;
         }
         const cant = parseInt(cantidadEquipos.value, 10);
@@ -801,8 +919,12 @@
             alert('Seleccione la cantidad de equipos a inscribir.');
             return;
         }
+        if (cant > maxEnvio()) {
+            alert(`Este evento solo permite ${maxEnvio()} equipo(s) por envío.`);
+            return;
+        }
         if (inscripcionExistenteCache) {
-            const disponibles = MAX_EQUIPOS - (inscripcionExistenteCache.total_equipos || 0);
+            const disponibles = maxTotal() - (inscripcionExistenteCache.total_equipos || 0);
             if (cant > disponibles) {
                 alert(`Solo puede registrar hasta ${disponibles} equipo(s) adicional(es).`);
                 return;
@@ -810,8 +932,6 @@
         }
 
         const cards = contenedorEquipos.querySelectorAll('.equipo-card');
-
-        // Documentos ya registrados en inscripciones previas del mismo responsable+evento
         const docsExistentes = new Set();
         if (inscripcionExistenteCache && Array.isArray(inscripcionExistenteCache.equipos)) {
             inscripcionExistenteCache.equipos.forEach((eq) => {
@@ -827,23 +947,20 @@
             const card = cards[i];
             const k = i + 1;
             const get = (sel) => (card.querySelector(`[data-field="${sel}"]`)?.value || '').trim();
-            const nombreEquipo = get('nombre_equipo');
-            const disciplina = get('disciplina');
-            const rama = get('rama');
-            const categoria = get('categoria');
-            const entrenadorNombre = get('entrenador_nombre');
-            const entrenadorDocumento = get('entrenador_documento');
-            const entrenadorContacto = get('entrenador_contacto');
 
-            if (!nombreEquipo) return alert(`Equipo ${k}: ingrese el nombre del equipo.`);
-            if (!disciplina) return alert(`Equipo ${k}: seleccione la disciplina.`);
-            if (!rama) return alert(`Equipo ${k}: seleccione la rama.`);
-            if (!categoria) return alert(`Equipo ${k}: seleccione la categoría.`);
-            if (!entrenadorNombre) return alert(`Equipo ${k}: ingrese el nombre del entrenador.`);
-            if (!entrenadorDocumento) return alert(`Equipo ${k}: ingrese el documento del entrenador.`);
-            if (!entrenadorContacto) return alert(`Equipo ${k}: ingrese el celular del entrenador.`);
-            if (!TEL_PATTERN.test(entrenadorContacto)) {
-                return alert(`Equipo ${k}: el celular del entrenador debe tener 10 dígitos y empezar por 3.`);
+            if (campoOn('nombre_equipo') && !get('nombre_equipo')) return alert(`Equipo ${k}: ingrese el nombre del equipo.`);
+            if (campoOn('club') && !get('club')) return alert(`Equipo ${k}: ingrese el club.`);
+            if (campoOn('disciplina') && !get('disciplina')) return alert(`Equipo ${k}: seleccione la disciplina.`);
+            if (campoOn('rama') && !get('rama')) return alert(`Equipo ${k}: seleccione la rama.`);
+            if (campoOn('categoria') && !get('categoria')) return alert(`Equipo ${k}: seleccione la categoría.`);
+            if (campoOn('entrenador_nombre') && !get('entrenador_nombre')) return alert(`Equipo ${k}: ingrese el nombre del entrenador.`);
+            if (campoOn('entrenador_documento') && !get('entrenador_documento')) return alert(`Equipo ${k}: ingrese el documento del entrenador.`);
+            if (campoOn('entrenador_contacto')) {
+                const cel = get('entrenador_contacto');
+                if (!cel) return alert(`Equipo ${k}: ingrese el celular del entrenador.`);
+                if (!TEL_PATTERN.test(cel)) {
+                    return alert(`Equipo ${k}: el celular del entrenador debe tener 10 dígitos y empezar por 3.`);
+                }
             }
 
             const errDep = validarDeportistasEquipo(card, k);
@@ -869,7 +986,7 @@
             responsable_documento: responsableActual.documento,
             curso_id: eventoSelect.value,
             politicas: 'Si',
-            equipos
+            equipos,
         }).then((res) => {
             if (!res.success) throw new Error(res.error || 'No fue posible registrar la inscripción.');
             const nombreEvento = eventosCache.find((it) => String(it.id) === String(eventoSelect.value))?.nombre || res.evento || '';
@@ -878,11 +995,11 @@
                 ? inscripcionExistenteCache.equipos
                 : [];
             const existentesHtml = equiposExistentesPrev.map((e, i) => `
-                <li>Equipo ${i + 1}: ${esc(e.nombre_equipo)} <span class="text-muted">(${esc(e.disciplina || '')}${e.disciplina ? ' / ' : ''}${esc(e.rama)} / ${esc(e.categoria)})</span> <span class="badge text-bg-secondary ms-1">Previo</span></li>
+                <li>Equipo ${i + 1}: ${esc(e.nombre_equipo)} <span class="text-muted">(${esc(e.categoria || e.rama || '')})</span> <span class="badge text-bg-secondary ms-1">Previo</span></li>
             `).join('');
             const offset = equiposExistentesPrev.length;
             const nuevosHtml = equipos.map((e, i) => `
-                <li>Equipo ${offset + i + 1}: ${esc(e.nombre_equipo)} <span class="text-muted">(${esc(e.disciplina || '')}${e.disciplina ? ' / ' : ''}${esc(e.rama)} / ${esc(e.categoria)})</span> <span class="badge text-bg-success ms-1">Nuevo</span></li>
+                <li>Equipo ${offset + i + 1}: ${esc(e.nombre_equipo || e.club)} <span class="text-muted">(${esc(e.categoria || '')})</span> <span class="badge text-bg-success ms-1">Nuevo</span></li>
             `).join('');
             const totalEquipos = res.total_equipos || (offset + equipos.length);
             const equiposExistentesCount = res.equipos_existentes != null ? res.equipos_existentes : offset;
@@ -925,15 +1042,13 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
-    actualizarOpcionesCantidad(MAX_EQUIPOS);
-
     if (PREFILL_RESPONSABLE) {
         setPageLoading(true, 'Preparando inscripción de equipos...');
         checkPoliticas.checked = true;
         contenido.style.display = '';
         docResponsable.value = PREFILL_RESPONSABLE;
 
-        Promise.all([cargarConfigCopaVegas(), cargarEventos()])
+        cargarEventos()
             .then(() => {
                 setPageLoading(true, 'Validando responsable...');
                 docResponsable.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -942,13 +1057,10 @@
             .finally(() => {
                 setPageLoading(false);
                 const cardResp = docResponsable.closest('.card');
-                if (cardResp) {
-                    cardResp.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                } else {
-                    docResponsable.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
+                if (cardResp) cardResp.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                else docResponsable.scrollIntoView({ behavior: 'smooth', block: 'center' });
             });
     } else {
-        Promise.all([cargarConfigCopaVegas(), cargarEventos()]);
+        cargarEventos();
     }
 })();

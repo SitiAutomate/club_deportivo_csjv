@@ -7,7 +7,7 @@
  */
 return [
     'festivegas_curso_ids' => ['1801'],
-    'principal_curso_ids' => ['1802', '1803', '1804', '1805', '1806', '1807', '1808', '1809', '1810', '1811', '1812', '1813', '1814', '1815', '1816'],
+    'principal_curso_ids' => ['1802', '1803', '1804', '1805', '1806', '1807', '1808', '1809', '1810', '1811', '1812', '1813', '1814', '1815', '1816', '1818'],
     'open_kewmgang_curso_id' => '1802',
     'med_cheer_curso_id' => '1803',
     'tkd_nacional_curso_id' => '1804',
@@ -23,6 +23,7 @@ return [
     'volleyball_columbus_curso_id' => '1814',
     'suramericano_usag_curso_id' => '1815',
     'copa_wolves_curso_id' => '1816',
+    'regional_cup_curso_id' => '1818',
 
     'med_cheer' => [
         'nombre' => 'Med Cheer Championships',
@@ -210,5 +211,12 @@ return [
         'categorias' => [],
         'valor' => 1300000,
         'valor_label' => 'por equipo',
+    ],
+
+    'regional_cup' => [
+        'nombre' => 'Regional Cup 2026',
+        'categorias' => [],
+        'valor' => 130000,
+        'valor_label' => 'por deportista',
     ],
 ];

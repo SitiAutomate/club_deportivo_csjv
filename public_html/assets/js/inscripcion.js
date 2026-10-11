@@ -1249,6 +1249,7 @@
         '1814': 'Volleyball Competition – The Columbus School',
         '1815': 'Campeonato Suramericano de Niveles USAG',
         '1816': 'Copa Internacional Wolves 2026',
+        '1818': 'Regional Cup 2026',
     };
 
     const TIPO18_CATEGORIAS = {
@@ -1264,6 +1265,7 @@
         '1814': ['Infantil'],
         '1815': ['Prenivel', 'Nivel 1', 'Nivel 2', 'Nivel 3', 'Nivel 4', 'Nivel 5', 'Nivel 6', 'Nivel 7', 'Nivel 8'],
         '1816': [],
+        '1818': [],
     };
 
     const TIPO18_CATEGORIA_LABELS = {
