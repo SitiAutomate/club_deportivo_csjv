@@ -73,20 +73,10 @@ foreach (eventosEquiposActivos() as $id => $evento) {
     ];
 }
 
-$defaultId = '';
-if (count($items) === 1) {
-    $defaultId = (string) $items[0]['id'];
-} elseif (isset($schemas['1817'])) {
-    $defaultId = '1817';
-} elseif (isset($schemas['2001'])) {
-    $defaultId = '2001';
-} elseif (!empty($items)) {
-    $defaultId = (string) $items[0]['id'];
-}
-
+// Sin default automático: el usuario elige el evento tras validar el documento.
 jsonResponse([
     'success' => true,
     'items' => $items,
     'schemas' => $schemas,
-    'default_id' => $defaultId,
+    'default_id' => '',
 ]);

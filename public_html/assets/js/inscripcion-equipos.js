@@ -180,7 +180,11 @@
         btnEnviar.disabled = !(respOk && eventoOk && cant > 0) || !!cupoLleno;
     }
 
-    function actualizarOpcionesCantidad(maxPermitido) {
+    function puedeMostrarEquipos() {
+        return !!(responsableActual && eventoSelect.value && schemaActual);
+    }
+
+    function actualizarOpcionesCantidad(maxPermitido, { render = false } = {}) {
         const tope = Math.max(0, Math.min(maxPermitido, maxEnvio()));
         const valorPrev = cantidadEquipos.value;
         cantidadEquipos.innerHTML = '<option value="">-- Seleccione --</option>';
@@ -193,15 +197,34 @@
         if (tope === 1) {
             cantidadEquipos.value = '1';
             if (wrapCantidadEquipos) wrapCantidadEquipos.style.display = 'none';
-            renderEquipos(1);
+        } else {
+            if (wrapCantidadEquipos) wrapCantidadEquipos.style.display = '';
+            if (valorPrev && parseInt(valorPrev, 10) <= tope) {
+                cantidadEquipos.value = valorPrev;
+            } else {
+                cantidadEquipos.value = '';
+            }
+        }
+        if (render && puedeMostrarEquipos()) {
+            syncEquiposDesdeCantidad();
+        } else if (!puedeMostrarEquipos()) {
+            contenedorEquipos.innerHTML = '';
+        }
+    }
+
+    function syncEquiposDesdeCantidad() {
+        if (!puedeMostrarEquipos()) {
+            contenedorEquipos.innerHTML = '';
+            actualizarEnvio();
             return;
         }
-        if (wrapCantidadEquipos) wrapCantidadEquipos.style.display = '';
-        if (valorPrev && parseInt(valorPrev, 10) <= tope) {
-            cantidadEquipos.value = valorPrev;
-        } else {
-            cantidadEquipos.value = '';
+        const cant = parseInt(cantidadEquipos.value, 10);
+        if (!cant || cant < 1) {
+            contenedorEquipos.innerHTML = '';
+            actualizarEnvio();
+            return;
         }
+        renderEquipos(cant);
     }
 
     function soloNumeros(input) {
@@ -232,12 +255,9 @@
                     opt.dataset.nombre = it.nombre;
                     eventoSelect.appendChild(opt);
                 });
-                const def = PREFILL_CURSO || res.default_id;
-                if (def && res.items.some((it) => String(it.id) === String(def))) {
-                    eventoSelect.value = def;
-                    eventoSelect.dispatchEvent(new Event('change'));
-                } else if (res.items.length === 1) {
-                    eventoSelect.value = res.items[0].id;
+                // Solo preseleccionar si hay prefijo en URL y ya hay responsable validado.
+                if (PREFILL_CURSO && responsableActual && res.items.some((it) => String(it.id) === String(PREFILL_CURSO))) {
+                    eventoSelect.value = PREFILL_CURSO;
                     eventoSelect.dispatchEvent(new Event('change'));
                 }
             })
@@ -628,7 +648,7 @@
         }
 
         contenedorEquipos.innerHTML = '';
-        actualizarOpcionesCantidad(disponibles);
+        actualizarOpcionesCantidad(disponibles, { render: disponibles > 0 });
         cantidadEquipos.disabled = disponibles <= 0;
         actualizarEnvio();
     }
@@ -642,7 +662,8 @@
             btnVerEquiposInscritos.style.display = 'none';
             btnVerEquiposInscritos.disabled = true;
         }
-        actualizarOpcionesCantidad(maxEnvio());
+        // No renderiza equipos: solo actualiza el selector de cantidad.
+        actualizarOpcionesCantidad(maxEnvio(), { render: false });
     }
 
     function abrirModalEquiposInscritos() {
@@ -836,14 +857,22 @@
             docResponsable.classList.add('is-valid');
             showMsg(responsableInfo, `Responsable: ${res.responsable.nombre || res.responsable.documento}`, false);
             cardEvento.style.display = '';
+            contenedorEquipos.innerHTML = '';
+            actualizarEnvio();
+            // Tras validar: solo muestra el selector de evento. Los equipos aparecen al elegir evento.
             if (eventosCache.length === 0) {
-                return cargarEventos().then(() => {
-                    actualizarEnvio();
-                    return eventoSelect.value ? verificarInscripcionExistente().then(() => true) : true;
+                return cargarEventos().then(() => true);
+            }
+            // Si ya había evento elegido, refrescar cupo y mostrar equipos.
+            if (eventoSelect.value && schemaActual) {
+                return verificarInscripcionExistente().then((existente) => {
+                    if (!existente && puedeMostrarEquipos()) {
+                        actualizarOpcionesCantidad(maxEnvio(), { render: true });
+                    }
+                    return true;
                 });
             }
-            actualizarEnvio();
-            return eventoSelect.value ? verificarInscripcionExistente().then(() => true) : true;
+            return true;
         }).catch((err) => {
             showMsg(responsableError, err.message || 'Error de conexión.', true);
             return false;
@@ -879,16 +908,23 @@
                 eventoTemplateContenedor.innerHTML = '';
             }
         }
-        limpiarInscripcionExistente();
         contenedorEquipos.innerHTML = '';
-        actualizarOpcionesCantidad(maxEnvio());
+        limpiarInscripcionExistente();
         actualizarEnvio();
-        if (responsableActual && id) verificarInscripcionExistente();
+        if (!id || !responsableActual) {
+            return;
+        }
+        // Tras validar responsable + elegir evento: consultar cupo y recién mostrar equipos.
+        verificarInscripcionExistente().then((existente) => {
+            if (existente) return; // mostrarInscripcionExistente ya sincronizó
+            if (puedeMostrarEquipos()) {
+                actualizarOpcionesCantidad(maxEnvio(), { render: true });
+            }
+        });
     });
 
     cantidadEquipos.addEventListener('change', () => {
-        const cant = parseInt(cantidadEquipos.value, 10);
-        renderEquipos(cant);
+        syncEquiposDesdeCantidad();
     });
 
     btnVerEquiposInscritos && btnVerEquiposInscritos.addEventListener('click', abrirModalEquiposInscritos);

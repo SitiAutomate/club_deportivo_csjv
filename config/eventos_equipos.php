@@ -11,7 +11,7 @@ return [
             'modo' => 'copa_vegas',
             'tipo_id' => 20,
             'nombre' => 'Copa Vegas',
-            'activo' => true,
+            'activo' => false,
             'max_equipos_por_envio' => 10,
             'max_equipos_total' => 10,
             'campos' => [
