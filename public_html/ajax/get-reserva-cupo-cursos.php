@@ -47,35 +47,62 @@ $rows = $database->select('inscripciones_1', [
     'ORDER' => ['IDInscripcion' => 'DESC'],
 ]) ?: [];
 
-// Una fila por curso (si hay duplicados, se queda la de mayor IDInscripcion)
-$porCurso = [];
+$nombreCursoPorId = static function (string $idCurso) use ($database): array {
+    $row = $database->get('cursos_2025', [
+        'Nombre_del_curso',
+        'Nombre_Corto_Curso',
+        'Sede',
+    ], ['ID_Curso' => $idCurso]);
+    if (!$row) {
+        return ['nombre' => $idCurso, 'sede' => ''];
+    }
+    $nombre = trim((string) ($row['Nombre_del_curso'] ?? $row['Nombre_Corto_Curso'] ?? $idCurso));
+    return [
+        'nombre' => $nombre !== '' ? $nombre : $idCurso,
+        'sede' => trim((string) ($row['Sede'] ?? '')),
+    ];
+};
+
+// Una fila por IDCurso actual (si se repite el mismo curso, se queda la inscripción más reciente)
+$porCursoActual = [];
 foreach ($rows as $r) {
     $cid = (string) ($r['IDCurso'] ?? '');
     if ($cid === '') {
         continue;
     }
-    if (!isset($porCurso[$cid])) {
-        $porCurso[$cid] = $r;
+    if (!isset($porCursoActual[$cid])) {
+        $porCursoActual[$cid] = $r;
     }
 }
 
-$items = [];
-foreach ($porCurso as $r) {
+// Una sola decisión por curso recomendado 2027
+// (varios cursos actuales pueden apuntar al mismo recomendado).
+$porRecomendado = [];
+foreach ($porCursoActual as $r) {
     $cursoActualId = (string) $r['IDCurso'];
     $recomendadoId = trim((string) ($r['cursoRecomendado'] ?? ''));
     if ($recomendadoId === '') {
         $recomendadoId = $cursoActualId;
     }
 
-    $nombreRecomendado = $recomendadoId;
-    $rowCurso = $database->get('cursos_2025', [
-        'Nombre_del_curso',
-        'Nombre_Corto_Curso',
-        'Sede',
-    ], ['ID_Curso' => $recomendadoId]);
-    if ($rowCurso) {
-        $nombreRecomendado = trim((string) ($rowCurso['Nombre_del_curso'] ?? $rowCurso['Nombre_Corto_Curso'] ?? $recomendadoId));
+    // Nombre real desde catálogo (nombreCurso en inscripción a veces viene mal/replicado)
+    $metaActual = $nombreCursoPorId($cursoActualId);
+    $nombreActual = $metaActual['nombre'];
+
+    if (isset($porRecomendado[$recomendadoId])) {
+        $prev = &$porRecomendado[$recomendadoId];
+        if ($nombreActual !== '' && !in_array($nombreActual, $prev['_nombres_actuales'], true)) {
+            $prev['_nombres_actuales'][] = $nombreActual;
+        }
+        if ($cursoActualId !== '' && !in_array($cursoActualId, $prev['_ids_actuales'], true)) {
+            $prev['_ids_actuales'][] = $cursoActualId;
+        }
+        unset($prev);
+        continue;
     }
+
+    $metaRec = $nombreCursoPorId($recomendadoId);
+    $nombreRecomendado = $metaRec['nombre'];
 
     // Solo "Continúo" (ACTIVO) cuenta como cupo reservado.
     $yaReservado = (int) $database->count('inscripciones_1', [
@@ -96,11 +123,18 @@ foreach ($porCurso as $r) {
         'Estado' => ['RETIRADO', 'Retirado', 'retirado'],
     ]) > 0;
 
-    $items[] = [
+    $sede = trim((string) ($r['Sede'] ?? ''));
+    if ($sede === '') {
+        $sede = $metaActual['sede'] !== '' ? $metaActual['sede'] : $metaRec['sede'];
+    }
+
+    $porRecomendado[$recomendadoId] = [
         'inscripcion_id' => (int) ($r['IDInscripcion'] ?? 0),
         'curso_actual_id' => $cursoActualId,
-        'curso_actual_nombre' => $r['nombreCurso'] ?? $cursoActualId,
-        'sede' => $r['Sede'] ?? ($rowCurso['Sede'] ?? ''),
+        'curso_actual_nombre' => $nombreActual,
+        '_nombres_actuales' => [$nombreActual],
+        '_ids_actuales' => [$cursoActualId],
+        'sede' => $sede,
         'transporte' => $r['Transporte'] ?? null,
         'responsable_documento' => $r['validador_responsable'] ?? ($rowPart['IDResponsable'] ?? ''),
         'curso_recomendado_id' => $recomendadoId,
@@ -108,6 +142,16 @@ foreach ($porCurso as $r) {
         'ya_reservado' => $yaReservado,
         'ya_no_continua' => $yaNoContinua,
     ];
+}
+
+$items = [];
+foreach ($porRecomendado as $item) {
+    $nombres = $item['_nombres_actuales'] ?? [];
+    unset($item['_nombres_actuales'], $item['_ids_actuales']);
+    if (count($nombres) > 1) {
+        $item['curso_actual_nombre'] = implode(' · ', $nombres);
+    }
+    $items[] = $item;
 }
 
 jsonResponse([

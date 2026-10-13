@@ -24,7 +24,15 @@ if (!reservaCupoHabilitada()) {
 $input = getPostData();
 $participanteDoc = trim((string) ($input['participante_id'] ?? $input['participante_documento'] ?? ''));
 $decisiones = $input['decisiones'] ?? [];
+$politicas = $input['politicas'] ?? $input['Politicas'] ?? null;
 
+if ($politicas !== 'Si') {
+    jsonResponse([
+        'success' => false,
+        'error' => 'Debe aceptar la autorización para el tratamiento de datos personales.',
+        'traceId' => $traceId,
+    ], 400);
+}
 if ($participanteDoc === '') {
     jsonResponse(['success' => false, 'error' => 'Documento del participante requerido', 'traceId' => $traceId], 400);
 }
@@ -44,6 +52,7 @@ $inscripcion = new Inscripcion($database);
 $creadas = [];
 $errores = [];
 $responsableDocUsado = '';
+$recomendadosProcesados = [];
 
 foreach ($decisiones as $idx => $d) {
     if (!is_array($d)) {
@@ -65,6 +74,10 @@ foreach ($decisiones as $idx => $d) {
         $errores[] = 'Falta el curso recomendado en el ítem ' . ($idx + 1) . '.';
         continue;
     }
+    if (isset($recomendadosProcesados[$cursoRecomendadoId])) {
+        continue;
+    }
+    $recomendadosProcesados[$cursoRecomendadoId] = true;
     if ($responsableDoc === '') {
         $errores[] = 'No se encontró responsable para el curso ' . $cursoRecomendadoId . '.';
         continue;

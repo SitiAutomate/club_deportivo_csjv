@@ -1265,7 +1265,14 @@
         '1814': ['Infantil'],
         '1815': ['Prenivel', 'Nivel 1', 'Nivel 2', 'Nivel 3', 'Nivel 4', 'Nivel 5', 'Nivel 6', 'Nivel 7', 'Nivel 8'],
         '1816': [],
-        '1818': [],
+        '1818': [
+            'Tiny Gold',
+            'Youth Gold',
+            'Youth Emerald',
+            'Youth Diamonds',
+            'Junior',
+            'Senior',
+        ],
     };
 
     const TIPO18_CATEGORIA_LABELS = {
@@ -1276,6 +1283,7 @@
         '1812': 'Seleccione la categoría',
         '1814': 'Categoría',
         '1815': 'Seleccione la categoría',
+        '1818': 'Seleccione la categoría de tu hija',
     };
 
     const TIPO18_CATEGORIA_PRECIOS = {

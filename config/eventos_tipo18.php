@@ -215,7 +215,14 @@ return [
 
     'regional_cup' => [
         'nombre' => 'Regional Cup 2026',
-        'categorias' => [],
+        'categorias' => [
+            'Tiny Gold',
+            'Youth Gold',
+            'Youth Emerald',
+            'Youth Diamonds',
+            'Junior',
+            'Senior',
+        ],
         'valor' => 130000,
         'valor_label' => 'por deportista',
     ],

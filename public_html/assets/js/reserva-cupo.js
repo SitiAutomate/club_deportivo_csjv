@@ -33,6 +33,8 @@
     const btnEnviar = $('#btnEnviar');
     const form = $('#formReservaCupo');
     const msgExito = $('#msgExito');
+    const checkPoliticas = $('#checkPoliticas');
+    const camposFormulario = $('#camposFormulario');
 
     function ajax(path, method, data) {
         const opts = { method: method || 'GET', headers: { ...getAuthHeaders() } };
@@ -214,6 +216,23 @@
         return out;
     }
 
+    checkPoliticas?.addEventListener('change', () => {
+        if (!camposFormulario) return;
+        camposFormulario.style.display = checkPoliticas.checked ? '' : 'none';
+        if (!checkPoliticas.checked) {
+            participanteActual = null;
+            cursosData = [];
+            if (cardCursos) cardCursos.style.display = 'none';
+            if (lista) lista.innerHTML = '';
+            if (info) {
+                info.textContent = '';
+                info.className = 'mt-2 mb-0 small';
+            }
+            if (docInput) docInput.value = '';
+            syncBtnEnviar();
+        }
+    });
+
     btnValidar?.addEventListener('click', validarParticipante);
     docInput?.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
@@ -224,6 +243,11 @@
 
     form?.addEventListener('submit', (e) => {
         e.preventDefault();
+        if (!checkPoliticas?.checked) {
+            alert('Debe aceptar la autorización para el tratamiento de datos personales.');
+            checkPoliticas?.focus();
+            return;
+        }
         if (!participanteActual) {
             alert('Valide el participante primero.');
             return;
@@ -243,6 +267,7 @@
 
         ajax('guardar-reserva-cupo.php', 'POST', {
             participante_id: participanteActual.documento || participanteActual.id,
+            politicas: 'Si',
             decisiones,
         })
             .then((res) => {

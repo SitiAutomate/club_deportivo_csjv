@@ -72,31 +72,47 @@ $anioDestino = reservaCupoAnioDestino();
         <?php else: ?>
         <form id="formReservaCupo" class="needs-validation" novalidate>
             <div class="card mb-4">
-                <div class="card-header"><h5 class="mb-0">1. Participante</h5></div>
+                <div class="card-header">
+                    <h5 class="mb-0">Políticas de tratamiento de datos</h5>
+                </div>
                 <div class="card-body">
-                    <div class="row g-3 align-items-end">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold" for="docParticipante">Documento del participante</label>
-                            <input type="text" class="form-control" id="docParticipante" name="documento" required autocomplete="off">
-                        </div>
-                        <div class="col-md-3">
-                            <button type="button" class="btn btn-primary w-100" id="btnValidarParticipante">Validar</button>
-                        </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="checkPoliticas" required>
+                        <label class="form-check-label" for="checkPoliticas">
+                            Acepto la <a href="https://clubdeportivosjv.com//wp-content/uploads/2024/08/Autorizacion-para-el-tratamiento-de-datos-personales-Micro-Sitios-Digitales-WEB-UE.pdf" target="_blank" rel="noopener">autorización para el tratamiento de datos personales</a>.
+                        </label>
                     </div>
-                    <p class="mt-2 mb-0 small" id="participanteInfo"></p>
                 </div>
             </div>
 
-            <div class="card mb-4" id="cardCursos" style="display:none;">
-                <div class="card-header"><h5 class="mb-0">2. Cursos activos y recomendación <?= (int) $anioDestino ?></h5></div>
-                <div class="card-body">
-                    <p class="text-muted small">Para cada curso indica si continúas o no. Si no continúas, selecciona el motivo.</p>
-                    <div id="listaCursos"></div>
-                    <div class="d-flex justify-content-end mt-3">
-                        <button type="submit" class="btn btn-primary" id="btnEnviar" disabled>
-                            <span class="btn-text">Enviar respuestas</span>
-                            <span class="spinner-border spinner-border-sm d-none" role="status"></span>
-                        </button>
+            <div id="camposFormulario" style="display:none;">
+                <div class="card mb-4">
+                    <div class="card-header"><h5 class="mb-0">1. Participante</h5></div>
+                    <div class="card-body">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold" for="docParticipante">Documento del participante</label>
+                                <input type="text" class="form-control" id="docParticipante" name="documento" required autocomplete="off">
+                            </div>
+                            <div class="col-md-3">
+                                <button type="button" class="btn btn-primary w-100" id="btnValidarParticipante">Validar</button>
+                            </div>
+                        </div>
+                        <p class="mt-2 mb-0 small" id="participanteInfo"></p>
+                    </div>
+                </div>
+
+                <div class="card mb-4" id="cardCursos" style="display:none;">
+                    <div class="card-header"><h5 class="mb-0">2. Cursos activos y recomendación <?= (int) $anioDestino ?></h5></div>
+                    <div class="card-body">
+                        <p class="text-muted small">Para cada curso indica si continúas o no. Si no continúas, selecciona el motivo.</p>
+                        <div id="listaCursos"></div>
+                        <div class="d-flex justify-content-end mt-3">
+                            <button type="submit" class="btn btn-primary" id="btnEnviar" disabled>
+                                <span class="btn-text">Enviar respuestas</span>
+                                <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
