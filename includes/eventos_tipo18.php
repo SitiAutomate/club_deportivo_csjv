@@ -20,7 +20,7 @@ function eventosTipo18FestivegasIds(): array
 function eventosTipo18PrincipalIds(): array
 {
     $cfg = eventosTipo18Config();
-    $ids = $cfg['principal_curso_ids'] ?? ['1802', '1803', '1804', '1805', '1806', '1807', '1808', '1809', '1810', '1811', '1812', '1813', '1814', '1815', '1816', '1818'];
+    $ids = $cfg['principal_curso_ids'] ?? ['1802', '1803', '1804', '1805', '1806', '1807', '1808', '1809', '1810', '1811', '1812', '1813', '1814', '1815', '1816', '1818', '1819'];
     return array_map('strval', $ids);
 }
 
@@ -136,6 +136,13 @@ function eventosTipo18RegionalCupId(): string
     return $id !== '' ? $id : '1818';
 }
 
+function eventosTipo18TkdExamenCinturonId(): string
+{
+    $cfg = eventosTipo18Config();
+    $id = trim((string) ($cfg['tkd_examen_cinturon_curso_id'] ?? '1819'));
+    return $id !== '' ? $id : '1819';
+}
+
 function eventosTipo18EsFestivegas(string $idCurso): bool
 {
     return in_array((string) $idCurso, eventosTipo18FestivegasIds(), true);
@@ -227,6 +234,11 @@ function eventosTipo18EsRegionalCup(string $idCurso): bool
     return (string) $idCurso === eventosTipo18RegionalCupId();
 }
 
+function eventosTipo18EsTkdExamenCinturon(string $idCurso): bool
+{
+    return (string) $idCurso === eventosTipo18TkdExamenCinturonId();
+}
+
 function eventosTipo18MedCheerConfig(): array
 {
     return eventosTipo18Config()['med_cheer'] ?? [];
@@ -300,6 +312,11 @@ function eventosTipo18CopaWolvesConfig(): array
 function eventosTipo18RegionalCupConfig(): array
 {
     return eventosTipo18Config()['regional_cup'] ?? [];
+}
+
+function eventosTipo18TkdExamenCinturonConfig(): array
+{
+    return eventosTipo18Config()['tkd_examen_cinturon'] ?? [];
 }
 
 /**

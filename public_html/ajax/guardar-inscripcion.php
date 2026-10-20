@@ -462,6 +462,38 @@ if ($tipoId === 1) {
         }
 
         $detalle['OBSERVACION'] = json_encode($obs, JSON_UNESCAPED_UNICODE);
+    } elseif (eventosTipo18EsTkdExamenCinturon($idCursoReq)) {
+        $cfgExam = eventosTipo18TkdExamenCinturonConfig();
+        if ($detalle['nombreCurso'] === '') {
+            $detalle['nombreCurso'] = (string) ($cfgExam['nombre'] ?? 'Examen y ceremonia para ascenso de cinturón 2026');
+        }
+        $valor = (int) ($cfgExam['valor'] ?? 90000);
+        $actualOk = array_values(array_map('strval', $cfgExam['cinturones_actual'] ?? []));
+        $aspiraOk = array_values(array_map('strval', $cfgExam['cinturones_aspira'] ?? []));
+
+        $cinturonActual = trim((string) ($input['tkd_exam_cinturon_actual'] ?? ''));
+        $cinturonAspira = trim((string) ($input['tkd_exam_cinturon_aspira'] ?? ''));
+        $estatura = str_replace(',', '.', trim((string) ($input['tkd_exam_estatura'] ?? '')));
+
+        if ($cinturonActual === '' || !in_array($cinturonActual, $actualOk, true)) {
+            jsonResponse(['success' => false, 'error' => 'Seleccione un cinturón actual válido.', 'traceId' => $traceId], 400);
+        }
+        if ($cinturonAspira === '' || !in_array($cinturonAspira, $aspiraOk, true)) {
+            jsonResponse(['success' => false, 'error' => 'Seleccione el cinturón al que aspira.', 'traceId' => $traceId], 400);
+        }
+        if ($estatura === '' || !is_numeric($estatura) || (float) $estatura <= 0) {
+            jsonResponse(['success' => false, 'error' => 'Ingrese la estatura en cm.', 'traceId' => $traceId], 400);
+        }
+
+        $detalle['categoria'] = $cinturonActual;
+        $detalle['Modalidad'] = $cinturonAspira;
+        $detalle['Asignatura'] = (string) $estatura;
+        $detalle['OBSERVACION'] = json_encode([
+            'cinturon_actual' => $cinturonActual,
+            'cinturon_aspira' => $cinturonAspira,
+            'estatura_cm' => (float) $estatura,
+            'valor_total' => $valor,
+        ], JSON_UNESCAPED_UNICODE);
     } else {
         jsonResponse(['success' => false, 'error' => 'Evento no configurado.', 'traceId' => $traceId], 400);
     }
@@ -1112,13 +1144,21 @@ try {
         $valorTotal = (int) ($obs['valor_total'] ?? 0);
         $nombreEvento = $detalle['nombreCurso'] ?? 'Evento';
         $detalleTexto = $nombreEvento;
-        if (!empty($detalle['Modalidad'])) {
+        $esTkdExamen = eventosTipo18EsTkdExamenCinturon((string) ($detalle['IDCurso'] ?? ''));
+        if (!$esTkdExamen && !empty($detalle['Modalidad'])) {
             $detalleTexto .= ' — ' . $detalle['Modalidad'];
         }
         if ($valorTotal > 0) {
             $detalleTexto .= ' (Valor total: $' . number_format($valorTotal, 0, ',', '.') . ')';
         }
-        if (!empty($detalle['categoria'])) {
+        if ($esTkdExamen) {
+            if (!empty($obs['cinturon_actual']) || !empty($detalle['categoria'])) {
+                $detalleTexto .= '. Cinturón actual: ' . ($obs['cinturon_actual'] ?? $detalle['categoria']);
+            }
+            if (!empty($obs['cinturon_aspira']) || !empty($detalle['Modalidad'])) {
+                $detalleTexto .= '. Cinturón al que aspira: ' . ($obs['cinturon_aspira'] ?? $detalle['Modalidad']);
+            }
+        } elseif (!empty($detalle['categoria'])) {
             $detalleTexto .= '. Categoría/Grado: ' . $detalle['categoria'];
         }
         $esFratIndividual = eventosTipo18EsTkdFraternidad((string) ($detalle['IDCurso'] ?? ''))
@@ -1129,7 +1169,7 @@ try {
         if (!empty($detalle['Caso'])) {
             $detalleTexto .= ', Caso: ' . $detalle['Caso'];
         }
-        if (!empty($detalle['IDAsign'])) {
+        if (!$esTkdExamen && !empty($detalle['IDAsign'])) {
             $detalleTexto .= ', Rama/Género: ' . $detalle['IDAsign'];
         }
         if (!empty($detalle['Asignatura'])) {

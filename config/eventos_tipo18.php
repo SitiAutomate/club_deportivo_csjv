@@ -7,7 +7,7 @@
  */
 return [
     'festivegas_curso_ids' => ['1801'],
-    'principal_curso_ids' => ['1802', '1803', '1804', '1805', '1806', '1807', '1808', '1809', '1810', '1811', '1812', '1813', '1814', '1815', '1816', '1818'],
+    'principal_curso_ids' => ['1802', '1803', '1804', '1805', '1806', '1807', '1808', '1809', '1810', '1811', '1812', '1813', '1814', '1815', '1816', '1818', '1819'],
     'open_kewmgang_curso_id' => '1802',
     'med_cheer_curso_id' => '1803',
     'tkd_nacional_curso_id' => '1804',
@@ -24,6 +24,7 @@ return [
     'suramericano_usag_curso_id' => '1815',
     'copa_wolves_curso_id' => '1816',
     'regional_cup_curso_id' => '1818',
+    'tkd_examen_cinturon_curso_id' => '1819',
 
     'med_cheer' => [
         'nombre' => 'Med Cheer Championships',
@@ -225,5 +226,33 @@ return [
         ],
         'valor' => 130000,
         'valor_label' => 'por deportista',
+    ],
+
+    'tkd_examen_cinturon' => [
+        'nombre' => 'Examen y ceremonia para ascenso de cinturón 2026',
+        'valor' => 90000,
+        'cinturones_actual' => [
+            'Blanco',
+            'Blanco franja amarilla',
+            'Amarillo',
+            'Amarillo franja verde',
+            'Verde',
+            'Verde franja azul',
+            'Azul',
+            'Azul franja roja',
+            'Rojo',
+            'Rojo franja negra',
+        ],
+        'cinturones_aspira' => [
+            'Blanco franja amarilla',
+            'Amarillo',
+            'Amarillo franja verde',
+            'Verde',
+            'Verde franja azul',
+            'Azul',
+            'Azul franja roja',
+            'Rojo',
+            'Rojo franja negra',
+        ],
     ],
 ];

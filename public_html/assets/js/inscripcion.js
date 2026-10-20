@@ -1250,6 +1250,7 @@
         '1815': 'Campeonato Suramericano de Niveles USAG',
         '1816': 'Copa Internacional Wolves 2026',
         '1818': 'Regional Cup 2026',
+        '1819': 'Examen y ceremonia para ascenso de cinturón 2026',
     };
 
     const TIPO18_CATEGORIAS = {
@@ -1302,6 +1303,31 @@
 
     const TKD_FRAT_CINTURONES = [
         'Blanco',
+        'Blanco franja amarilla',
+        'Amarillo',
+        'Amarillo franja verde',
+        'Verde',
+        'Verde franja azul',
+        'Azul',
+        'Azul franja roja',
+        'Rojo',
+        'Rojo franja negra',
+    ];
+
+    const TKD_EXAMEN_CINTURON_ACTUAL = [
+        'Blanco',
+        'Blanco franja amarilla',
+        'Amarillo',
+        'Amarillo franja verde',
+        'Verde',
+        'Verde franja azul',
+        'Azul',
+        'Azul franja roja',
+        'Rojo',
+        'Rojo franja negra',
+    ];
+
+    const TKD_EXAMEN_CINTURON_ASPIRA = [
         'Blanco franja amarilla',
         'Amarillo',
         'Amarillo franja verde',
@@ -1446,6 +1472,31 @@
         html += '<div class="col-md-4"><label class="form-label fw-bold">Estatura (cm)</label>';
         html += '<input type="number" class="form-control" id="tkdEstatura" name="tkd_estatura" min="1" step="0.1" placeholder="Ej: 150" required></div>';
         html += '</div></div>';
+        return html;
+    }
+
+    function renderFormTkdExamenCinturon(cursoId, nombreCurso) {
+        let html = '<div class="tkd-examen-cinturon-form" id="formEventoTipo18">';
+        html += '<input type="hidden" id="t18CursoId" name="curso_id" value="' + escapeHtml(cursoId) + '">';
+        html += '<input type="hidden" name="nombreCurso" value="' + escapeHtml(nombreCurso) + '">';
+        html += '<div class="row g-3">';
+        html += '<div class="col-md-4"><label class="form-label fw-bold" for="tkdExamCinturonActual">Cinturón actual</label>';
+        html += '<select class="form-select" id="tkdExamCinturonActual" name="tkd_exam_cinturon_actual" required>';
+        html += '<option value="">-- Seleccione --</option>';
+        TKD_EXAMEN_CINTURON_ACTUAL.forEach((c) => {
+            html += `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`;
+        });
+        html += '</select></div>';
+        html += '<div class="col-md-4"><label class="form-label fw-bold" for="tkdExamCinturonAspira">Cinturón al que aspira</label>';
+        html += '<select class="form-select" id="tkdExamCinturonAspira" name="tkd_exam_cinturon_aspira" required>';
+        html += '<option value="">-- Seleccione --</option>';
+        TKD_EXAMEN_CINTURON_ASPIRA.forEach((c) => {
+            html += `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`;
+        });
+        html += '</select></div>';
+        html += '<div class="col-md-4"><label class="form-label fw-bold" for="tkdExamEstatura">Estatura (cm)</label>';
+        html += '<input type="number" class="form-control" id="tkdExamEstatura" name="tkd_exam_estatura" min="1" step="0.1" placeholder="Ej: 140" required>';
+        html += '</div></div></div>';
         return html;
     }
 
@@ -1595,6 +1646,8 @@
             $('#tkdFratEsClub')?.addEventListener('change', actualizarTkdFraternidadFlujo);
             $('#tkdFratTipo')?.addEventListener('change', actualizarTkdFraternidadFlujo);
             actualizarTkdFraternidadFlujo();
+        } else if (cursoId === '1819') {
+            wrapForm.innerHTML = renderFormTkdExamenCinturon(cursoId, nombre);
         } else if (Object.prototype.hasOwnProperty.call(TIPO18_CATEGORIAS, cursoId)) {
             const cats = TIPO18_CATEGORIAS[cursoId] || [];
             wrapForm.innerHTML = cats.length > 1
@@ -2406,6 +2459,15 @@
             if (data.tkd_modalidades?.length) {
                 detalleHtml += '<ul class="mb-0 mt-2">' + data.tkd_modalidades.map(m => `<li>${escapeHtml(m)}</li>`).join('') + '</ul>';
             }
+            if (data.tkd_exam_cinturon_actual) {
+                detalleHtml += '<p class="mb-1 small text-muted">Cinturón actual: ' + escapeHtml(data.tkd_exam_cinturon_actual) + '</p>';
+            }
+            if (data.tkd_exam_cinturon_aspira) {
+                detalleHtml += '<p class="mb-1 small text-muted">Cinturón al que aspira: ' + escapeHtml(data.tkd_exam_cinturon_aspira) + '</p>';
+            }
+            if (data.tkd_exam_estatura) {
+                detalleHtml += '<p class="mb-1 small text-muted">Estatura: ' + escapeHtml(data.tkd_exam_estatura) + ' cm</p>';
+            }
             if (data.cheer_categoria || data.evento_categoria || data.categoria) {
                 detalleHtml += '<p class="mb-1 small text-muted">Categoría: ' + escapeHtml(data.cheer_categoria || data.evento_categoria || data.categoria) + '</p>';
             }
@@ -2702,6 +2764,28 @@
                 data.tkd_genero = genero;
                 data.tkd_peso = peso;
                 data.tkd_estatura = estatura;
+            } else if (cursoId === '1819') {
+                const cinturonActual = $('#tkdExamCinturonActual')?.value || '';
+                const cinturonAspira = $('#tkdExamCinturonAspira')?.value || '';
+                const estatura = ($('#tkdExamEstatura')?.value || '').trim().replace(',', '.');
+                if (!cinturonActual) {
+                    alert('Seleccione el cinturón actual.');
+                    $('#tkdExamCinturonActual')?.focus();
+                    return;
+                }
+                if (!cinturonAspira) {
+                    alert('Seleccione el cinturón al que aspira.');
+                    $('#tkdExamCinturonAspira')?.focus();
+                    return;
+                }
+                if (!estatura || Number(estatura) <= 0) {
+                    alert('Ingrese la estatura en cm.');
+                    $('#tkdExamEstatura')?.focus();
+                    return;
+                }
+                data.tkd_exam_cinturon_actual = cinturonActual;
+                data.tkd_exam_cinturon_aspira = cinturonAspira;
+                data.tkd_exam_estatura = estatura;
             } else if (cursoId === '1813') {
                 const esClubRaw = $('#tkdFratEsClub')?.value || '';
                 if (!esRespuestaSi(esClubRaw) && !esRespuestaNo(esClubRaw)) {
