@@ -659,6 +659,8 @@
                 if (cfg.tieneTemplate) html += '<div class="detalle-template-contenedor"></div>';
                 if (tipo === 9 && String(item.id) === '9001') {
                     html += renderFormFestivalPatinaje(String(item.id), item.nombre_curso || item.nombre || 'Festival de Patinaje 2');
+                } else if (tipo === 9 && String(item.id) === '11741') {
+                    html += renderFormFestivegasGimnasia(String(item.id), item.nombre_curso || item.nombre || 'Festivegas Gimnasia 2026');
                 }
                 html += '<div id="participantesAdicionalesContenedor"></div>';
                 camposDinamicos.innerHTML = html;
@@ -670,6 +672,10 @@
                     $('#patEsClub')?.addEventListener('change', actualizarFestivalPatinajeFlujo);
                     $('#patTipo')?.addEventListener('change', actualizarFestivalPatinajeFlujo);
                     actualizarFestivalPatinajeFlujo();
+                } else if (tipo === 9 && String(item.id) === '11741') {
+                    $('#fgEsClub')?.addEventListener('change', actualizarFestivegasGimnasiaFlujo);
+                    $('#fgTipo')?.addEventListener('change', actualizarFestivegasGimnasiaFlujo);
+                    actualizarFestivegasGimnasiaFlujo();
                 }
                 cargarParticipantesAdicionales(tipo, item.id, camposDinamicos);
                 actualizarVisibilidadCamposAdicionales(tipo, item.id);
@@ -679,6 +685,114 @@
             .catch(() => {
                 camposDinamicos.innerHTML = '<p class="text-danger">Error al cargar la actividad.</p>';
             });
+    }
+
+    const FESTIVEGAS_GIMNASIA_CATEGORIAS = [
+        'TEST DE HABILIDADES',
+        'PRENIVEL',
+        'NIVEL 1',
+        'NIVEL 2',
+        'NIVEL 3',
+        'AC1',
+    ];
+
+    function renderFormFestivegasGimnasia(cursoId, nombreCurso) {
+        let html = '<div class="festivegas-gimnasia-form mt-3" id="formFestivegasGimnasia">';
+        html += '<input type="hidden" id="fgCursoId" value="' + escapeHtml(cursoId) + '">';
+        html += '<input type="hidden" id="fgNombreCurso" value="' + escapeHtml(nombreCurso) + '">';
+
+        html += '<div class="mb-3"><label class="form-label fw-bold" for="fgEsClub">¿Es deportista del Club San José de las Vegas?</label>';
+        html += '<select class="form-select" id="fgEsClub" name="fg_es_club" required>';
+        html += '<option value="">-- Seleccione --</option>';
+        html += '<option value="Sí">Sí</option>';
+        html += '<option value="No">No</option>';
+        html += '</select></div>';
+
+        html += '<div id="wrapFgTipoExterno" style="display:none;" class="mb-3">';
+        html += '<label class="form-label fw-bold" for="fgTipo">Tipo de inscripción</label>';
+        html += '<select class="form-select" id="fgTipo" name="fg_tipo">';
+        html += '<option value="">-- Seleccione --</option>';
+        html += '<option value="Individual">Individual</option>';
+        html += '<option value="Equipo">Equipo (lo inscribe el entrenador)</option>';
+        html += '</select></div>';
+
+        html += '<div id="wrapFgIndividual" style="display:none;">';
+        html += '<div class="mb-3"><label class="form-label fw-bold" for="fgCategoria">Categoría</label>';
+        html += '<select class="form-select" id="fgCategoria" name="fg_categoria">';
+        html += '<option value="">-- Seleccione --</option>';
+        FESTIVEGAS_GIMNASIA_CATEGORIAS.forEach((c) => {
+            html += `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`;
+        });
+        html += '</select></div>';
+        html += '<div id="wrapFgDatosExterno" style="display:none;" class="row g-3 mb-3">';
+        html += '<div class="col-md-6"><label class="form-label fw-bold" for="fgEquipo">Equipo / club / colegio</label>';
+        html += '<input type="text" class="form-control" id="fgEquipo" name="fg_equipo" maxlength="150" placeholder="Nombre del equipo, club o colegio"></div>';
+        html += '<div class="col-md-6"><label class="form-label fw-bold" for="fgEntrenador">Nombre del entrenador</label>';
+        html += '<input type="text" class="form-control" id="fgEntrenador" name="fg_entrenador" maxlength="120" placeholder="Nombre completo del entrenador"></div>';
+        html += '</div></div>';
+
+        html += '<div id="wrapFgEquipo" style="display:none;">';
+        html += '<div class="alert alert-info small mb-3">';
+        html += '<p class="mb-2">La inscripción por equipo debe realizarla el <strong>entrenador</strong>.</p>';
+        html += '<ol class="mb-2 ps-3">';
+        html += '<li class="mb-1">Descargue la <a href="' + escapeHtml(basePath) + 'assets/docs/PLANILLA-FESTIVEGAS-GIMNASIA.xlsx" download="PLANILLA FESTIVEGAS GIMNASIA.xlsx">planilla oficial (Excel)</a>.</li>';
+        html += '<li class="mb-1">Diligénciela con los datos de los deportistas.</li>';
+        html += '<li class="mb-0">Envíela a <a href="mailto:clubdeportivo@sanjosevegas.edu.co">clubdeportivo@sanjosevegas.edu.co</a>.</li>';
+        html += '</ol>';
+        html += '<p class="mb-0 fw-semibold">El envío de la planilla al correo confirma la inscripción del equipo.</p>';
+        html += '</div>';
+        html += '<div class="mb-3"><label class="form-label fw-bold" for="fgCantidad">Cantidad de deportistas</label>';
+        html += '<input type="number" class="form-control" id="fgCantidad" name="fg_cantidad" min="1" max="99" step="1" placeholder="Ej: 10"></div>';
+        html += '<div class="form-check mb-3">';
+        html += '<input class="form-check-input" type="checkbox" id="fgConfirmaPlanilla" name="fg_confirma_planilla" value="Sí">';
+        html += '<label class="form-check-label" for="fgConfirmaPlanilla">Confirmo que enviaré la planilla diligenciada a <strong>clubdeportivo@sanjosevegas.edu.co</strong> y entiendo que ese envío confirma la inscripción.</label>';
+        html += '</div></div></div>';
+        return html;
+    }
+
+    function actualizarFestivegasGimnasiaFlujo() {
+        const esClub = $('#fgEsClub')?.value || '';
+        const tipo = $('#fgTipo')?.value || '';
+        const wrapTipo = $('#wrapFgTipoExterno');
+        const wrapInd = $('#wrapFgIndividual');
+        const wrapExt = $('#wrapFgDatosExterno');
+        const wrapEq = $('#wrapFgEquipo');
+        const selTipo = $('#fgTipo');
+
+        const esExterno = esClub === 'No';
+        const mostrarIndividual = esClub === 'Sí' || (esExterno && tipo === 'Individual');
+        const mostrarEquipo = esExterno && tipo === 'Equipo';
+
+        if (wrapTipo) wrapTipo.style.display = esExterno ? 'block' : 'none';
+        if (selTipo) {
+            selTipo.required = esExterno;
+            if (!esExterno) selTipo.value = '';
+        }
+        if (wrapInd) wrapInd.style.display = mostrarIndividual ? 'block' : 'none';
+        if (wrapExt) wrapExt.style.display = (esExterno && tipo === 'Individual') ? 'block' : 'none';
+        if (wrapEq) wrapEq.style.display = mostrarEquipo ? 'block' : 'none';
+
+        const cat = $('#fgCategoria');
+        const equipo = $('#fgEquipo');
+        const entrenador = $('#fgEntrenador');
+        const cant = $('#fgCantidad');
+        const confirma = $('#fgConfirmaPlanilla');
+
+        if (cat) { cat.required = mostrarIndividual; if (!mostrarIndividual) cat.value = ''; }
+        if (equipo) {
+            equipo.required = esExterno && tipo === 'Individual';
+            if (!(esExterno && tipo === 'Individual')) equipo.value = '';
+        }
+        if (entrenador) {
+            entrenador.required = esExterno && tipo === 'Individual';
+            if (!(esExterno && tipo === 'Individual')) entrenador.value = '';
+        }
+        if (cant) { cant.required = mostrarEquipo; if (!mostrarEquipo) cant.value = ''; }
+        if (confirma) {
+            confirma.required = mostrarEquipo;
+            if (!mostrarEquipo) confirma.checked = false;
+        }
+        refreshRequiredAsterisks(camposDinamicos);
     }
 
     function renderFormFestivalPatinaje(cursoId, nombreCurso) {
@@ -3098,6 +3212,65 @@
                     data.pat_categoria = categoria;
                     data.pat_eficiencia = eficiencia;
                     data.pat_modalidad = modalidad;
+                }
+            }
+            if (tipo === 9 && String(data.IDCurso) === '11741') {
+                const esClub = $('#fgEsClub')?.value || '';
+                if (!esClub) {
+                    alert('Indique si es deportista del Club San José de las Vegas.');
+                    $('#fgEsClub')?.focus();
+                    return;
+                }
+                data.fg_es_club = esClub;
+                if (esClub === 'No') {
+                    const tipoPart = $('#fgTipo')?.value || '';
+                    if (!tipoPart) {
+                        alert('Seleccione si la inscripción es individual o por equipo.');
+                        $('#fgTipo')?.focus();
+                        return;
+                    }
+                    data.fg_tipo = tipoPart;
+                    if (tipoPart === 'Individual') {
+                        const categoria = $('#fgCategoria')?.value || '';
+                        const equipo = ($('#fgEquipo')?.value || '').trim();
+                        const entrenador = ($('#fgEntrenador')?.value || '').trim();
+                        if (!categoria) {
+                            alert('Seleccione la categoría.');
+                            $('#fgCategoria')?.focus();
+                            return;
+                        }
+                        if (!equipo || !entrenador) {
+                            alert('Ingrese el equipo/club/colegio y el nombre del entrenador.');
+                            return;
+                        }
+                        data.fg_categoria = categoria;
+                        data.fg_equipo = equipo;
+                        data.fg_entrenador = entrenador;
+                    } else if (tipoPart === 'Equipo') {
+                        const cantidad = ($('#fgCantidad')?.value || '').trim();
+                        const confirma = $('#fgConfirmaPlanilla')?.checked;
+                        if (!cantidad || parseInt(cantidad, 10) < 1) {
+                            alert('Indique la cantidad de deportistas.');
+                            $('#fgCantidad')?.focus();
+                            return;
+                        }
+                        if (!confirma) {
+                            alert('Debe confirmar que enviará la planilla a clubdeportivo@sanjosevegas.edu.co.');
+                            $('#fgConfirmaPlanilla')?.focus();
+                            return;
+                        }
+                        data.fg_cantidad = cantidad;
+                        data.fg_confirma_planilla = 'Sí';
+                    }
+                } else {
+                    data.fg_tipo = 'Individual';
+                    const categoria = $('#fgCategoria')?.value || '';
+                    if (!categoria) {
+                        alert('Seleccione la categoría.');
+                        $('#fgCategoria')?.focus();
+                        return;
+                    }
+                    data.fg_categoria = categoria;
                 }
             }
         }

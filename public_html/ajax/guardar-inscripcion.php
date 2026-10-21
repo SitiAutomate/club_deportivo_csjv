@@ -696,7 +696,7 @@ if ($tipoId === 1) {
     $selectorName = $cfg['selectorName'] ?? 'curso_id';
     $idCurso = trim((string) ($input[$selectorName] ?? $input['IDCurso'] ?? $input['curso_id'] ?? ''));
     $detalle['IDCurso'] = $idCurso !== '' ? $idCurso : null;
-    $detalle['nombreCurso'] = $input['nombreCurso'] ?? 'Festival de Patinaje 2';
+    $detalle['nombreCurso'] = $input['nombreCurso'] ?? ($idCurso === '11741' ? 'Festivegas Gimnasia 2026' : 'Festival de Patinaje 2');
     $detalle['Sede'] = $detalle['Sede'] ?? $cfg['defaultSede'] ?? 'MEDELLÍN';
     if (empty($detalle['Mes'])) {
         $mesActual = str_pad((string) date('n'), 2, '0', STR_PAD_LEFT);
@@ -757,6 +757,79 @@ if ($tipoId === 1) {
                 jsonResponse(['success' => false, 'error' => 'Indique la cantidad de deportistas.', 'traceId' => $traceId], 400);
             }
             $confirmaPlanilla = trim((string) ($input['pat_confirma_planilla'] ?? ''));
+            if ($confirmaPlanilla !== 'Sí') {
+                jsonResponse([
+                    'success' => false,
+                    'error' => 'Debe confirmar que enviará la planilla a clubdeportivo@sanjosevegas.edu.co.',
+                    'traceId' => $traceId,
+                ], 400);
+            }
+            $cantidad = (int) $cantidadRaw;
+            $detalle['Sesión'] = (string) $cantidad;
+            $obs['cantidad_deportistas'] = $cantidad;
+            $obs['planilla_por_correo'] = true;
+            $obs['planilla_correo'] = 'clubdeportivo@sanjosevegas.edu.co';
+            $obs['planilla_confirma_inscripcion'] = 'El envío de la planilla al correo confirma la inscripción.';
+            $obs['confirma_envio_planilla'] = 'Sí';
+        }
+
+        $detalle['OBSERVACION'] = json_encode($obs, JSON_UNESCAPED_UNICODE);
+    } elseif ($idCurso === '11741') {
+        $esClub = trim((string) ($input['fg_es_club'] ?? ''));
+        if (!in_array($esClub, ['Sí', 'No'], true)) {
+            jsonResponse(['success' => false, 'error' => 'Indique si es deportista del Club San José de las Vegas.', 'traceId' => $traceId], 400);
+        }
+
+        $tipoPart = trim((string) ($input['fg_tipo'] ?? ''));
+        if ($esClub === 'Sí') {
+            $tipoPart = 'Individual';
+        }
+        if (!in_array($tipoPart, ['Individual', 'Equipo'], true)) {
+            jsonResponse(['success' => false, 'error' => 'Seleccione si la inscripción es individual o por equipo.', 'traceId' => $traceId], 400);
+        }
+
+        $categoriasOk = [
+            'TEST DE HABILIDADES',
+            'PRENIVEL',
+            'NIVEL 1',
+            'NIVEL 2',
+            'NIVEL 3',
+            'AC1',
+        ];
+
+        $detalle['IDAsign'] = $esClub === 'Sí' ? 'Club SJV' : 'Externo';
+        $detalle['Modalidad'] = $tipoPart;
+        $obs = [
+            'es_club_sjv' => $esClub,
+            'tipo_participacion' => $tipoPart,
+            'evento' => 'Festivegas Gimnasia 2026',
+        ];
+
+        if ($tipoPart === 'Individual') {
+            $categoria = trim((string) ($input['fg_categoria'] ?? ''));
+            if ($categoria === '' || !in_array($categoria, $categoriasOk, true)) {
+                jsonResponse(['success' => false, 'error' => 'Seleccione una categoría válida.', 'traceId' => $traceId], 400);
+            }
+            $detalle['categoria'] = $categoria;
+            $obs['categoria'] = $categoria;
+
+            if ($esClub === 'No') {
+                $equipo = trim((string) ($input['fg_equipo'] ?? ''));
+                $entrenador = trim((string) ($input['fg_entrenador'] ?? ''));
+                if ($equipo === '' || $entrenador === '') {
+                    jsonResponse(['success' => false, 'error' => 'Ingrese el equipo/club/colegio y el nombre del entrenador.', 'traceId' => $traceId], 400);
+                }
+                $detalle['organizacion'] = $equipo;
+                $detalle['club'] = $entrenador;
+                $obs['equipo'] = $equipo;
+                $obs['entrenador'] = $entrenador;
+            }
+        } else {
+            $cantidadRaw = trim((string) ($input['fg_cantidad'] ?? ''));
+            if ($cantidadRaw === '' || !ctype_digit($cantidadRaw) || (int) $cantidadRaw < 1) {
+                jsonResponse(['success' => false, 'error' => 'Indique la cantidad de deportistas.', 'traceId' => $traceId], 400);
+            }
+            $confirmaPlanilla = trim((string) ($input['fg_confirma_planilla'] ?? ''));
             if ($confirmaPlanilla !== 'Sí') {
                 jsonResponse([
                     'success' => false,
