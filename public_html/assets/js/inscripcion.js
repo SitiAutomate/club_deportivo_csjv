@@ -1365,6 +1365,7 @@
         '1816': 'Copa Internacional Wolves 2026',
         '1818': 'Regional Cup 2026',
         '1819': 'Examen y ceremonia para ascenso de cinturón 2026',
+        '1820': 'Reto 3x3 Tour Colombia',
     };
 
     const TIPO18_CATEGORIAS = {
@@ -1388,6 +1389,13 @@
             'Junior',
             'Senior',
         ],
+        '1820': [
+            'U15',
+            'U17',
+            'Amateur masculino',
+            'Única femenina',
+            'Élite masculino',
+        ],
     };
 
     const TIPO18_CATEGORIA_LABELS = {
@@ -1399,6 +1407,7 @@
         '1814': 'Categoría',
         '1815': 'Seleccione la categoría',
         '1818': 'Seleccione la categoría de tu hija',
+        '1820': 'Seleccione la categoría a participar',
     };
 
     const TIPO18_CATEGORIA_PRECIOS = {
@@ -1412,6 +1421,13 @@
             'Nivel 6': 341000,
             'Nivel 7': 341000,
             'Nivel 8': 341000,
+        },
+        '1820': {
+            'U15': 350000,
+            'U17': 350000,
+            'Amateur masculino': 450000,
+            'Única femenina': 400000,
+            'Élite masculino': 500000,
         },
     };
 

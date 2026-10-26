@@ -7,7 +7,7 @@
  */
 return [
     'festivegas_curso_ids' => ['1801'],
-    'principal_curso_ids' => ['1802', '1803', '1804', '1805', '1806', '1807', '1808', '1809', '1810', '1811', '1812', '1813', '1814', '1815', '1816', '1818', '1819'],
+    'principal_curso_ids' => ['1802', '1803', '1804', '1805', '1806', '1807', '1808', '1809', '1810', '1811', '1812', '1813', '1814', '1815', '1816', '1818', '1819', '1820'],
     'open_kewmgang_curso_id' => '1802',
     'med_cheer_curso_id' => '1803',
     'tkd_nacional_curso_id' => '1804',
@@ -25,6 +25,7 @@ return [
     'copa_wolves_curso_id' => '1816',
     'regional_cup_curso_id' => '1818',
     'tkd_examen_cinturon_curso_id' => '1819',
+    'reto_3x3_curso_id' => '1820',
 
     'med_cheer' => [
         'nombre' => 'Med Cheer Championships',
@@ -254,5 +255,25 @@ return [
             'Rojo',
             'Rojo franja negra',
         ],
+    ],
+
+    'reto_3x3' => [
+        'nombre' => 'Reto 3x3 Tour Colombia',
+        'categorias' => [
+            'U15',
+            'U17',
+            'Amateur masculino',
+            'Única femenina',
+            'Élite masculino',
+        ],
+        'valores' => [
+            'U15' => 350000,
+            'U17' => 350000,
+            'Amateur masculino' => 450000,
+            'Única femenina' => 400000,
+            'Élite masculino' => 500000,
+        ],
+        'valor' => 350000,
+        'valor_label' => 'por equipo',
     ],
 ];
