@@ -20,7 +20,7 @@ function eventosTipo18FestivegasIds(): array
 function eventosTipo18PrincipalIds(): array
 {
     $cfg = eventosTipo18Config();
-    $ids = $cfg['principal_curso_ids'] ?? ['1802', '1803', '1804', '1805', '1806', '1807', '1808', '1809', '1810', '1811', '1812', '1813', '1814', '1815', '1816', '1818', '1819', '1820'];
+    $ids = $cfg['principal_curso_ids'] ?? ['1802', '1803', '1804', '1805', '1806', '1807', '1808', '1809', '1810', '1811', '1812', '1813', '1814', '1815', '1816', '1818', '1819', '1820', '1821'];
     return array_map('strval', $ids);
 }
 
@@ -150,6 +150,13 @@ function eventosTipo18Reto3x3Id(): string
     return $id !== '' ? $id : '1820';
 }
 
+function eventosTipo18CopaPromesasId(): string
+{
+    $cfg = eventosTipo18Config();
+    $id = trim((string) ($cfg['copa_promesas_curso_id'] ?? '1821'));
+    return $id !== '' ? $id : '1821';
+}
+
 function eventosTipo18EsFestivegas(string $idCurso): bool
 {
     return in_array((string) $idCurso, eventosTipo18FestivegasIds(), true);
@@ -251,6 +258,11 @@ function eventosTipo18EsReto3x3(string $idCurso): bool
     return (string) $idCurso === eventosTipo18Reto3x3Id();
 }
 
+function eventosTipo18EsCopaPromesas(string $idCurso): bool
+{
+    return (string) $idCurso === eventosTipo18CopaPromesasId();
+}
+
 function eventosTipo18MedCheerConfig(): array
 {
     return eventosTipo18Config()['med_cheer'] ?? [];
@@ -336,6 +348,11 @@ function eventosTipo18Reto3x3Config(): array
     return eventosTipo18Config()['reto_3x3'] ?? [];
 }
 
+function eventosTipo18CopaPromesasConfig(): array
+{
+    return eventosTipo18Config()['copa_promesas'] ?? [];
+}
+
 /**
  * Eventos tipo 18 que solo piden categoría (como Med Cheer).
  * @return array{nombre:string,categorias:array,valor?:int,valores?:array}|null
@@ -383,6 +400,9 @@ function eventosTipo18ConfigSoloCategoria(string $idCurso): ?array
     }
     if (eventosTipo18EsReto3x3($idCurso)) {
         return eventosTipo18Reto3x3Config();
+    }
+    if (eventosTipo18EsCopaPromesas($idCurso)) {
+        return eventosTipo18CopaPromesasConfig();
     }
     return null;
 }

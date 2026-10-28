@@ -1366,6 +1366,7 @@
         '1818': 'Regional Cup 2026',
         '1819': 'Examen y ceremonia para ascenso de cinturón 2026',
         '1820': 'Reto 3x3 Tour Colombia',
+        '1821': 'XIII Copa Internacional Promesas 2026',
     };
 
     const TIPO18_CATEGORIAS = {
@@ -1396,6 +1397,7 @@
             'Única femenina',
             'Élite masculino',
         ],
+        '1821': [],
     };
 
     const TIPO18_CATEGORIA_LABELS = {

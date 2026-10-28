@@ -7,7 +7,7 @@
  */
 return [
     'festivegas_curso_ids' => ['1801'],
-    'principal_curso_ids' => ['1802', '1803', '1804', '1805', '1806', '1807', '1808', '1809', '1810', '1811', '1812', '1813', '1814', '1815', '1816', '1818', '1819', '1820'],
+    'principal_curso_ids' => ['1802', '1803', '1804', '1805', '1806', '1807', '1808', '1809', '1810', '1811', '1812', '1813', '1814', '1815', '1816', '1818', '1819', '1820', '1821'],
     'open_kewmgang_curso_id' => '1802',
     'med_cheer_curso_id' => '1803',
     'tkd_nacional_curso_id' => '1804',
@@ -26,6 +26,7 @@ return [
     'regional_cup_curso_id' => '1818',
     'tkd_examen_cinturon_curso_id' => '1819',
     'reto_3x3_curso_id' => '1820',
+    'copa_promesas_curso_id' => '1821',
 
     'med_cheer' => [
         'nombre' => 'Med Cheer Championships',
@@ -275,5 +276,12 @@ return [
         ],
         'valor' => 350000,
         'valor_label' => 'por equipo',
+    ],
+
+    'copa_promesas' => [
+        'nombre' => 'XIII Copa Internacional Promesas 2026',
+        'categorias' => [],
+        'valor' => 1500000,
+        'valor_label' => 'por equipo (locales y nacionales)',
     ],
 ];
