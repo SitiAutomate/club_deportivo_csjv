@@ -7,7 +7,7 @@ header('Content-Type: application/json; charset=utf-8');
 if (!reservaCupoHabilitada()) {
     jsonResponse([
         'success' => false,
-        'error' => 'El formulario de reserva de cupo ya no está disponible. Estuvo abierto ' . reservaCupoTextoVentana() . '.',
+        'error' => reservaCupoAvisoCerrado() . ' ' . reservaCupoNotaCambioActividad(),
         'habilitado' => false,
     ], 403);
 }

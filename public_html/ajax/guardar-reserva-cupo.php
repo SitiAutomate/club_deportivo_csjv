@@ -16,7 +16,7 @@ header('X-Trace-Id: ' . $traceId);
 if (!reservaCupoHabilitada()) {
     jsonResponse([
         'success' => false,
-        'error' => 'El formulario de reserva de cupo ya no está disponible.',
+        'error' => reservaCupoAvisoCerrado() . ' ' . reservaCupoNotaCambioActividad(),
         'traceId' => $traceId,
     ], 403);
 }

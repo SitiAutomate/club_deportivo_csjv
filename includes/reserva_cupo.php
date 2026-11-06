@@ -34,14 +34,14 @@ function reservaCupoAnioOrigen(): int
 
 function reservaCupoInicio(): DateTimeImmutable
 {
-    $raw = trim((string) env('RESERVA_CUPO_INICIO', '2026-11-01 00:00:00'));
+    $raw = trim((string) env('RESERVA_CUPO_INICIO', '2026-11-17 00:00:00'));
     return new DateTimeImmutable($raw, reservaCupoZonaHoraria());
 }
 
-/** Cierra el 15 de noviembre a media noche (fin del día 15, hora Colombia). */
+/** Cierra el 5 de diciembre a media noche (fin del día 5, hora Colombia). */
 function reservaCupoFin(): DateTimeImmutable
 {
-    $raw = trim((string) env('RESERVA_CUPO_FIN', '2026-11-15 23:59:59'));
+    $raw = trim((string) env('RESERVA_CUPO_FIN', '2026-12-05 23:59:59'));
     return new DateTimeImmutable($raw, reservaCupoZonaHoraria());
 }
 
@@ -53,12 +53,19 @@ function reservaCupoHabilitada(): bool
 
 function reservaCupoTextoVentana(): string
 {
-    return 'hasta el 15 de noviembre de 2026 a las 11:59 p. m. (hora Colombia)';
+    return 'hasta el 5 de diciembre de 2026';
 }
 
 function reservaCupoNotaCambioActividad(): string
 {
-    return 'Los cambios de actividad podrán realizarse del 16 al 29 de noviembre de 2026';
+    return 'A partir del 6 de diciembre de 2026, el formulario se habilitará para los cambios de disciplinas y para los nuevos deportistas.';
+}
+
+function reservaCupoAvisoCerrado(): string
+{
+    return 'El formulario de inscripciones para '
+        . reservaCupoAnioDestino()
+        . ' estará disponible del 17 de noviembre al 5 de diciembre de 2026, exclusivamente para los deportistas actuales del Club Deportivo.';
 }
 
 /**

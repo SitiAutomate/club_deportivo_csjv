@@ -6,6 +6,7 @@ require_once __DIR__ . '/../includes/reserva_cupo.php';
 $formularioHabilitado = reservaCupoHabilitada();
 $textoVentana = reservaCupoTextoVentana();
 $notaCambio = reservaCupoNotaCambioActividad();
+$avisoCerrado = reservaCupoAvisoCerrado();
 $anioDestino = reservaCupoAnioDestino();
 ?>
 <!DOCTYPE html>
@@ -13,7 +14,7 @@ $anioDestino = reservaCupoAnioDestino();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reserva de cupo <?= (int) $anioDestino ?> - Club Deportivo y Fundación Maex</title>
+    <title>Inscripciones para <?= (int) $anioDestino ?> - Club Deportivo y Fundación Maex</title>
     <link rel="icon" type="image/x-icon" href="favicon/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png">
@@ -44,7 +45,7 @@ $anioDestino = reservaCupoAnioDestino();
         <header class="header-inscripcion d-flex align-items-center gap-4 mb-5 py-4 px-4 rounded-3 shadow-sm">
             <img src="assets/images/logo.png?v=<?= @filemtime(__DIR__ . '/assets/images/logo.png') ?: '1' ?>" alt="Logo" class="header-logo flex-shrink-0" onerror="this.style.display='none'">
             <div class="header-text flex-grow-1">
-                <h1 class="mb-1 display-6 fw-bold">Reserva de cupo <?= (int) $anioDestino ?></h1>
+                <h1 class="mb-1 display-6 fw-bold">Inscripciones para <?= (int) $anioDestino ?></h1>
                 <p class="h5 mb-2 text-muted">Club Deportivo y Fundación Maex</p>
                 <p class="mb-2 header-descripcion" style="font-size: 1rem;">
                     Este formulario confirma la continuidad del participante para iniciar desde <strong>el 25 enero de <?= (int) $anioDestino ?></strong>.
@@ -53,10 +54,10 @@ $anioDestino = reservaCupoAnioDestino();
                     Selecciona si continuará en la actividad recomendada o indica que no continuará y selecciona el motivo.
                 </p>
                 <p class="mb-2 header-descripcion" style="font-size: 1rem;">
-                    Al seleccionar <strong>Continuó</strong> el cupo quedará reservado para 2027 en la actividad indicada.
+                    Al seleccionar <strong>Continúo</strong> el cupo quedará reservado para <?= (int) $anioDestino ?> en la actividad indicada.
                 </p>
                 <p class="mb-2 header-descripcion" style="font-size: 1rem;">
-                    Fecha límite para confirmar: <?= htmlspecialchars($textoVentana, ENT_QUOTES, 'UTF-8') ?>
+                    <strong>Fecha límite para confirmar:</strong> <?= htmlspecialchars($textoVentana, ENT_QUOTES, 'UTF-8') ?>
                 </p>
                 <p class="mb-0 header-descripcion fw-semibold" style="font-size: 1rem;">
                     <?= htmlspecialchars($notaCambio, ENT_QUOTES, 'UTF-8') ?>
@@ -66,8 +67,10 @@ $anioDestino = reservaCupoAnioDestino();
 
         <?php if (!$formularioHabilitado): ?>
         <div class="alert alert-warning" role="status">
-            El formulario de reserva de cupo estuvo disponible <?= htmlspecialchars($textoVentana, ENT_QUOTES, 'UTF-8') ?> y ya no acepta respuestas.
-            <div class="mt-2"><?= htmlspecialchars($notaCambio, ENT_QUOTES, 'UTF-8') ?></div>
+            <h2 class="h5 mb-2">Inscripciones para <?= (int) $anioDestino ?></h2>
+            <p class="mb-2"><strong>Fecha límite para confirmar:</strong> <?= htmlspecialchars($textoVentana, ENT_QUOTES, 'UTF-8') ?></p>
+            <p class="mb-2"><?= htmlspecialchars($avisoCerrado, ENT_QUOTES, 'UTF-8') ?></p>
+            <p class="mb-0"><?= htmlspecialchars($notaCambio, ENT_QUOTES, 'UTF-8') ?></p>
         </div>
         <?php else: ?>
         <form id="formReservaCupo" class="needs-validation" novalidate>
