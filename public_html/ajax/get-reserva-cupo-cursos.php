@@ -26,7 +26,11 @@ if (!$rowPart) {
 $mesOrigen = reservaCupoMesOrigen();
 $anioOrigen = reservaCupoAnioOrigen();
 $anioDestino = reservaCupoAnioDestino();
-$estadosValidos = ['ACTIVO', 'Confirmado', 'confirmado', 'Incapacitado', 'incapacitado', 'Activo'];
+$estadosValidos = [
+    'ACTIVO', 'Activo',
+    'CONFIRMADO', 'Confirmado', 'confirmado',
+    'INCAPACITADO', 'Incapacitado', 'incapacitado',
+];
 
 $rows = $database->select('inscripciones_1', [
     'IDInscripcion',
@@ -52,26 +56,59 @@ $nombreCursoPorId = static function (string $idCurso) use ($database): array {
         'Nombre_del_curso',
         'Nombre_Corto_Curso',
         'Sede',
+        'cursoPosterior',
     ], ['ID_Curso' => $idCurso]);
     if (!$row) {
-        return ['nombre' => $idCurso, 'sede' => ''];
+        return ['nombre' => $idCurso, 'sede' => '', 'curso_posterior' => ''];
     }
     $nombre = trim((string) ($row['Nombre_del_curso'] ?? $row['Nombre_Corto_Curso'] ?? $idCurso));
     return [
         'nombre' => $nombre !== '' ? $nombre : $idCurso,
         'sede' => trim((string) ($row['Sede'] ?? '')),
+        'curso_posterior' => trim((string) ($row['cursoPosterior'] ?? '')),
     ];
 };
 
-// Una fila por IDCurso actual (si se repite el mismo curso, se queda la inscripción más reciente)
+$resolverCursoId = static function (string $ref) use ($database): string {
+    $ref = trim($ref);
+    if ($ref === '') {
+        return '';
+    }
+    $byId = $database->get('cursos_2025', 'ID_Curso', ['ID_Curso' => $ref]);
+    if ($byId) {
+        return (string) $byId;
+    }
+    $byNombre = $database->get('cursos_2025', 'ID_Curso', [
+        'Nombre_del_curso' => $ref,
+        'LIMIT' => 1,
+    ]);
+    return $byNombre ? (string) $byNombre : '';
+};
+
+$scoreRecomendado = static function (string $rec, string $cursoActualId): int {
+    if ($rec === '') {
+        return 0;
+    }
+    // Preferir recomendación distinta al curso actual (la cargada en Gestión).
+    return $rec !== $cursoActualId ? 2 : 1;
+};
+
+// Una fila por IDCurso actual. Se conserva la inscripción más reciente,
+// pero el cursoRecomendado se toma de la mejor fila disponible (puede estar en otra inscripción).
 $porCursoActual = [];
 foreach ($rows as $r) {
     $cid = (string) ($r['IDCurso'] ?? '');
     if ($cid === '') {
         continue;
     }
+    $rec = trim((string) ($r['cursoRecomendado'] ?? ''));
     if (!isset($porCursoActual[$cid])) {
         $porCursoActual[$cid] = $r;
+        continue;
+    }
+    $prevRec = trim((string) ($porCursoActual[$cid]['cursoRecomendado'] ?? ''));
+    if ($scoreRecomendado($rec, $cid) > $scoreRecomendado($prevRec, $cid)) {
+        $porCursoActual[$cid]['cursoRecomendado'] = $r['cursoRecomendado'];
     }
 }
 
@@ -81,6 +118,16 @@ $porRecomendado = [];
 foreach ($porCursoActual as $r) {
     $cursoActualId = (string) $r['IDCurso'];
     $recomendadoId = trim((string) ($r['cursoRecomendado'] ?? ''));
+    $recomendadoId = $resolverCursoId($recomendadoId);
+
+    // Si no hay recomendación guardada, usar cursoPosterior del catálogo.
+    if ($recomendadoId === '') {
+        $metaActualTmp = $nombreCursoPorId($cursoActualId);
+        $posterior = $metaActualTmp['curso_posterior'] ?? '';
+        if ($posterior !== '') {
+            $recomendadoId = $resolverCursoId($posterior);
+        }
+    }
     if ($recomendadoId === '') {
         $recomendadoId = $cursoActualId;
     }
