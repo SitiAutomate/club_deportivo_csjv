@@ -93,22 +93,44 @@ $scoreRecomendado = static function (string $rec, string $cursoActualId): int {
     return $rec !== $cursoActualId ? 2 : 1;
 };
 
-// Una fila por IDCurso actual. Se conserva la inscripción más reciente,
-// pero el cursoRecomendado se toma de la mejor fila disponible (puede estar en otra inscripción).
+// Una fila por IDCurso actual (inscripción más reciente del mes origen).
 $porCursoActual = [];
 foreach ($rows as $r) {
     $cid = (string) ($r['IDCurso'] ?? '');
     if ($cid === '') {
         continue;
     }
-    $rec = trim((string) ($r['cursoRecomendado'] ?? ''));
     if (!isset($porCursoActual[$cid])) {
         $porCursoActual[$cid] = $r;
-        continue;
     }
-    $prevRec = trim((string) ($porCursoActual[$cid]['cursoRecomendado'] ?? ''));
-    if ($scoreRecomendado($rec, $cid) > $scoreRecomendado($prevRec, $cid)) {
-        $porCursoActual[$cid]['cursoRecomendado'] = $r['cursoRecomendado'];
+}
+
+// La recomendación de Gestión puede estar en otro mes del mismo año
+// (p. ej. guardada en octubre y la fila de noviembre quedó null).
+$idsCursoActual = array_keys($porCursoActual);
+if ($idsCursoActual !== []) {
+    $recsAnio = $database->select('inscripciones_1', [
+        'IDCurso',
+        'cursoRecomendado',
+        'IDInscripcion',
+    ], [
+        'validador_participante' => $participanteDoc,
+        'año' => $anioOrigen,
+        'Tipo' => 1,
+        'IDCurso' => $idsCursoActual,
+        'ORDER' => ['IDInscripcion' => 'DESC'],
+    ]) ?: [];
+
+    foreach ($recsAnio as $rr) {
+        $cid = (string) ($rr['IDCurso'] ?? '');
+        if ($cid === '' || !isset($porCursoActual[$cid])) {
+            continue;
+        }
+        $rec = trim((string) ($rr['cursoRecomendado'] ?? ''));
+        $prevRec = trim((string) ($porCursoActual[$cid]['cursoRecomendado'] ?? ''));
+        if ($scoreRecomendado($rec, $cid) > $scoreRecomendado($prevRec, $cid)) {
+            $porCursoActual[$cid]['cursoRecomendado'] = $rr['cursoRecomendado'];
+        }
     }
 }
 
