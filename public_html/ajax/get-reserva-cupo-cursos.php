@@ -137,26 +137,28 @@ if ($idsCursoActual !== []) {
 // Una sola decisión por curso recomendado 2027
 // (varios cursos actuales pueden apuntar al mismo recomendado).
 $porRecomendado = [];
-foreach ($porCursoActual as $r) {
-    $cursoActualId = (string) $r['IDCurso'];
-    $recomendadoId = trim((string) ($r['cursoRecomendado'] ?? ''));
-    $recomendadoId = $resolverCursoId($recomendadoId);
+foreach ($porCursoActual as $cursoActualId => $r) {
+    $cursoActualId = (string) $cursoActualId;
+    $metaActual = $nombreCursoPorId($cursoActualId);
+    $nombreActual = $metaActual['nombre'];
 
-    // Si no hay recomendación guardada, usar cursoPosterior del catálogo.
-    if ($recomendadoId === '') {
-        $metaActualTmp = $nombreCursoPorId($cursoActualId);
-        $posterior = $metaActualTmp['curso_posterior'] ?? '';
+    $recomendadoId = $resolverCursoId(trim((string) ($r['cursoRecomendado'] ?? '')));
+
+    // Igual que en Gestión: si no hay recomendación o quedó el mismo curso actual,
+    // usar cursoPosterior del catálogo (p. ej. Mini/Infantil → Junior).
+    // Nota: castear IDs a string — PHP convierte keys numéricas a int y "148" === 148 falla.
+    if ($recomendadoId === '' || $recomendadoId === $cursoActualId) {
+        $posterior = trim((string) ($metaActual['curso_posterior'] ?? ''));
         if ($posterior !== '') {
-            $recomendadoId = $resolverCursoId($posterior);
+            $desdePosterior = $resolverCursoId($posterior);
+            if ($desdePosterior !== '') {
+                $recomendadoId = $desdePosterior;
+            }
         }
     }
     if ($recomendadoId === '') {
         $recomendadoId = $cursoActualId;
     }
-
-    // Nombre real desde catálogo (nombreCurso en inscripción a veces viene mal/replicado)
-    $metaActual = $nombreCursoPorId($cursoActualId);
-    $nombreActual = $metaActual['nombre'];
 
     if (isset($porRecomendado[$recomendadoId])) {
         $prev = &$porRecomendado[$recomendadoId];
