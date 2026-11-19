@@ -57,15 +57,22 @@ $nombreCursoPorId = static function (string $idCurso) use ($database): array {
         'Nombre_Corto_Curso',
         'Sede',
         'cursoPosterior',
+        'requierePosterior',
     ], ['ID_Curso' => $idCurso]);
     if (!$row) {
-        return ['nombre' => $idCurso, 'sede' => '', 'curso_posterior' => ''];
+        return [
+            'nombre' => $idCurso,
+            'sede' => '',
+            'curso_posterior' => '',
+            'requiere_posterior' => false,
+        ];
     }
     $nombre = trim((string) ($row['Nombre_del_curso'] ?? $row['Nombre_Corto_Curso'] ?? $idCurso));
     return [
         'nombre' => $nombre !== '' ? $nombre : $idCurso,
         'sede' => trim((string) ($row['Sede'] ?? '')),
         'curso_posterior' => trim((string) ($row['cursoPosterior'] ?? '')),
+        'requiere_posterior' => (int) ($row['requierePosterior'] ?? 0) === 1,
     ];
 };
 
@@ -214,6 +221,19 @@ foreach ($porCursoActual as $cursoActualId => $r) {
     // Nota: castear IDs a string — PHP convierte keys numéricas a int y "148" === 148 falla.
     if ($recomendadoId === '') {
         $recomendadoId = $cursoActualId;
+    }
+
+    // Igual que Gestión: si el curso recomendado exige posterior, usar ese
+    // (p. ej. MENORES SELECCIONADO → MENORES).
+    $metaRecFlag = $nombreCursoPorId($recomendadoId);
+    if (!empty($metaRecFlag['requiere_posterior'])) {
+        $postRec = trim((string) ($metaRecFlag['curso_posterior'] ?? ''));
+        if ($postRec !== '') {
+            $desdePostRec = $resolverCursoId($postRec);
+            if ($desdePostRec !== '' && $desdePostRec !== $recomendadoId) {
+                $recomendadoId = $desdePostRec;
+            }
+        }
     }
 
     if (isset($porRecomendado[$recomendadoId])) {
