@@ -85,15 +85,9 @@ $resolverCursoId = static function (string $ref) use ($database): string {
     return $byNombre ? (string) $byNombre : '';
 };
 
-$scoreRecomendado = static function (string $rec, string $cursoActualId): int {
-    if ($rec === '') {
-        return 0;
-    }
-    // Preferir recomendación distinta al curso actual (la cargada en Gestión).
-    return $rec !== $cursoActualId ? 2 : 1;
-};
-
 // Una fila por IDCurso actual (inscripción más reciente del mes origen).
+// El mes origen solo define en qué cursos está hoy; la recomendación se
+// resuelve con todo el año (sep/oct/nov/…), no con un mes fijo.
 $porCursoActual = [];
 foreach ($rows as $r) {
     $cid = (string) ($r['IDCurso'] ?? '');
@@ -105,8 +99,8 @@ foreach ($rows as $r) {
     }
 }
 
-// La recomendación de Gestión puede estar en otro mes del mismo año
-// (p. ej. guardada en octubre y la fila de noviembre quedó null).
+// Recs del año por curso actual: [IDCurso => list of [id, rec]]
+$recsPorCurso = [];
 $idsCursoActual = array_keys($porCursoActual);
 if ($idsCursoActual !== []) {
     $recsAnio = $database->select('inscripciones_1', [
@@ -127,12 +121,81 @@ if ($idsCursoActual !== []) {
             continue;
         }
         $rec = trim((string) ($rr['cursoRecomendado'] ?? ''));
-        $prevRec = trim((string) ($porCursoActual[$cid]['cursoRecomendado'] ?? ''));
-        if ($scoreRecomendado($rec, $cid) > $scoreRecomendado($prevRec, $cid)) {
-            $porCursoActual[$cid]['cursoRecomendado'] = $rr['cursoRecomendado'];
+        if ($rec === '') {
+            continue;
         }
+        $recsPorCurso[$cid][] = [
+            'id' => (int) ($rr['IDInscripcion'] ?? 0),
+            'rec' => $rec,
+        ];
     }
 }
+
+/**
+ * Elige recomendación del año (cualquier mes):
+ * 1) Si hay varias distintas y una coincide con cursoPosterior → esa (catálogo recién actualizado).
+ * 2) Si no, la distinta al curso actual con IDInscripcion más alto.
+ * 3) Si no hay distinta, cualquier rec del año (más reciente).
+ * 4) Luego cursoPosterior del catálogo si sigue vacío o = actual.
+ */
+$elegirRecomendadoAnio = static function (
+    string $cursoActualId,
+    array $recsAnioCurso,
+    string $posteriorRef,
+    callable $resolverCursoId
+): string {
+    $distintas = []; // recId => max IDInscripcion
+    $mejorCualquiera = '';
+    $mejorCualquieraId = -1;
+
+    foreach ($recsAnioCurso as $item) {
+        $recRaw = (string) ($item['rec'] ?? '');
+        $insId = (int) ($item['id'] ?? 0);
+        $recId = $resolverCursoId($recRaw);
+        if ($recId === '') {
+            $recId = $recRaw;
+        }
+        if ($insId > $mejorCualquieraId) {
+            $mejorCualquiera = $recId;
+            $mejorCualquieraId = $insId;
+        }
+        if ($recId === $cursoActualId) {
+            continue;
+        }
+        if (!isset($distintas[$recId]) || $insId > $distintas[$recId]) {
+            $distintas[$recId] = $insId;
+        }
+    }
+
+    $posteriorId = '';
+    if ($posteriorRef !== '') {
+        $posteriorId = $resolverCursoId($posteriorRef);
+    }
+
+    if ($distintas !== []) {
+        // Varias recomendaciones en el año: si el catálogo (posterior) está entre ellas, gana.
+        if ($posteriorId !== '' && $posteriorId !== $cursoActualId && isset($distintas[$posteriorId])) {
+            return $posteriorId;
+        }
+        // Si no, la más reciente (mayor IDInscripcion).
+        arsort($distintas, SORT_NUMERIC);
+        return (string) array_key_first($distintas);
+    }
+
+    if ($mejorCualquiera !== '' && $mejorCualquiera !== $cursoActualId) {
+        return $mejorCualquiera;
+    }
+
+    if ($posteriorId !== '') {
+        return $posteriorId;
+    }
+
+    if ($mejorCualquiera !== '') {
+        return $mejorCualquiera;
+    }
+
+    return $cursoActualId;
+};
 
 // Una sola decisión por curso recomendado 2027
 // (varios cursos actuales pueden apuntar al mismo recomendado).
@@ -142,20 +205,13 @@ foreach ($porCursoActual as $cursoActualId => $r) {
     $metaActual = $nombreCursoPorId($cursoActualId);
     $nombreActual = $metaActual['nombre'];
 
-    $recomendadoId = $resolverCursoId(trim((string) ($r['cursoRecomendado'] ?? '')));
-
-    // Igual que en Gestión: si no hay recomendación o quedó el mismo curso actual,
-    // usar cursoPosterior del catálogo (p. ej. Mini/Infantil → Junior).
+    $recomendadoId = $elegirRecomendadoAnio(
+        $cursoActualId,
+        $recsPorCurso[$cursoActualId] ?? [],
+        trim((string) ($metaActual['curso_posterior'] ?? '')),
+        $resolverCursoId
+    );
     // Nota: castear IDs a string — PHP convierte keys numéricas a int y "148" === 148 falla.
-    if ($recomendadoId === '' || $recomendadoId === $cursoActualId) {
-        $posterior = trim((string) ($metaActual['curso_posterior'] ?? ''));
-        if ($posterior !== '') {
-            $desdePosterior = $resolverCursoId($posterior);
-            if ($desdePosterior !== '') {
-                $recomendadoId = $desdePosterior;
-            }
-        }
-    }
     if ($recomendadoId === '') {
         $recomendadoId = $cursoActualId;
     }
