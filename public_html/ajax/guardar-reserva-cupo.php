@@ -110,6 +110,13 @@ foreach ($decisiones as $idx => $d) {
 
     $causalRetiro = null;
     if ($accion === 'continuar') {
+        $transporteNorm = trim((string) ($transporte ?? ''));
+        if (!in_array($transporteNorm, ['Sí', 'Si', 'No'], true)) {
+            $errores[] = 'Indique si desea transporte para: ' . $nombreCurso;
+            continue;
+        }
+        // Normalizar "Si" sin tilde al valor usado en inscripciones.
+        $transporte = ($transporteNorm === 'No') ? 'No' : 'Sí';
         $estado = 'ACTIVO';
         $obs = reservaCupoObservacionContinua();
     } else {

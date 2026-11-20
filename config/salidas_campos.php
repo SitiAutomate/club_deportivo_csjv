@@ -111,4 +111,13 @@ return [
             ],
         ],
     ],
+    '5131' => [
+        'categoria' => [
+            'column' => 'Modalidad',
+            'label' => 'Categoría',
+            'options' => [
+                'A partir de 12 años' => 'A partir de 12 años',
+            ],
+        ],
+    ],
 ];

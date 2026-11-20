@@ -161,7 +161,16 @@
             }
             html += '</div></div>';
             if (!yaRespondido) {
-                html += '<div class="wrap-no-continua mt-3" id="wrapNo_' + i + '">';
+                html += '<div class="wrap-transporte mt-3" id="wrapTransporte_' + i + '" style="display:none">';
+                html += '<label class="form-label fw-bold">¿Desea hacer uso del servicio de transporte extracurricular?</label>';
+                html += '<p class="small text-muted mb-2">Este servicio está disponible únicamente para estudiantes del Colegio San José de Las Vegas que ya cuentan con el servicio de transporte escolar.</p>';
+                html += '<select class="form-select form-select-sm" id="transporte_' + i + '" style="max-width: 280px">';
+                html += '<option value="">-- Seleccione --</option>';
+                html += '<option value="No">No</option>';
+                html += '<option value="Sí">Sí</option>';
+                html += '</select></div>';
+
+                html += '<div class="wrap-no-continua mt-3" id="wrapNo_' + i + '" style="display:none">';
                 html += '<div class="row g-3">';
                 html += '<div class="col-md-6"><label class="form-label fw-bold">Motivo</label>';
                 html += '<select class="form-select form-select-sm" id="cat_' + i + '">' + optionsCategorias() + '</select></div>';
@@ -175,12 +184,15 @@
             if (c.ya_reservado || c.ya_no_continua) return;
             const si = document.getElementById('acc_si_' + i);
             const no = document.getElementById('acc_no_' + i);
-            const wrap = document.getElementById('wrapNo_' + i);
+            const wrapNo = document.getElementById('wrapNo_' + i);
+            const wrapTransporte = document.getElementById('wrapTransporte_' + i);
             const sync = () => {
-                if (wrap) wrap.style.display = no?.checked ? 'block' : 'none';
+                if (wrapNo) wrapNo.style.display = no?.checked ? 'block' : 'none';
+                if (wrapTransporte) wrapTransporte.style.display = si?.checked ? 'block' : 'none';
             };
             si?.addEventListener('change', sync);
             no?.addEventListener('change', sync);
+            sync();
         });
     }
 
@@ -201,9 +213,18 @@
                 curso_recomendado_id: c.curso_recomendado_id,
                 curso_recomendado_nombre: c.curso_recomendado_nombre,
                 sede: c.sede,
-                transporte: c.transporte,
+                transporte: null,
                 responsable_documento: c.responsable_documento || participanteActual?.responsable_documento || '',
             };
+            if (accion === 'continuar') {
+                const transporte = (document.getElementById('transporte_' + i)?.value || '').trim();
+                if (!transporte) {
+                    alert('Indique si desea transporte para: ' + c.curso_recomendado_nombre);
+                    document.getElementById('transporte_' + i)?.focus();
+                    return null;
+                }
+                item.transporte = transporte;
+            }
             if (accion === 'no_continuar') {
                 item.categoria = document.getElementById('cat_' + i)?.value || '';
                 if (!item.categoria) {
