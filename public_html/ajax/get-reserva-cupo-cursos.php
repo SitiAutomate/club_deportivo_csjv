@@ -76,7 +76,26 @@ $nombreCursoPorId = static function (string $idCurso) use ($database): array {
     ];
 };
 
-$resolverCursoId = static function (string $ref) use ($database): string {
+$normalizarNombreCurso = static function (string $s): string {
+    $s = trim($s);
+    if ($s === '') {
+        return '';
+    }
+    $s = str_replace(["\xC2\xA0", '–', '—', '−'], [' ', '-', '-', '-'], $s);
+    if (function_exists('mb_strtoupper')) {
+        $s = mb_strtoupper($s, 'UTF-8');
+    } else {
+        $s = strtoupper($s);
+    }
+    $s = strtr($s, [
+        'Á' => 'A', 'É' => 'E', 'Í' => 'I', 'Ó' => 'O', 'Ú' => 'U', 'Ü' => 'U', 'Ñ' => 'N',
+    ]);
+    $s = preg_replace('/\s*-\s*/', '-', $s) ?? $s;
+    $s = preg_replace('/\s+/', ' ', $s) ?? $s;
+    return trim($s);
+};
+
+$resolverCursoId = static function (string $ref) use ($database, $normalizarNombreCurso): string {
     $ref = trim($ref);
     if ($ref === '') {
         return '';
@@ -89,7 +108,30 @@ $resolverCursoId = static function (string $ref) use ($database): string {
         'Nombre_del_curso' => $ref,
         'LIMIT' => 1,
     ]);
-    return $byNombre ? (string) $byNombre : '';
+    if ($byNombre) {
+        return (string) $byNombre;
+    }
+
+    // Gestión a menudo guarda/muestra nombres con espacios/guiones distintos
+    // (" - RETIRO" vs "-RETIRO", tildes, NBSP). Buscar por nombre normalizado.
+    static $mapaNorm = null;
+    if ($mapaNorm === null) {
+        $mapaNorm = [];
+        $todos = $database->select('cursos_2025', ['ID_Curso', 'Nombre_del_curso']) ?: [];
+        foreach ($todos as $cRow) {
+            $nom = trim((string) ($cRow['Nombre_del_curso'] ?? ''));
+            if ($nom === '') {
+                continue;
+            }
+            $key = $normalizarNombreCurso($nom);
+            if ($key === '' || isset($mapaNorm[$key])) {
+                continue;
+            }
+            $mapaNorm[$key] = (string) $cRow['ID_Curso'];
+        }
+    }
+    $keyRef = $normalizarNombreCurso($ref);
+    return ($keyRef !== '' && isset($mapaNorm[$keyRef])) ? $mapaNorm[$keyRef] : '';
 };
 
 // Una fila por IDCurso actual (inscripción más reciente del mes origen).
@@ -212,26 +254,33 @@ foreach ($porCursoActual as $cursoActualId => $r) {
     $metaActual = $nombreCursoPorId($cursoActualId);
     $nombreActual = $metaActual['nombre'];
 
-    $recomendadoId = $elegirRecomendadoAnio(
+    // ID que quedó en recomendados (p. ej. 1106 / 50004).
+    $baseRecomendadoId = $elegirRecomendadoAnio(
         $cursoActualId,
         $recsPorCurso[$cursoActualId] ?? [],
         trim((string) ($metaActual['curso_posterior'] ?? '')),
         $resolverCursoId
     );
     // Nota: castear IDs a string — PHP convierte keys numéricas a int y "148" === 148 falla.
-    if ($recomendadoId === '') {
-        $recomendadoId = $cursoActualId;
+    if ($baseRecomendadoId === '') {
+        $baseRecomendadoId = $cursoActualId;
     }
 
-    // Igual que Gestión: si el curso recomendado exige posterior, usar ese
-    // (p. ej. MENORES SELECCIONADO → MENORES).
-    $metaRecFlag = $nombreCursoPorId($recomendadoId);
-    if (!empty($metaRecFlag['requiere_posterior'])) {
-        $postRec = trim((string) ($metaRecFlag['curso_posterior'] ?? ''));
-        if ($postRec !== '') {
-            $desdePostRec = $resolverCursoId($postRec);
-            if ($desdePostRec !== '' && $desdePostRec !== $recomendadoId) {
-                $recomendadoId = $desdePostRec;
+    // Igual que Gestión: el nombre visible es el cursoPosterior del ID recomendado,
+    // exista o no ese curso en catálogo. Si el posterior resuelve a un ID, ese se usa
+    // para guardar la reserva; si no, se mantiene el ID recomendado.
+    $metaBaseRec = $nombreCursoPorId($baseRecomendadoId);
+    $postRec = trim((string) ($metaBaseRec['curso_posterior'] ?? ''));
+    $nombreRecomendado = $postRec !== '' ? $postRec : $metaBaseRec['nombre'];
+    $recomendadoId = $baseRecomendadoId;
+    if ($postRec !== '') {
+        $desdePostRec = $resolverCursoId($postRec);
+        if ($desdePostRec !== '') {
+            $recomendadoId = $desdePostRec;
+            // Si el posterior existe, preferir su nombre de catálogo (mismo texto en la práctica).
+            $metaPost = $nombreCursoPorId($desdePostRec);
+            if ($metaPost['nombre'] !== '' && $metaPost['nombre'] !== $desdePostRec) {
+                $nombreRecomendado = $metaPost['nombre'];
             }
         }
     }
@@ -249,7 +298,6 @@ foreach ($porCursoActual as $cursoActualId => $r) {
     }
 
     $metaRec = $nombreCursoPorId($recomendadoId);
-    $nombreRecomendado = $metaRec['nombre'];
 
     // Solo "Continúo" (ACTIVO) cuenta como cupo reservado.
     $yaReservado = (int) $database->count('inscripciones_1', [
