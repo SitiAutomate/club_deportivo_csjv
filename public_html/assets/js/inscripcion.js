@@ -45,6 +45,7 @@
     let validandoParticipante = false;
     let validandoResponsable = false;
     let actividadesTipo1 = [];
+    let anioTipo1 = new Date().getFullYear();
 
     const $ = (sel, ctx = document) => ctx.querySelector(sel);
     const camposFormulario = $('#camposFormulario');
@@ -2262,17 +2263,20 @@
     }
 
     function cargarCamposTipo1() {
-        const anio = new Date().getFullYear();
         ajax('get-filtros-tipo1.php', 'GET', { tipo_id: 1 }).then(res => {
             const meses = res.meses || [];
             const lineas = res.lineas || [];
+            const mesDefault = String(res.mes_default || '');
+            anioTipo1 = parseInt(res.anio, 10) || new Date().getFullYear();
             actividadesTipo1 = res.actividades || [];
 
             let html = '';
             html += '<div class="row g-3 mb-3">';
             html += '<div class="col-md-6 col-lg-3"><label class="form-label fw-bold">Mes en el que desea comenzar</label><select class="form-select filtro-curso" name="mes" id="filtroMes"><option value="">-- Seleccione --</option>';
             meses.forEach(m => {
-                html += `<option value="${m.NumMes}">${escapeHtml(m.Mes)}</option>`;
+                const num = String(m.NumMes || '');
+                const sel = mesDefault && num === mesDefault ? ' selected' : '';
+                html += `<option value="${escapeHtml(num)}"${sel}>${escapeHtml(m.Mes)}</option>`;
             });
             html += '</select></div>';
             html += '<div class="col-md-6 col-lg-3"><label class="form-label fw-bold">Sede</label><select class="form-select filtro-curso" name="sede" id="filtroSede"><option value="">-- Seleccione --</option><option value="MEDELLÍN">MEDELLÍN</option><option value="RETIRO">RETIRO</option></select></div>';
@@ -2345,7 +2349,7 @@
         }
 
         lista.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary" role="status"></div><p class="mt-2 mb-0 text-muted small">Cargando cursos...</p></div>';
-        const params = { tipo_id: 1, mes, sede, linea, actividad, anio: new Date().getFullYear() };
+        const params = { tipo_id: 1, mes, sede, linea, actividad, anio: anioTipo1 || new Date().getFullYear() };
         if (participanteActual) params.participante_id = participanteActual.documento || participanteActual.id;
         ajax('get-cursos.php', 'GET', params)
             .then(res => {
@@ -2717,7 +2721,9 @@
             return;
         }
 
-        const anio = new Date().getFullYear();
+        const anio = tipo === 1
+            ? (anioTipo1 || new Date().getFullYear())
+            : new Date().getFullYear();
         const formData = new FormData(formInscripcion);
         const data = {
             participante_id: participanteActual.id,

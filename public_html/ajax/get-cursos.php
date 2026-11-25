@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../includes/bootstrap.php';
+require_once __DIR__ . '/../../includes/tipo1_gate.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -11,17 +12,12 @@ $lineaId = isset($_GET['linea']) ? (int) $_GET['linea'] : null;
 $actividad = isset($_GET['actividad']) ? (int) $_GET['actividad'] : null;
 $sede = trim($_GET['sede'] ?? '') ?: null;
 $mes = trim($_GET['mes'] ?? '') ?: null;
-$anio = (int) ($_GET['anio'] ?? date('Y'));
+$anio = (int) ($_GET['anio'] ?? tipo1AnioInscripcionDefault());
 $participanteDoc = trim($_GET['participante_id'] ?? '');
 
-// Cupos siempre se calculan con ventana fija: mes actual + mes siguiente.
-// No depende del mes seleccionado en el filtro para evitar desalineaciones.
-$mesActual = (int) date('n');
-$mesSiguiente = $mesActual >= 12 ? 1 : $mesActual + 1;
-$meses = [
-    str_pad((string) $mesActual, 2, '0', STR_PAD_LEFT),
-    str_pad((string) $mesSiguiente, 2, '0', STR_PAD_LEFT)
-];
+// Cupos: misma ventana del selector (enero/febrero desde TIPO1_NUEVOS_DESDE;
+// antes, mes actual + siguiente).
+$meses = tipo1MesesSelector();
 
 $curso = new Curso($database);
 $cursos = $curso->getFiltradosConCupos($tipoId, $lineaId, $actividad, $sede, $meses, $anio, $showCupos);

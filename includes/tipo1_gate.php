@@ -153,3 +153,72 @@ function tipo1MergeObservacionNuevoIngreso(?string $observacionActual): string
     }
     return $prev . ' | ' . $marca;
 }
+
+/**
+ * Desde TIPO1_NUEVOS_DESDE el formulario de cursos usa enero (ciclo nuevo)
+ * como mes por defecto en lugar de mes actual + siguiente.
+ */
+function tipo1DebeUsarEneroDefault(): bool
+{
+    $desde = tipo1GateNuevosDesde();
+    if ($desde === null) {
+        return false;
+    }
+    return tipo1GateAhora() >= $desde;
+}
+
+/**
+ * Año de inscripción para el formulario tipo 1.
+ * Si ya aplica enero default y NUEVOS_DESDE cae en nov/dic, es el año siguiente.
+ */
+function tipo1AnioInscripcionDefault(): int
+{
+    $ahora = tipo1GateAhora();
+    if (!tipo1DebeUsarEneroDefault()) {
+        return (int) $ahora->format('Y');
+    }
+    $desde = tipo1GateNuevosDesde();
+    if ($desde === null) {
+        return (int) $ahora->format('Y');
+    }
+    $y = (int) $desde->format('Y');
+    $m = (int) $desde->format('n');
+    return $m >= 11 ? $y + 1 : $y;
+}
+
+/**
+ * Meses a ofrecer en el selector tipo 1.
+ * Desde TIPO1_NUEVOS_DESDE (p. ej. dic): solo Enero.
+ * En enero del ciclo nuevo: Enero y Febrero.
+ * Antes de NUEVOS_DESDE: mes actual + siguiente.
+ *
+ * @return list<string> NumMes p. ej. ['01'] o ['01','02']
+ */
+function tipo1MesesSelector(): array
+{
+    $ahora = tipo1GateAhora();
+    $mesActual = (int) $ahora->format('n');
+
+    if (tipo1DebeUsarEneroDefault()) {
+        // Solo en enero del año de inscripción se ofrece también febrero.
+        $anioInscripcion = tipo1AnioInscripcionDefault();
+        $anioAhora = (int) $ahora->format('Y');
+        if ($mesActual === 1 && $anioAhora === $anioInscripcion) {
+            return ['01', '02'];
+        }
+        return ['01'];
+    }
+
+    $mesSiguiente = $mesActual >= 12 ? 1 : $mesActual + 1;
+    return [
+        str_pad((string) $mesActual, 2, '0', STR_PAD_LEFT),
+        str_pad((string) $mesSiguiente, 2, '0', STR_PAD_LEFT),
+    ];
+}
+
+/** Mes preseleccionado en el formulario tipo 1. */
+function tipo1MesDefault(): string
+{
+    $meses = tipo1MesesSelector();
+    return $meses[0] ?? '01';
+}
