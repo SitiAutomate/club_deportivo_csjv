@@ -89,6 +89,7 @@ try {
             'responsable_documento' => $responsableDoc,
             'puede_tipo1' => tipo1GatePuedeVerTipo1($database, $nuevo['IDParticipante']),
             'es_antiguo_tipo1' => tipo1GateEsAntiguo($database, $nuevo['IDParticipante']),
+            'es_nuevo_ingreso' => tipo1EsNuevoIngreso($database, $nuevo['IDParticipante']),
         ]
     ]);
 } catch (Exception $e) {

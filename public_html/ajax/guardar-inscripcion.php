@@ -934,6 +934,16 @@ try {
         $anioApi = (string) $anio;
         $cursoModel = new Curso($database);
         $apiExt = new ExternalApiService();
+
+        // Diferenciar nuevos: sin historial de cursos tipo 1 en el club.
+        require_once __DIR__ . '/../../includes/tipo1_gate.php';
+        $esNuevoIngreso = tipo1EsNuevoIngreso($database, $participanteDocumento);
+        if ($esNuevoIngreso) {
+            $detalle['OBSERVACION'] = tipo1MergeObservacionNuevoIngreso(
+                isset($detalle['OBSERVACION']) ? (string) $detalle['OBSERVACION'] : null
+            );
+        }
+
         foreach ($cursoIds as $i => $cid) {
             $detalle['IDCurso'] = $cid;
             $detalle['nombreCurso'] = $nombresCurso[$i] ?? $cid;

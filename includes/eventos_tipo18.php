@@ -20,7 +20,7 @@ function eventosTipo18FestivegasIds(): array
 function eventosTipo18PrincipalIds(): array
 {
     $cfg = eventosTipo18Config();
-    $ids = $cfg['principal_curso_ids'] ?? ['1802', '1803', '1804', '1805', '1806', '1807', '1808', '1809', '1810', '1811', '1812', '1813', '1814', '1815', '1816', '1818', '1819', '1820', '1821'];
+    $ids = $cfg['principal_curso_ids'] ?? ['1802', '1803', '1804', '1805', '1806', '1807', '1808', '1809', '1810', '1811', '1812', '1813', '1814', '1815', '1816', '1818', '1819', '1820', '1821', '1822'];
     return array_map('strval', $ids);
 }
 
@@ -157,6 +157,13 @@ function eventosTipo18CopaPromesasId(): string
     return $id !== '' ? $id : '1821';
 }
 
+function eventosTipo18SidervoleyId(): string
+{
+    $cfg = eventosTipo18Config();
+    $id = trim((string) ($cfg['sidervoley_curso_id'] ?? '1822'));
+    return $id !== '' ? $id : '1822';
+}
+
 function eventosTipo18EsFestivegas(string $idCurso): bool
 {
     return in_array((string) $idCurso, eventosTipo18FestivegasIds(), true);
@@ -263,6 +270,11 @@ function eventosTipo18EsCopaPromesas(string $idCurso): bool
     return (string) $idCurso === eventosTipo18CopaPromesasId();
 }
 
+function eventosTipo18EsSidervoley(string $idCurso): bool
+{
+    return (string) $idCurso === eventosTipo18SidervoleyId();
+}
+
 function eventosTipo18MedCheerConfig(): array
 {
     return eventosTipo18Config()['med_cheer'] ?? [];
@@ -353,6 +365,11 @@ function eventosTipo18CopaPromesasConfig(): array
     return eventosTipo18Config()['copa_promesas'] ?? [];
 }
 
+function eventosTipo18SidervoleyConfig(): array
+{
+    return eventosTipo18Config()['sidervoley'] ?? [];
+}
+
 /**
  * Eventos tipo 18 que solo piden categoría (como Med Cheer).
  * @return array{nombre:string,categorias:array,valor?:int,valores?:array}|null
@@ -403,6 +420,9 @@ function eventosTipo18ConfigSoloCategoria(string $idCurso): ?array
     }
     if (eventosTipo18EsCopaPromesas($idCurso)) {
         return eventosTipo18CopaPromesasConfig();
+    }
+    if (eventosTipo18EsSidervoley($idCurso)) {
+        return eventosTipo18SidervoleyConfig();
     }
     return null;
 }

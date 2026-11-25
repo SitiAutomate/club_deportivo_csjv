@@ -134,7 +134,11 @@
                 }
                 if (res.exists) {
                     participanteActual = res.participante;
-                    participanteInfo.textContent = `${res.participante.nombre} - Encontrado`;
+                    let infoTxt = `${res.participante.nombre} - Encontrado`;
+                    if (res.participante.es_nuevo_ingreso) {
+                        infoTxt += ' · Nuevo ingreso (sin historial de cursos en el club)';
+                    }
+                    participanteInfo.textContent = infoTxt;
                     participanteInfo.className = 'mt-2 small valid';
                     participanteInfo.style.display = 'block';
                     docParticipante.classList.remove('is-invalid');
@@ -148,7 +152,7 @@
                     }
                 } else {
                     participanteActual = null;
-                    participanteInfo.textContent = 'No existe. Complete el formulario para registrarlo.';
+                    participanteInfo.textContent = 'No existe. Complete el formulario para registrarlo. Se registrará como nuevo ingreso.';
                     participanteInfo.className = 'mt-2 small invalid';
                     participanteInfo.style.display = 'block';
                     const docInput = document.getElementById('modalParticipanteDocumento');
@@ -1367,6 +1371,7 @@
         '1819': 'Examen y ceremonia para ascenso de cinturón 2026',
         '1820': 'Reto 3x3 Tour Colombia',
         '1821': 'XIII Copa Internacional Promesas 2026',
+        '1822': '2.º Nacional de SiderVóley La Estrella',
     };
 
     const TIPO18_CATEGORIAS = {
@@ -1398,6 +1403,13 @@
             'Élite masculino',
         ],
         '1821': [],
+        '1822': [
+            'VOLEIBOL MINI MIXTO – RETIRO',
+            'VOLEIBOL MINI INTERMEDIO – MEDELLÍN',
+            'VOLEIBOL BENJAMÍN MIXTO – RETIRO',
+            'VOLEIBOL INFANTIL – MEDELLÍN',
+            'VOLEIBOL PREMENORES – MEDELLÍN',
+        ],
     };
 
     const TIPO18_CATEGORIA_LABELS = {
@@ -1410,6 +1422,7 @@
         '1815': 'Seleccione la categoría',
         '1818': 'Seleccione la categoría de tu hija',
         '1820': 'Seleccione la categoría a participar',
+        '1822': 'Seleccione la categoría en la que desea participar',
     };
 
     const TIPO18_CATEGORIA_PRECIOS = {

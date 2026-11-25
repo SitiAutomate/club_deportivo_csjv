@@ -114,3 +114,42 @@ function tipo1GatePuedeVerTipo1($database, string $participanteDoc): bool
     }
     return tipo1GateEsAntiguo($database, $participanteDoc);
 }
+
+/**
+ * ¿Es nuevo en el club (sin ninguna inscripción previa de cursos tipo 1)?
+ * Se evalúa antes de crear la inscripción actual.
+ */
+function tipo1EsNuevoIngreso($database, string $participanteDoc): bool
+{
+    $doc = trim($participanteDoc);
+    if ($doc === '') {
+        return true;
+    }
+    $count = (int) $database->count('inscripciones_1', [
+        'validador_participante' => $doc,
+        'Tipo' => 1,
+    ]);
+    return $count === 0;
+}
+
+/** Texto que se guarda en OBSERVACION para nuevos ingresos tipo 1. */
+function tipo1ObservacionNuevoIngreso(): string
+{
+    return 'Nuevo ingreso';
+}
+
+/**
+ * Une la marca de nuevo ingreso con una observación previa (si la hay).
+ */
+function tipo1MergeObservacionNuevoIngreso(?string $observacionActual): string
+{
+    $marca = tipo1ObservacionNuevoIngreso();
+    $prev = trim((string) ($observacionActual ?? ''));
+    if ($prev === '') {
+        return $marca;
+    }
+    if (stripos($prev, $marca) !== false) {
+        return $prev;
+    }
+    return $prev . ' | ' . $marca;
+}

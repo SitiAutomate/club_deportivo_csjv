@@ -40,6 +40,7 @@ if ($row) {
             'responsable_nombre' => $responsableNombre,
             'puede_tipo1' => tipo1GatePuedeVerTipo1($database, $row['IDParticipante']),
             'es_antiguo_tipo1' => tipo1GateEsAntiguo($database, $row['IDParticipante']),
+            'es_nuevo_ingreso' => tipo1EsNuevoIngreso($database, $row['IDParticipante']),
         ]
     ]);
 } else {
@@ -47,5 +48,6 @@ if ($row) {
         'success' => true,
         'exists' => false,
         'puede_tipo1' => !tipo1GateSoloAntiguosActivo(),
+        'es_nuevo_ingreso' => true,
     ]);
 }
