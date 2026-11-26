@@ -59,7 +59,8 @@ class Curso
         ?string $sede = null,
         array $meses = [],
         int $anio = 0,
-        bool $mostrarCupos = false
+        bool $mostrarCupos = false,
+        bool $mapearPosterioresFinAnio = false
     ): array {
         $anio = $anio ?: (int) date('Y');
 
@@ -89,8 +90,14 @@ class Curso
             'Actividad',
             'Tipo',
             'Fecha_Inicio',
-            'Fecha_Final'
+            'Fecha_Final',
+            'cursoPosterior',
         ], $where);
+
+        // Fin de año: mostrar posteriores (o el activo si no tiene posterior).
+        if ($mapearPosterioresFinAnio && $tipoId === 1 && function_exists('tipo1MapearCursosAPosterioresFinAnio')) {
+            $cursos = tipo1MapearCursosAPosterioresFinAnio($this->db, $cursos ?: []);
+        }
 
         if (empty($meses)) {
             $mesActual = (int) date('n');
@@ -112,7 +119,12 @@ class Curso
 
         $resultado = [];
         foreach ($cursos as $c) {
-            $cupoMax = (int) ($c['Cupos_maximos'] ?? 0);
+            $cupoRaw = trim((string) ($c['Cupos_maximos'] ?? ''));
+            // En tipo 1, Cupos_maximos = 0 significa curso cerrado / sin cupos: ocultar.
+            if ($tipoId === 1 && $cupoRaw !== '' && is_numeric($cupoRaw) && (int) $cupoRaw === 0) {
+                continue;
+            }
+            $cupoMax = (int) $cupoRaw;
             $inscritos = $cupoMax > 0 ? (int) ($inscritosPorCurso[(string) ($c['ID_Curso'] ?? '')] ?? 0) : 0;
             $disponibles = $cupoMax > 0 ? ($cupoMax - $inscritos) : 999;
             if ($disponibles <= 0) {

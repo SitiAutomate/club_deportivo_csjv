@@ -20,7 +20,17 @@ $participanteDoc = trim($_GET['participante_id'] ?? '');
 $meses = tipo1MesesSelector();
 
 $curso = new Curso($database);
-$cursos = $curso->getFiltradosConCupos($tipoId, $lineaId, $actividad, $sede, $meses, $anio, $showCupos);
+$mapearPosteriores = ($tipoId === 1 && tipo1DebeUsarEneroDefault());
+$cursos = $curso->getFiltradosConCupos(
+    $tipoId,
+    $lineaId,
+    $actividad,
+    $sede,
+    $meses,
+    $anio,
+    $showCupos,
+    $mapearPosteriores
+);
 
 // Excluir cursos donde el participante ya está inscrito (no puede inscribirse 2 veces al año al mismo curso, salvo tipo 3 o 6+ meses)
 if ($tipoId === 1 && $participanteDoc !== '' && $mes !== '') {

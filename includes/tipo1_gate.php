@@ -222,3 +222,170 @@ function tipo1MesDefault(): string
     $meses = tipo1MesesSelector();
     return $meses[0] ?? '01';
 }
+
+/**
+ * Normaliza nombres de curso para resolver cursoPosterior con espacios/guiones/tildes distintos.
+ */
+function tipo1NormalizarNombreCurso(string $s): string
+{
+    $s = trim($s);
+    if ($s === '') {
+        return '';
+    }
+    $s = str_replace(["\xC2\xA0", '–', '—', '−'], [' ', '-', '-', '-'], $s);
+    if (function_exists('mb_strtoupper')) {
+        $s = mb_strtoupper($s, 'UTF-8');
+    } else {
+        $s = strtoupper($s);
+    }
+    $s = strtr($s, [
+        'Á' => 'A', 'É' => 'E', 'Í' => 'I', 'Ó' => 'O', 'Ú' => 'U', 'Ü' => 'U', 'Ñ' => 'N',
+    ]);
+    $s = preg_replace('/\s*-\s*/', '-', $s) ?? $s;
+    $s = preg_replace('/\s+/', ' ', $s) ?? $s;
+    return trim($s);
+}
+
+/**
+ * Resuelve una referencia (ID o nombre) a ID_Curso en cursos_2025.
+ */
+function tipo1ResolverCursoId($database, string $ref): string
+{
+    $ref = trim($ref);
+    if ($ref === '') {
+        return '';
+    }
+    $byId = $database->get('cursos_2025', 'ID_Curso', ['ID_Curso' => $ref]);
+    if ($byId) {
+        return (string) $byId;
+    }
+    $byNombre = $database->get('cursos_2025', 'ID_Curso', [
+        'Nombre_del_curso' => $ref,
+        'LIMIT' => 1,
+    ]);
+    if ($byNombre) {
+        return (string) $byNombre;
+    }
+
+    static $mapaNorm = null;
+    if ($mapaNorm === null) {
+        $mapaNorm = [];
+        $todos = $database->select('cursos_2025', ['ID_Curso', 'Nombre_del_curso']) ?: [];
+        foreach ($todos as $cRow) {
+            $nom = trim((string) ($cRow['Nombre_del_curso'] ?? ''));
+            if ($nom === '') {
+                continue;
+            }
+            $key = tipo1NormalizarNombreCurso($nom);
+            if ($key === '' || isset($mapaNorm[$key])) {
+                continue;
+            }
+            $mapaNorm[$key] = (string) $cRow['ID_Curso'];
+        }
+    }
+    $keyRef = tipo1NormalizarNombreCurso($ref);
+    return ($keyRef !== '' && isset($mapaNorm[$keyRef])) ? $mapaNorm[$keyRef] : '';
+}
+
+/**
+ * Fin de año (desde TIPO1_NUEVOS_DESDE): listar el cursoPosterior de cada curso activo
+ * del filtro; si no tiene posterior (o no resuelve), dejar el activo.
+ *
+ * @param list<array<string,mixed>> $cursos
+ * @return list<array<string,mixed>>
+ */
+function tipo1MapearCursosAPosterioresFinAnio($database, array $cursos): array
+{
+    if ($cursos === []) {
+        return [];
+    }
+
+    $idsOrigen = [];
+    foreach ($cursos as $c) {
+        $id = trim((string) ($c['ID_Curso'] ?? $c['id'] ?? ''));
+        if ($id !== '') {
+            $idsOrigen[$id] = true;
+        }
+    }
+    if ($idsOrigen === []) {
+        return $cursos;
+    }
+
+    $metaOrigen = $database->select('cursos_2025', [
+        'ID_Curso',
+        'cursoPosterior',
+        'Estado_del_curso',
+    ], [
+        'ID_Curso' => array_keys($idsOrigen),
+    ]) ?: [];
+
+    $candidatos = []; // id_final => true (preliminar)
+    $idsResolverCheck = [];
+    foreach ($metaOrigen as $row) {
+        $id = trim((string) ($row['ID_Curso'] ?? ''));
+        if ($id === '') {
+            continue;
+        }
+        $post = trim((string) ($row['cursoPosterior'] ?? ''));
+        $resolved = $post !== '' ? tipo1ResolverCursoId($database, $post) : '';
+        if ($resolved !== '' && $resolved !== $id) {
+            $candidatos[$id] = $resolved;
+            $idsResolverCheck[$resolved] = true;
+        } else {
+            $candidatos[$id] = $id;
+        }
+    }
+
+    $activosMap = [];
+    if ($idsResolverCheck !== []) {
+        $rowsAct = $database->select('cursos_2025', ['ID_Curso', 'Estado_del_curso'], [
+            'ID_Curso' => array_keys($idsResolverCheck),
+        ]) ?: [];
+        foreach ($rowsAct as $ra) {
+            $rid = trim((string) ($ra['ID_Curso'] ?? ''));
+            $activosMap[$rid] = strtoupper(trim((string) ($ra['Estado_del_curso'] ?? ''))) === 'ACTIVO';
+        }
+    }
+
+    $idsFinales = [];
+    foreach ($metaOrigen as $row) {
+        $id = trim((string) ($row['ID_Curso'] ?? ''));
+        if ($id === '' || !isset($candidatos[$id])) {
+            continue;
+        }
+        $destino = $candidatos[$id];
+        if ($destino !== $id && !empty($activosMap[$destino])) {
+            $idsFinales[$destino] = true;
+            continue;
+        }
+        // Sin posterior útil, o posterior inactivo/inexistente: el activo actual.
+        if (strtoupper(trim((string) ($row['Estado_del_curso'] ?? ''))) === 'ACTIVO') {
+            $idsFinales[$id] = true;
+        }
+    }
+
+    if ($idsFinales === []) {
+        return [];
+    }
+
+    $finales = $database->select('cursos_2025', [
+        'ID_Curso',
+        'Nombre_del_curso',
+        'Nombre_Corto_Curso',
+        'Tarifa_Curso',
+        'Cupos_maximos',
+        'Sede',
+        'Linea',
+        'Actividad',
+        'Tipo',
+        'Fecha_Inicio',
+        'Fecha_Final',
+        'Estado_del_curso',
+    ], [
+        'ID_Curso' => array_keys($idsFinales),
+        'Estado_del_curso' => 'ACTIVO',
+        'ORDER' => ['Nombre_del_curso' => 'ASC'],
+    ]) ?: [];
+
+    return $finales;
+}
