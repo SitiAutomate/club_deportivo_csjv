@@ -20,7 +20,7 @@ $participanteDoc = trim($_GET['participante_id'] ?? '');
 $meses = tipo1MesesSelector();
 
 $curso = new Curso($database);
-$mapearPosteriores = ($tipoId === 1 && tipo1DebeUsarEneroDefault());
+$mapearPosteriores = ($tipoId === 1 && tipo1DebeMostrarPosterioresFinAnio());
 $cursos = $curso->getFiltradosConCupos(
     $tipoId,
     $lineaId,

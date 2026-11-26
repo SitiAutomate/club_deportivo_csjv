@@ -288,8 +288,23 @@ function tipo1ResolverCursoId($database, string $ref): string
 }
 
 /**
- * Fin de año (desde TIPO1_NUEVOS_DESDE): listar el cursoPosterior de cada curso activo
- * del filtro; si no tiene posterior (o no resuelve), dejar el activo.
+ * ¿Debe mostrar cursos posteriores en el listado tipo 1?
+ * Aplica en noviembre y diciembre, o desde TIPO1_NUEVOS_DESDE.
+ */
+function tipo1DebeMostrarPosterioresFinAnio(): bool
+{
+    if (tipo1DebeUsarEneroDefault()) {
+        return true;
+    }
+    $mesActual = (int) tipo1GateAhora()->format('n');
+    return in_array($mesActual, [11, 12], true);
+}
+
+/**
+ * Fin de año (nov/dic o desde TIPO1_NUEVOS_DESDE): listar el cursoPosterior de cada curso activo
+ * del filtro; si el posterior existe como curso ACTIVO se usa ese curso, si es solo texto
+ * (aún no trocado en catálogo) se mantiene el ID activo mostrando el nombre de cursoPosterior,
+ * y si no tiene posterior se deja el activo tal cual.
  *
  * @param list<array<string,mixed>> $cursos
  * @return list<array<string,mixed>>
@@ -319,7 +334,7 @@ function tipo1MapearCursosAPosterioresFinAnio($database, array $cursos): array
         'ID_Curso' => array_keys($idsOrigen),
     ]) ?: [];
 
-    $candidatos = []; // id_final => true (preliminar)
+    $candidatos = [];
     $idsResolverCheck = [];
     foreach ($metaOrigen as $row) {
         $id = trim((string) ($row['ID_Curso'] ?? ''));
@@ -348,6 +363,7 @@ function tipo1MapearCursosAPosterioresFinAnio($database, array $cursos): array
     }
 
     $idsFinales = [];
+    $nombreOverridePorId = []; // ID_Curso => nombre cursoPosterior cuando es texto sin curso propio
     foreach ($metaOrigen as $row) {
         $id = trim((string) ($row['ID_Curso'] ?? ''));
         if ($id === '' || !isset($candidatos[$id])) {
@@ -358,9 +374,14 @@ function tipo1MapearCursosAPosterioresFinAnio($database, array $cursos): array
             $idsFinales[$destino] = true;
             continue;
         }
-        // Sin posterior útil, o posterior inactivo/inexistente: el activo actual.
+        // Sin otro curso posterior activo: mantener el activo actual,
+        // pero si tiene texto en cursoPosterior mostrar ese nombre.
         if (strtoupper(trim((string) ($row['Estado_del_curso'] ?? ''))) === 'ACTIVO') {
             $idsFinales[$id] = true;
+            $post = trim((string) ($row['cursoPosterior'] ?? ''));
+            if ($post !== '') {
+                $nombreOverridePorId[$id] = $post;
+            }
         }
     }
 
@@ -386,6 +407,22 @@ function tipo1MapearCursosAPosterioresFinAnio($database, array $cursos): array
         'Estado_del_curso' => 'ACTIVO',
         'ORDER' => ['Nombre_del_curso' => 'ASC'],
     ]) ?: [];
+
+    foreach ($finales as &$f) {
+        $fid = trim((string) ($f['ID_Curso'] ?? ''));
+        if ($fid !== '' && isset($nombreOverridePorId[$fid])) {
+            $f['Nombre_del_curso'] = $nombreOverridePorId[$fid];
+            $f['Nombre_Corto_Curso'] = $nombreOverridePorId[$fid];
+        }
+    }
+    unset($f);
+
+    usort($finales, static function ($a, $b) {
+        return strcasecmp(
+            (string) ($a['Nombre_del_curso'] ?? ''),
+            (string) ($b['Nombre_del_curso'] ?? '')
+        );
+    });
 
     return $finales;
 }
